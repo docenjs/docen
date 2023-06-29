@@ -1,0 +1,38 @@
+{
+  "name": "docen",
+  "version": "0.0.0",
+  "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r prepack",
+    "check": "rome check . --apply-unsafe && rome format . --write",
+    "format": "prettier --write --list-different . --ignore-path .gitignore",
+    "postinstall": "githooks install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DemoMacro/docen.git"
+  },
+  "keywords": [
+    "pandoc",
+    "mammoth"
+  ],
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DemoMacro/docen/issues"
+  },
+  "homepage": "https://github.com/DemoMacro/docen#readme",
+  "devDependencies": {
+    "@funish/githooks": "edge",
+    "@funish/githooks-config": "edge",
+    "@funish/lint": "edge",
+    "prettier": "2.8.8",
+    "rome": "12.1.3",
+    "unbuild": "1.2.1"
+  }
+}
