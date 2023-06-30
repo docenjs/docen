@@ -22,6 +22,16 @@ $ pnpm add -D docen
 
 ## Usage
 
+```bash
+Usage: docen [command] [options]
+
+Options:
+  -s, --source          Source directory
+  -t, --target          Target directory
+  -v, --version         Show version number
+  -h, --help            Show help
+```
+
 ## License
 
 - [MIT](LICENSE) &copy; [Demo Macro](https://imst.xyz/)

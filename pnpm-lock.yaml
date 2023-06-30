@@ -32,10 +32,10 @@ importers:
   packages/docen:
     dependencies:
       "@funish/cli":
-        specifier: 0.0.4
-        version: 0.0.4
+        specifier: 0.0.4-edge.0
+        version: 0.0.4-edge.0
       file-type:
-        specifier: ^18.5.0
+        specifier: 18.5.0
         version: 18.5.0
       mammoth:
         specifier: 1.6.0
@@ -588,6 +588,14 @@ packages:
       {
         integrity: sha512-sakF/JfarbsFUvE57HFMuaL5j8N+ZnwyLx2eZcyTq/ZTpQkTgW+kmxocRhRxxFKtKkdghZy3OxvkOMel8BZMOA==,
       }
+    dev: true
+
+  /@funish/argv@0.0.4-edge.0:
+    resolution:
+      {
+        integrity: sha512-wTTW02ea9KIdgTUlL4i2OODhuAxKdl5BR7JncoxxpgzUvhmuEbvIZi/BtN/RBysmqrgDeLqykV5fLxR1qdCfMw==,
+      }
+    dev: false
 
   /@funish/cli@0.0.3:
     resolution:
@@ -599,13 +607,13 @@ packages:
       pkg-types: 1.0.2
     dev: true
 
-  /@funish/cli@0.0.4:
+  /@funish/cli@0.0.4-edge.0:
     resolution:
       {
-        integrity: sha512-GNp8wDc7HZaTrZzDu191TU/GRSGlygJeoID90JeJdd98cuioi8As54CEQKhBYWTCPd/QaMqbFXCzpjZM+5YpgA==,
+        integrity: sha512-5zPYuV0fBwxWL6w53thO7oNASA4ja32Sl+qEp8rxrmN500LY/SQyyfVZp5bGBetDyNcLqIe2mg5cW/chKZKgEg==,
       }
     dependencies:
-      "@funish/argv": 0.0.3
+      "@funish/argv": 0.0.4-edge.0
       pkg-types: 1.0.2
     dev: false
 
