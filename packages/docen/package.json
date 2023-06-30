@@ -2,13 +2,19 @@
   "name": "docen",
   "version": "0.0.0",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
-  "main": "dist/index.mjs",
+  "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "bin": {
-    "docen": "dist/cli.mjs"
+    "docen": "dist/cli.cjs"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
   },
   "scripts": {
     "prepack": "unbuild"
@@ -32,7 +38,7 @@
   },
   "homepage": "https://github.com/DemoMacro/docen#readme",
   "dependencies": {
-    "@funish/cli": "0.0.4",
+    "@funish/cli": "0.0.4-edge.0",
     "file-type": "18.5.0",
     "mammoth": "1.6.0"
   }
