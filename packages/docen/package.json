@@ -39,7 +39,7 @@
   },
   "homepage": "https://github.com/DemoMacro/docen#readme",
   "dependencies": {
-    "@funish/cli": "0.0.4-edge.0",
+    "@funish/cli": "0.0.4",
     "file-type": "18.5.0",
     "mammoth": "1.6.0"
   }
