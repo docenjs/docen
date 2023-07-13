@@ -1,0 +1,5 @@
+{
+  "pkg": {
+    "scripts": "dist/ncc/*"
+  }
+}
