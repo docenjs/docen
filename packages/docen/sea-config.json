@@ -1,5 +1,0 @@
-{
-  "main": "dist/ncc/index.cjs",
-  "output": "dist/prep.blob",
-  "disableExperimentalSEAWarning": true
-}

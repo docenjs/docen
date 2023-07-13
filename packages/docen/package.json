@@ -18,7 +18,7 @@
   },
   "scripts": {
     "prepack": "unbuild",
-    "bundle": "pnpm prepack && ncc build dist/cli.cjs -o dist/ncc && cp dist/ncc/index.cjs dist/ncc/docen.cjs && pkg dist/ncc/docen.cjs --out-path dist/bundle -C GZip"
+    "bundle": "node bundle.mjs"
   },
   "repository": {
     "type": "git",
