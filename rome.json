@@ -6,6 +6,9 @@
   "formatter": {
     "indentStyle": "space"
   },
+  "organizeImports": {
+    "enabled": true
+  },
   "javascript": {
     "formatter": {
       "trailingComma": "es5"

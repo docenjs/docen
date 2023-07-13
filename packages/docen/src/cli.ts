@@ -1,5 +1,5 @@
-import { CLI } from "@funish/cli";
 import { docen } from ".";
+import { CLI } from "@funish/cli";
 
 const cli = new CLI("docen");
 
