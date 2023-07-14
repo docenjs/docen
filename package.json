@@ -1,5 +1,5 @@
 {
-  "name": "docen",
+  "name": "docen-edge",
   "version": "0.0.0",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
   "private": true,
