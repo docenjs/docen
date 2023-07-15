@@ -1,5 +1,6 @@
 {
   "pkg": {
-    "scripts": "dist/ncc/*"
+    "scripts": ["dist/ncc/*.js"],
+    "assets": ["package.json"]
   }
 }

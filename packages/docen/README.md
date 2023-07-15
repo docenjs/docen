@@ -11,13 +11,13 @@
 
 ```bash
 # npm
-$ npm install -D docen
+$ npm install docen
 
 # yarn
-$ yarn add -D docen
+$ yarn add docen
 
 # pnpm
-$ pnpm add -D docen
+$ pnpm add docen
 ```
 
 ## Usage

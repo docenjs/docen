@@ -1,5 +1,6 @@
-import { docen } from ".";
+import { extractText } from ".";
 import { CLI } from "@funish/cli";
+import { readFileSync, writeFileSync } from "fs";
 
 const cli = new CLI("docen");
 
@@ -16,9 +17,10 @@ cli.command({
       description: "Target directory",
     },
   ],
-  action: (argv) => {
+  action: async (argv) => {
     if (argv.source && argv.target) {
-      docen(argv.source as string, argv.target as string);
+      const text = await extractText(argv.source as string);
+      writeFileSync(argv.target as string, text);
     } else {
       cli.help();
     }

@@ -1,6 +1,6 @@
 {
   "name": "docen",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
   "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
@@ -41,6 +41,7 @@
   "dependencies": {
     "@funish/cli": "0.0.4",
     "file-type": "18.5.0",
-    "office-text-extractor": "^3.0.1"
+    "mammoth": "1.6.0",
+    "pdfjs-dist": "^3.8.162"
   }
 }
