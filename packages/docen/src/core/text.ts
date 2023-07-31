@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 export async function extractText(source: string | ArrayBuffer) {
   const fileType = await detectFileType(source);
 
-  let text;
+  let text: string;
   switch (fileType?.ext) {
     case "docx":
       text = await extractTextFromDocx(source);
