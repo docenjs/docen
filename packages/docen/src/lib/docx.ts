@@ -1,7 +1,7 @@
 import { convertToHtml, extractRawText } from "mammoth";
 
 export async function extractTextFromDocx(
-  docxSource: string | URL | Buffer | ArrayBuffer
+  docxSource: string | URL | Buffer | ArrayBuffer,
 ) {
   let result = { value: "" };
 
@@ -23,7 +23,7 @@ export async function extractTextFromDocx(
 }
 
 export async function convertDocxToHtml(
-  docxSource: string | URL | Buffer | ArrayBuffer
+  docxSource: string | URL | Buffer | ArrayBuffer,
 ) {
   let result = { value: "" };
 

@@ -4,7 +4,7 @@ import type { DocumentInitParameters } from "pdfjs-dist/types/src/display/api";
 const { getDocument } = pdfjs;
 
 export async function extractTextFromPDF(
-  pdfSource: string | URL | ArrayBuffer | DocumentInitParameters
+  pdfSource: string | URL | ArrayBuffer | DocumentInitParameters,
 ) {
   // Load a PDF document.
   const loadingTask = getDocument(pdfSource);
