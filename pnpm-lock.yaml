@@ -18,8 +18,8 @@ importers:
         specifier: edge
         version: 0.0.2-edge.2
       '@types/node':
-        specifier: 20.4.9
-        version: 20.4.9
+        specifier: 20.5.4
+        version: 20.5.4
       '@vercel/ncc':
         specifier: 0.36.1
         version: 0.36.1
@@ -961,8 +961,8 @@ packages:
     resolution: {integrity: sha512-LG4opVs2ANWZ1TJoKc937iMmNstM/d0ae1vNbnBvBhqCSezgVUOzcLCqbI5elV8Vy6WKwKjaqR+zO9VKirBBCA==}
     dev: true
 
-  /@types/node@20.4.9:
-    resolution: {integrity: sha512-8e2HYcg7ohnTUbHk8focoklEQYvemQmu9M/f43DZVx43kHn0tE3BY/6gSDxS7k0SprtS0NHvj+L80cGLnoOUcQ==}
+  /@types/node@20.5.4:
+    resolution: {integrity: sha512-Y9vbIAoM31djQZrPYjpTLo0XlaSwOIsrlfE3LpulZeRblttsLQRFRlBAppW0LOxyT3ALj2M5vU1ucQQayQH3jA==}
     dev: true
 
   /@types/resolve@1.20.2:
