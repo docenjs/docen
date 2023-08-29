@@ -8,7 +8,7 @@
     "dist"
   ],
   "bin": {
-    "docen": "dist/cli.cjs"
+    "docen": "dist/cli.mjs"
   },
   "exports": {
     ".": {
