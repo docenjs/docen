@@ -1,6 +1,6 @@
 {
   "name": "docen",
-  "version": "0.0.5-edge.2",
+  "version": "0.0.5-edge.3",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
   "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
@@ -43,7 +43,6 @@
     "file-type": "18.5.0",
     "mammoth": "1.6.0",
     "pdfjs-dist": "3.10.111",
-    "std-env": "3.4.3",
     "unpdf": "0.6.1"
   }
 }

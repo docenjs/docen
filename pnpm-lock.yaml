@@ -49,9 +49,6 @@ importers:
       pdfjs-dist:
         specifier: 3.10.111
         version: 3.10.111
-      std-env:
-        specifier: 3.4.3
-        version: 3.4.3
       unpdf:
         specifier: 0.6.1
         version: 0.6.1
@@ -3443,13 +3440,6 @@ packages:
     resolution:
       {
         integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==,
-      }
-    dev: false
-
-  /std-env@3.4.3:
-    resolution:
-      {
-        integrity: sha512-f9aPhy8fYBuMN+sNfakZV18U39PbalgjXG3lLB9WkaYTxijru61wb57V9wxxNthXM5Sd88ETBWi29qLAsHO52Q==,
       }
     dev: false
 

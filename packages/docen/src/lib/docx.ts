@@ -1,8 +1,7 @@
 import { convertToHtml, extractRawText } from "mammoth";
-import { hasWindow } from "std-env";
 
 export async function extractTextFromDocx(docxSource: ArrayBuffer) {
-  if (hasWindow) {
+  if (typeof window !== "undefined") {
     return (await extractRawText({ arrayBuffer: docxSource })).value;
   } else {
     const source = Buffer.from(docxSource);
@@ -12,7 +11,7 @@ export async function extractTextFromDocx(docxSource: ArrayBuffer) {
 }
 
 export async function convertDocxToHtml(docxSource: ArrayBuffer) {
-  if (hasWindow) {
+  if (typeof window !== "undefined") {
     return (await convertToHtml({ arrayBuffer: docxSource })).value;
   } else {
     const source = Buffer.from(docxSource);
