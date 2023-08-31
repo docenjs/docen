@@ -1,4 +1,4 @@
-import { fileTypeFromBuffer, fileTypeFromStream } from "file-type";
+import { fileTypeFromBuffer } from "file-type";
 
 export async function detectFileType(source: ArrayBuffer) {
   let fileType;
