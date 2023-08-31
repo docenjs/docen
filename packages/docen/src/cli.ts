@@ -26,9 +26,7 @@ cli.command({
 
       const arrayBuffer = source.buffer.slice(source.byteOffset);
 
-      const text = await extractText(arrayBuffer, {
-        fileType: ext,
-      });
+      const text = await extractText(arrayBuffer);
       writeFileSync(argv.target as string, text);
     } else {
       cli.help();

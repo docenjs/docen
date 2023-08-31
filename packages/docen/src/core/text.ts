@@ -1,11 +1,12 @@
 import { extractTextFromDocx, extractTextFromPDF } from "../lib";
+import { detectFileType } from "../utils";
 
-export async function extractText(
-  source: ArrayBuffer,
-  options: { fileType: string }
-) {
+export async function extractText(source: ArrayBuffer) {
   let text: string;
-  switch (options.fileType) {
+
+  const fileType = await detectFileType(source);
+
+  switch (fileType?.ext) {
     case "docx":
       text = await extractTextFromDocx(source);
       break;
