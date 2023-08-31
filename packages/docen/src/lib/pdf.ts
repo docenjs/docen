@@ -1,12 +1,21 @@
-import pdfjs from "pdfjs-dist";
-import type { DocumentInitParameters } from "pdfjs-dist/types/src/display/api";
-
-const { getDocument } = pdfjs;
+import { readFileSync } from "fs";
+import { getResolvedPDFJS } from "unpdf";
 
 export async function extractTextFromPDF(
-  pdfSource: string | URL | ArrayBuffer | DocumentInitParameters,
+  source: string | URL | Uint8Array | ArrayBuffer,
 ) {
+  let pdfSource;
+
+  if (typeof source === "string") {
+    pdfSource = new Uint8Array(readFileSync(source));
+  } else if (source instanceof URL) {
+    pdfSource = await fetch(source).then((res) => res.arrayBuffer());
+  } else {
+    pdfSource = source;
+  }
+
   // Load a PDF document.
+  const { getDocument } = await getResolvedPDFJS();
   const loadingTask = getDocument(pdfSource);
   const pdf = await loadingTask.promise;
 
