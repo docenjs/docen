@@ -7,6 +7,9 @@
     "build": "pnpm -r prepack",
     "check": "rome check . --apply-unsafe && rome format . --write",
     "format": "prettier --write --list-different . --ignore-path .gitignore",
+    "edge": "pnpm -r exec bump v",
+    "release": "pnpm -r exec bump v -r patch",
+    "public": "pnpm -r exec bump p",
     "postinstall": "githooks install"
   },
   "repository": {
