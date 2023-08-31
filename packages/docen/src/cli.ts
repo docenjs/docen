@@ -19,7 +19,11 @@ cli.command({
   ],
   action: async (argv) => {
     if (argv.source && argv.target) {
-      const text = await extractText(argv.source as string);
+      const source = readFileSync(argv.source as string);
+
+      const arrayBuffer = source.buffer.slice(source.byteOffset);
+
+      const text = await extractText(arrayBuffer);
       writeFileSync(argv.target as string, text);
     } else {
       cli.help();
