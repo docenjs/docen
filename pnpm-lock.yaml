@@ -53,6 +53,12 @@ importers:
         specifier: 0.6.1
         version: 0.6.1
 
+  playground:
+    dependencies:
+      docen:
+        specifier: workspace:*
+        version: link:../packages/docen
+
 packages:
   /@ampproject/remapping@2.2.1:
     resolution:

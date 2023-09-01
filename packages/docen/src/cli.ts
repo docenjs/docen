@@ -1,7 +1,6 @@
 import { extractText } from ".";
 import { CLI } from "@funish/cli";
 import { readFileSync, writeFileSync } from "fs";
-import { extname } from "path";
 
 const cli = new CLI("docen");
 
@@ -10,21 +9,19 @@ cli.command({
     {
       name: "source",
       alias: "s",
-      description: "Source directory",
+      description: "Source file",
     },
     {
       name: "target",
       alias: "t",
-      description: "Target directory",
+      description: "Target file",
     },
   ],
   action: async (argv) => {
     if (argv.source && argv.target) {
-      const source = readFileSync(argv.source as string);
+      const sourceBuffer = readFileSync(argv.source as string);
 
-      const ext = extname(argv.source as string);
-
-      const arrayBuffer = source.buffer.slice(source.byteOffset);
+      const arrayBuffer = sourceBuffer.buffer.slice(sourceBuffer.byteOffset);
 
       const text = await extractText(arrayBuffer);
       writeFileSync(argv.target as string, text);

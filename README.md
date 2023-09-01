@@ -7,7 +7,7 @@
 
 ## Packages
 
-- [docen](./packages/docen/README.md) - Programmatically and command-line implementation of document formatting, powered by Demo Macro.
+- [docen](./packages/docen/README.md)
 
 ## License
 
