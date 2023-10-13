@@ -12,13 +12,13 @@
 $ pnpm i
 
 # development server
-$ pnpm dev
+$ pnpm tauri dev
 
 # production
-$ pnpm build
+$ pnpm tauri build
 
 # preview
-$ pnpm preview
+$ pnpm tauri preview
 ```
 
 ## Credits

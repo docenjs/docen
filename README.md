@@ -9,6 +9,10 @@
 
 - [docen](./packages/docen/README.md)
 
+## Applications
+
+- [Docen Desktop](./packages/desktop/README.md)
+
 ## License
 
 - [MIT](LICENSE) &copy; [Demo Macro](https://imst.xyz/)
