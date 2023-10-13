@@ -1,10 +1,11 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "pnpm generate",
     "beforeDevCommand": "pnpm dev",
     "devPath": "http://localhost:3000",
-    "distDir": "../dist"
+    "distDir": "../dist",
+    "withGlobalTauri": true
   },
   "package": {
     "productName": "Docen Desktop",
@@ -40,12 +41,36 @@
       },
       "resources": [],
       "shortDescription": "",
-      "targets": "all",
+      "targets": ["msi", "updater"],
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
-        "timestampUrl": ""
+        "timestampUrl": "",
+        "webviewInstallMode": {
+          "silent": true,
+          "type": "embedBootstrapper"
+        }
       }
+    },
+    "cli": {
+      "description": "",
+      "longDescription": "",
+      "beforeHelp": "",
+      "afterHelp": "",
+      "args": [
+        {
+          "name": "source",
+          "short": "s",
+          "index": 1,
+          "takesValue": true
+        },
+        {
+          "name": "target",
+          "short": "t",
+          "index": 2,
+          "takesValue": true
+        }
+      ]
     },
     "security": {
       "csp": null

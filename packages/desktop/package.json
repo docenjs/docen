@@ -25,7 +25,9 @@
   },
   "homepage": "https://github.com/DemoMacro/docen#readme",
   "devDependencies": {
+    "@tauri-apps/api": "1.5.0",
     "@tauri-apps/cli": "1.5.2",
+    "docen": "workspace:*",
     "nuxt": "3.6.5"
   }
 }

@@ -131,3 +131,6 @@ dist
 
 # nuxt v3
 .output
+
+# tauri
+target

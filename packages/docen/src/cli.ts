@@ -1,6 +1,6 @@
-import { extractText } from ".";
-import { CLI } from "@funish/cli";
 import { readFileSync, writeFileSync } from "fs";
+import { CLI } from "@funish/cli";
+import { extractText } from ".";
 
 const cli = new CLI("docen");
 

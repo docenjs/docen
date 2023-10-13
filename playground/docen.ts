@@ -1,5 +1,5 @@
-import { extractText } from "docen";
 import { readFileSync, writeFileSync } from "fs";
+import { extractText } from "docen";
 
 const pdfSource = readFileSync("demo.pdf");
 
