@@ -1,0 +1,31 @@
+{
+  "name": "@docen/desktop",
+  "version": "0.0.0",
+  "description": "Desktop for docen engine, powered by Demo Macro.",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DemoMacro/docen.git"
+  },
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DemoMacro/docen/issues"
+  },
+  "homepage": "https://github.com/DemoMacro/docen#readme",
+  "devDependencies": {
+    "@tauri-apps/cli": "1.5.2",
+    "nuxt": "3.6.5"
+  }
+}

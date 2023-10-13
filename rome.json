@@ -1,7 +1,13 @@
 {
   "$schema": "./node_modules/rome/configuration_schema.json",
   "files": {
-    "ignore": ["*/dist/*", "*/.cache/*"]
+    "ignore": [
+      "*/dist/*",
+      "*/.cache/*",
+      "*/src-tauri/target/*",
+      "*/.output/*",
+      "*/.nuxt/*"
+    ]
   },
   "formatter": {
     "indentStyle": "space"
