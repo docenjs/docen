@@ -35,7 +35,7 @@
     "@funish/githooks-config": "edge",
     "@funish/lint": "edge",
     "@types/node": "20.6.0",
-    "@vercel/ncc": "0.36.1",
+    "@vercel/ncc": "0.38.1",
     "pkg": "5.8.1",
     "prettier": "3.0.2",
     "@biomejs/biome": "1.0.0",
