@@ -11,7 +11,7 @@
 
 ## Applications
 
-- [Docen Desktop](./packages/desktop/README.md)
+- [Docen App](./packages/app/README.md)
 
 ## License
 

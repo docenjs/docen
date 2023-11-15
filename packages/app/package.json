@@ -1,7 +1,7 @@
 {
-  "name": "@docen/desktop",
+  "name": "@docen/app",
   "version": "0.0.0",
-  "description": "Desktop for docen engine, powered by Demo Macro.",
+  "description": "Application for docen engine, powered by Demo Macro.",
   "private": true,
   "scripts": {
     "build": "nuxt build",

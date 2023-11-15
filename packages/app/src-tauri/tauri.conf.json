@@ -8,7 +8,7 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "Docen Desktop",
+    "productName": "Docen App",
     "version": "0.1.0"
   },
   "tauri": {
@@ -83,7 +83,7 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "Docen Desktop",
+        "title": "Docen App",
         "width": 800
       }
     ]
