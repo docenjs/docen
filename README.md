@@ -8,6 +8,8 @@
 ## Packages
 
 - [docen](./packages/docen/README.md)
+- [docx](./packages/docx/README.md)
+- [pdf](./packages/pdf/README.md)
 
 ## Applications
 

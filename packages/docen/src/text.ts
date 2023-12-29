@@ -1,8 +1,9 @@
-import { extractTextFromDocx, extractTextFromPDF } from "../lib";
-import { detectFileType } from "../utils";
+import { extractTextFromPDF } from "@docen/pdf";
+import { extractTextFromDocx } from "./lib";
+import { detectFileType } from "./utils";
 
 export async function extractText(
-  source: ArrayBuffer,
+  source: Uint8Array | ArrayBuffer,
   options?: {
     sourceType?: string;
   },

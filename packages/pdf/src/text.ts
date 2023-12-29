@@ -1,9 +1,14 @@
 import { getResolvedPDFJS } from "unpdf";
 
-export async function extractTextFromPDF(pdfSource: ArrayBuffer) {
+export async function extractTextFromPDF(
+  pdfSource: Uint8Array,
+  options?: {
+    pages?: number[];
+  },
+) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();
-  const loadingTask = getDocument(pdfSource);
+  const loadingTask = getDocument(Uint8Array.from(pdfSource));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.
@@ -12,11 +17,13 @@ export async function extractTextFromPDF(pdfSource: ArrayBuffer) {
   // Get text-fragments
   let lastY = 0;
   let text = "";
-  for (let i = 1; i <= numPages; i++) {
-    const page = await pdf.getPage(i);
 
+  const pages =
+    options?.pages ?? Array.from({ length: numPages }, (_, i) => i + 1);
+
+  for (let i = 1; i <= pages.length; i++) {
+    const page = await pdf.getPage(pages[i - 1]);
     const textContent = await page.getTextContent();
-
     // Content contains lots of information about the text layout and
     // styles, but we need only strings at the moment
     for (const item of textContent.items) {
@@ -26,7 +33,7 @@ export async function extractTextFromPDF(pdfSource: ArrayBuffer) {
         text += item.str;
       } else {
         // @ts-ignore
-        text += "\n" + item.str;
+        text += `\n${item.str}`;
       }
       // @ts-ignore
       lastY = item.transform[5];

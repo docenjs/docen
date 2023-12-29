@@ -1,6 +1,8 @@
 {
   "private": true,
   "dependencies": {
+    "@docen/docx": "workspace:*",
+    "@docen/pdf": "workspace:*",
     "docen": "workspace:*"
   }
 }

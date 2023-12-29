@@ -1,2 +1,2 @@
-export * from "./core";
+export * from "./text";
 export * from "./lib";

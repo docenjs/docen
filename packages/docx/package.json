@@ -1,15 +1,12 @@
 {
-  "name": "docen",
+  "name": "@docen/docx",
   "version": "0.0.5",
-  "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
+  "description": "Programmed implementation of docx format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
-  "bin": {
-    "docen": "dist/cli.mjs"
-  },
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -17,8 +14,7 @@
     }
   },
   "scripts": {
-    "prepack": "unbuild",
-    "bundle": "node bundle.mjs"
+    "prepack": "unbuild"
   },
   "repository": {
     "type": "git",
@@ -37,11 +33,5 @@
   "bugs": {
     "url": "https://github.com/DemoMacro/docen/issues"
   },
-  "homepage": "https://github.com/DemoMacro/docen#readme",
-  "dependencies": {
-    "@docen/pdf": "workspace:*",
-    "@funish/cli": "0.0.4",
-    "file-type": "18.5.0",
-    "mammoth": "1.6.0"
-  }
+  "homepage": "https://github.com/DemoMacro/docen#readme"
 }
