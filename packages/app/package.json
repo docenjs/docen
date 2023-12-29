@@ -28,6 +28,6 @@
     "@tauri-apps/api": "1.5.1",
     "@tauri-apps/cli": "1.5.6",
     "docen": "workspace:*",
-    "nuxt": "3.6.5"
+    "nuxt": "3.9.0"
   }
 }
