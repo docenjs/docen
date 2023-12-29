@@ -21,9 +21,8 @@ cli.command({
     if (argv.source && argv.target) {
       const sourceBuffer = readFileSync(argv.source as string);
 
-      const arrayBuffer = sourceBuffer.buffer.slice(sourceBuffer.byteOffset);
+      const text = await extractText(new Uint8Array(sourceBuffer));
 
-      const text = await extractText(arrayBuffer);
       writeFileSync(argv.target as string, text);
     } else {
       cli.help();

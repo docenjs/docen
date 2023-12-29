@@ -52,6 +52,9 @@ importers:
 
   packages/docen:
     dependencies:
+      "@docen/docx":
+        specifier: workspace:*
+        version: link:../docx
       "@docen/pdf":
         specifier: workspace:*
         version: link:../pdf
@@ -65,7 +68,14 @@ importers:
         specifier: 1.6.0
         version: 1.6.0
 
-  packages/docx: {}
+  packages/docx:
+    dependencies:
+      htmlparser2:
+        specifier: 9.0.0
+        version: 9.0.0
+      jszip:
+        specifier: 3.10.1
+        version: 3.10.1
 
   packages/pdf:
     dependencies:
@@ -3816,14 +3826,12 @@ packages:
       domelementtype: 2.3.0
       domhandler: 5.0.3
       entities: 4.5.0
-    dev: true
 
   /domelementtype@2.3.0:
     resolution:
       {
         integrity: sha512-OLETBj6w0OsagBwdXnPdN0cnMfF9opN69co+7ZrbfPGrdpPVNBUj02spi6B1N7wChLQiPn4CSH/zJvXw56gmHw==,
       }
-    dev: true
 
   /domhandler@5.0.3:
     resolution:
@@ -3833,7 +3841,6 @@ packages:
     engines: { node: ">= 4" }
     dependencies:
       domelementtype: 2.3.0
-    dev: true
 
   /domutils@3.1.0:
     resolution:
@@ -3844,7 +3851,6 @@ packages:
       dom-serializer: 2.0.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
-    dev: true
 
   /dot-prop@8.0.2:
     resolution:
@@ -3946,7 +3952,6 @@ packages:
         integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==,
       }
     engines: { node: ">=0.12" }
-    dev: true
 
   /errno@0.1.8:
     resolution:
@@ -4597,6 +4602,18 @@ packages:
       }
     engines: { node: ">=8" }
     dev: true
+
+  /htmlparser2@9.0.0:
+    resolution:
+      {
+        integrity: sha512-uxbSI98wmFT/G4P2zXx4OVx04qWUmyFPrD2/CNepa2Zo3GPNaCaaxElDgwUrwYWkK1nr9fft0Ya8dws8coDLLQ==,
+      }
+    dependencies:
+      domelementtype: 2.3.0
+      domhandler: 5.0.3
+      domutils: 3.1.0
+      entities: 4.5.0
+    dev: false
 
   /http-errors@2.0.0:
     resolution:

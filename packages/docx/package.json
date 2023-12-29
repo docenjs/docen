@@ -33,5 +33,9 @@
   "bugs": {
     "url": "https://github.com/DemoMacro/docen/issues"
   },
-  "homepage": "https://github.com/DemoMacro/docen#readme"
+  "homepage": "https://github.com/DemoMacro/docen#readme",
+  "dependencies": {
+    "htmlparser2": "9.0.0",
+    "jszip": "3.10.1"
+  }
 }

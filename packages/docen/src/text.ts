@@ -1,9 +1,9 @@
+import { extractTextFromDocx } from "@docen/docx";
 import { extractTextFromPDF } from "@docen/pdf";
-import { extractTextFromDocx } from "./lib";
 import { detectFileType } from "./utils";
 
 export async function extractText(
-  source: Uint8Array | ArrayBuffer,
+  source: Uint8Array,
   options?: {
     sourceType?: string;
   },
@@ -20,7 +20,7 @@ export async function extractText(
       text = await extractTextFromPDF(source);
       break;
     case "txt":
-      text = source.toString();
+      text = Buffer.from(source).toString();
       break;
     default:
       throw new Error("Unsupported file type");
