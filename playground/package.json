@@ -3,6 +3,7 @@
   "dependencies": {
     "@docen/docx": "workspace:*",
     "@docen/pdf": "workspace:*",
-    "docen": "workspace:*"
+    "docen": "workspace:*",
+    "image-meta": "0.2.0"
   }
 }

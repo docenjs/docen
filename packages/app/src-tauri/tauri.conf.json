@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "Docen App",
-    "version": "0.1.0"
+    "version": "../package.json"
   },
   "tauri": {
     "allowlist": {
@@ -51,26 +51,6 @@
           "type": "embedBootstrapper"
         }
       }
-    },
-    "cli": {
-      "description": "",
-      "longDescription": "",
-      "beforeHelp": "",
-      "afterHelp": "",
-      "args": [
-        {
-          "name": "source",
-          "short": "s",
-          "index": 1,
-          "takesValue": true
-        },
-        {
-          "name": "target",
-          "short": "t",
-          "index": 2,
-          "takesValue": true
-        }
-      ]
     },
     "security": {
       "csp": null

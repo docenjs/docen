@@ -95,6 +95,9 @@ importers:
       docen:
         specifier: workspace:*
         version: link:../packages/docen
+      image-meta:
+        specifier: 0.2.0
+        version: 0.2.0
 
 packages:
   /@ampproject/remapping@2.2.1:
@@ -4965,7 +4968,6 @@ packages:
       {
         integrity: sha512-ZBGjl0ZMEMeOC3Ns0wUF/5UdUmr3qQhBSCniT0LxOgGGIRHiNFOkMtIHB7EOznRU47V2AxPgiVP+s+0/UCU0Hg==,
       }
-    dev: true
 
   /immediate@3.0.6:
     resolution:
