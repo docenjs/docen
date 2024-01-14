@@ -1,6 +1,6 @@
 {
   "name": "@docen/docx",
-  "version": "0.0.6-edge.0",
+  "version": "0.0.6",
   "description": "Programmed implementation of docx format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
