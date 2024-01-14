@@ -18,11 +18,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DemoMacro/docen.git"
+    "url": "git+https://github.com/docenjs/docen.git"
   },
   "keywords": [
     "pandoc",
-    "unpdf"
+    "unpdf",
+    "pdf"
   ],
   "author": {
     "name": "Demo Macro",
@@ -31,9 +32,9 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/DemoMacro/docen/issues"
+    "url": "https://github.com/docenjs/docen/issues"
   },
-  "homepage": "https://github.com/DemoMacro/docen#readme",
+  "homepage": "https://github.com/docenjs/docen#readme",
   "dependencies": {
     "unpdf": "0.10.1"
   },
