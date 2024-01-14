@@ -2,14 +2,14 @@ import * as canvas from "canvas";
 import { getResolvedPDFJS, renderPageAsImage } from "unpdf";
 
 export async function extractImageFromPDF(
-  pdfSource: Uint8Array,
+  source: Uint8Array,
   options?: {
     pages?: number[];
-  }
+  },
 ) {
   // Load a PDF document.
   const { getDocument, OPS } = await getResolvedPDFJS();
-  const loadingTask = getDocument(Uint8Array.from(pdfSource));
+  const loadingTask = getDocument(Uint8Array.from(source));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.
@@ -22,7 +22,7 @@ export async function extractImageFromPDF(
     page: number;
     name: string;
     index: number;
-    buffer: Buffer;
+    data: Uint8Array;
   }[] = [];
 
   for (let i = 1; i <= pages.length; i++) {
@@ -68,9 +68,9 @@ export async function extractImageFromPDF(
               page: pages[i - 1],
               name: imageName,
               index: index,
-              buffer: useCanvas.toBuffer("image/png"),
+              data: useCanvas.toBuffer("image/png"),
             });
-          }
+          },
         );
       }
     });
@@ -80,15 +80,15 @@ export async function extractImageFromPDF(
 }
 
 export async function convertPDFToImage(
-  pdfSource: Uint8Array,
+  source: Uint8Array,
   options?: {
     pages?: number[];
     canvas?: () => Promise<typeof canvas>;
-  }
+  },
 ) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();
-  const loadingTask = getDocument(Uint8Array.from(pdfSource));
+  const loadingTask = getDocument(Uint8Array.from(source));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.
@@ -101,7 +101,7 @@ export async function convertPDFToImage(
     options?.pages ?? Array.from({ length: numPages }, (_, i) => i + 1);
 
   for (let i = 1; i <= pages.length; i++) {
-    const image = await renderPageAsImage(Uint8Array.from(pdfSource), i, {
+    const image = await renderPageAsImage(Uint8Array.from(source), i, {
       canvas: options?.canvas,
     });
 

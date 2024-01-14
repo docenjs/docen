@@ -29,9 +29,9 @@ $ pnpm add docen
 import { extractText } from "docen";
 import { readFileSync, writeFileSync } from "fs";
 
-const pdfSource = readFileSync("demo.pdf");
+const source = readFileSync("demo.pdf");
 
-const arrayBuffer = pdfSource.buffer.slice(pdfSource.byteOffset);
+const arrayBuffer = source.buffer.slice(source.byteOffset);
 
 const text = await extractText(arrayBuffer);
 

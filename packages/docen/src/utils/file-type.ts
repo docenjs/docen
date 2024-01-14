@@ -10,7 +10,7 @@ export async function detectFileType(source: Uint8Array) {
     const buffer = Buffer.from(source);
     const isTxt = Buffer.compare(
       buffer.subarray(0, 3),
-      Buffer.from([0xef, 0xbb, 0xbf])
+      Buffer.from([0xef, 0xbb, 0xbf]),
     );
     if (isTxt) {
       fileType = {

@@ -9,6 +9,8 @@
 
 - [docen](./packages/docen/README.md)
 - [docx](./packages/docx/README.md)
+- [xlsx](./packages/xlsx/README.md)
+- [csv](./packages/csv/README.md)
 - [pdf](./packages/pdf/README.md)
 
 ## Applications

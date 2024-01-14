@@ -1,14 +1,14 @@
 import { getResolvedPDFJS } from "unpdf";
 
 export async function extractTextFromPDF(
-  pdfSource: Uint8Array,
+  source: Uint8Array,
   options?: {
     pages?: number[];
-  }
+  },
 ) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();
-  const loadingTask = getDocument(Uint8Array.from(pdfSource));
+  const loadingTask = getDocument(Uint8Array.from(source));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.

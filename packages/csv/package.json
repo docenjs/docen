@@ -1,0 +1,37 @@
+{
+  "name": "@docen/csv",
+  "version": "0.0.6-edge.0",
+  "description": "Programmed implementation of csv format, powered by Demo Macro.",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "prepack": "unbuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DemoMacro/docen.git"
+  },
+  "keywords": [
+    "pandoc",
+    "mammoth"
+  ],
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DemoMacro/docen/issues"
+  },
+  "homepage": "https://github.com/DemoMacro/docen#readme"
+}

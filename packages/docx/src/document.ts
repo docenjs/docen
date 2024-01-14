@@ -1,24 +1,21 @@
 import JSZIP from "jszip";
 
-export async function getDocumentXML(docxSource: Uint8Array) {
-  return JSZIP.loadAsync(docxSource).then((zip) =>
-    zip?.file("word/document.xml")?.async("text")
+export async function getDocumentXML(source: Uint8Array) {
+  return JSZIP.loadAsync(source).then(
+    (zip) => zip?.file("word/document.xml")?.async("text"),
   );
 }
 
-export async function getStylesXML(docxSource: Uint8Array) {
-  return JSZIP.loadAsync(docxSource).then((zip) =>
-    zip?.file("word/styles.xml")?.async("text")
+export async function getStylesXML(source: Uint8Array) {
+  return JSZIP.loadAsync(source).then(
+    (zip) => zip?.file("word/styles.xml")?.async("text"),
   );
 }
 
-export async function replaceStylesXML(
-  docxSource: Uint8Array,
-  docxTarget: Uint8Array
-) {
-  const sourceStyles = await getStylesXML(docxSource);
+export async function replaceStylesXML(source: Uint8Array, target: Uint8Array) {
+  const sourceStyles = await getStylesXML(source);
 
-  const targetZip = await JSZIP.loadAsync(docxTarget);
+  const targetZip = await JSZIP.loadAsync(target);
 
   if (sourceStyles) {
     targetZip.file("word/styles.xml", sourceStyles);

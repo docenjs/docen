@@ -1,8 +1,10 @@
 {
   "private": true,
   "dependencies": {
+    "@docen/csv": "workspace:*",
     "@docen/docx": "workspace:*",
     "@docen/pdf": "workspace:*",
+    "@docen/xlsx": "workspace:*",
     "docen": "workspace:*",
     "image-meta": "0.2.0"
   }

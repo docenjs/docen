@@ -1,8 +1,8 @@
 import { Parser } from "htmlparser2";
 import { getDocumentXML } from "./document";
 
-export async function extractTextFromDocx(docxSource: Uint8Array) {
-  const documentXML = await getDocumentXML(docxSource);
+export async function extractTextFromDocx(source: Uint8Array) {
+  const documentXML = await getDocumentXML(source);
 
   let text = "";
 
@@ -19,7 +19,7 @@ export async function extractTextFromDocx(docxSource: Uint8Array) {
       }
     },
     ontext: (string) => {
-      if (isText) {
+      if (isText && string) {
         text += `${string}`;
       }
     },
@@ -35,6 +35,8 @@ export async function extractTextFromDocx(docxSource: Uint8Array) {
   });
 
   document.write(documentXML);
+
+  document.end();
 
   return text;
 }
