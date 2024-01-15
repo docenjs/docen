@@ -1,6 +1,6 @@
 {
   "name": "@docen/csv",
-  "version": "0.0.6",
+  "version": "0.0.7-edge.0",
   "description": "Programmed implementation of csv format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",

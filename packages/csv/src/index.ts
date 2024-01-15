@@ -2,6 +2,7 @@ export interface CSVToJSONOptions {
   header?: boolean | string | string[];
   delimiter?: string;
   repeatMarker?: string;
+  quotechar?: string;
 }
 
 export function convertCSVToJSON(
@@ -10,16 +11,22 @@ export function convertCSVToJSON(
     delimiter: ",",
     header: false,
     repeatMarker: "$",
+    quotechar: '"',
   },
 ) {
   const delimiter = options?.delimiter ?? ",";
 
   const repeatMarker = options?.repeatMarker ?? "$";
 
+  const quotechar = options?.quotechar ?? '"';
+
   const csv = String.fromCharCode(...source);
 
   const data = csv.split("\n").map((row) => {
-    return row.split(delimiter);
+    // const regex = /("[^"]*"|[^,]+)/g;
+    const regex = `(${quotechar}[^${quotechar}]*${quotechar}|[^${delimiter}]+)${delimiter}`;
+
+    return row.match(regex) ?? [];
   });
 
   const maxColumns = Math.max(...data.map((row) => row.length));
