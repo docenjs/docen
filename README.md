@@ -13,10 +13,6 @@
 - [csv](./packages/csv/README.md)
 - [pdf](./packages/pdf/README.md)
 
-## Applications
-
-- [Docen App](./packages/app/README.md)
-
 ## License
 
 - [MIT](LICENSE) &copy; [Demo Macro](https://imst.xyz/)
