@@ -3,16 +3,12 @@ export interface CSVToJSONOptions {
   delimiter?: string;
   repeatMarker?: string;
   quotechar?: string;
+  newline?: string;
 }
 
 export function convertCSVToJSON(
   source: Uint8Array,
-  options: CSVToJSONOptions = {
-    delimiter: ",",
-    header: false,
-    repeatMarker: "$",
-    quotechar: '"',
-  },
+  options?: CSVToJSONOptions
 ) {
   const delimiter = options?.delimiter ?? ",";
 
@@ -20,11 +16,16 @@ export function convertCSVToJSON(
 
   const quotechar = options?.quotechar ?? '"';
 
+  const newline = options?.newline ?? "\n";
+
   const csv = String.fromCharCode(...source);
 
-  const data = csv.split("\n").map((row) => {
+  const data = csv.split(new RegExp(`\r?${newline}`, "g")).map((row) => {
     // const regex = /("[^"]*"|[^,]+)/g;
-    const regex = `(${quotechar}[^${quotechar}]*${quotechar}|[^${delimiter}]+)${delimiter}`;
+    const regex = new RegExp(
+      `(${quotechar}[^${quotechar}]*${quotechar}|[^${delimiter}]+)`,
+      "g"
+    );
 
     return row.match(regex) ?? [];
   });
@@ -44,7 +45,7 @@ export function convertCSVToJSON(
   } else if (options?.header) {
     header = Array.from(
       { length: maxColumns },
-      (_, i) => `${options?.header}${i + 1}`,
+      (_, i) => `${options?.header}${i + 1}`
     );
   }
 
@@ -56,7 +57,7 @@ export function convertCSVToJSON(
 
   if (header.length < maxColumns) {
     header = header.concat(
-      Array.from({ length: maxColumns - header.length }, (_, i) => `${i + 1}`),
+      Array.from({ length: maxColumns - header.length }, (_, i) => `${i + 1}`)
     );
   }
 

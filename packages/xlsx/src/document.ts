@@ -1,8 +1,8 @@
 import JSZIP from "jszip";
 
 export async function getStylesXML(source: Uint8Array) {
-  return JSZIP.loadAsync(source).then(
-    (zip) => zip?.file("xl/styles.xml")?.async("text"),
+  return JSZIP.loadAsync(source).then((zip) =>
+    zip?.file("xl/styles.xml")?.async("text")
   );
 }
 
@@ -38,7 +38,7 @@ export async function getWorksheetsXML(source: Uint8Array) {
 }
 
 export async function getSharedStringsXML(source: Uint8Array) {
-  return JSZIP.loadAsync(source).then(
-    (zip) => zip?.file("xl/sharedStrings.xml")?.async("text"),
+  return JSZIP.loadAsync(source).then((zip) =>
+    zip?.file("xl/sharedStrings.xml")?.async("text")
   );
 }

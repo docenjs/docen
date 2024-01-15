@@ -6,7 +6,7 @@ export async function extractText(
   source: Uint8Array,
   options?: {
     sourceType?: string;
-  },
+  }
 ) {
   let text: string;
 

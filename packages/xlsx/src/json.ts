@@ -3,7 +3,7 @@ import { generateCellColumn } from "./utils";
 
 export async function convertXLSXToJSON(
   source: Uint8Array,
-  options: { header?: boolean | string | string[]; repeatMarker?: string },
+  options: { header?: boolean | string | string[]; repeatMarker?: string }
 ) {
   const sheets = await parseSheets(source);
 
@@ -29,12 +29,12 @@ export async function convertXLSXToJSON(
     } else if (options?.header) {
       header = Array.from(
         { length: data[0].length },
-        (_, i) => `${options?.header}${i + 1}`,
+        (_, i) => `${options?.header}${i + 1}`
       );
     } else {
       header = Array.from(
         { length: data[0].length },
-        (_, i) => `${generateCellColumn(i + 1)}`,
+        (_, i) => `${generateCellColumn(i + 1)}`
       );
     }
 
