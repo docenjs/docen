@@ -1,6 +1,6 @@
 {
   "name": "@docen/xlsx",
-  "version": "0.0.7-edge.1",
+  "version": "0.0.7-edge.2",
   "description": "Programmed implementation of xlsx format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",

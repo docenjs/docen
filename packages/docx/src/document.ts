@@ -1,14 +1,14 @@
 import JSZIP from "jszip";
 
 export async function getDocumentXML(source: Uint8Array) {
-  return JSZIP.loadAsync(source).then((zip) =>
-    zip?.file("word/document.xml")?.async("text")
+  return JSZIP.loadAsync(source).then(
+    (zip) => zip?.file("word/document.xml")?.async("text"),
   );
 }
 
 export async function getStylesXML(source: Uint8Array) {
-  return JSZIP.loadAsync(source).then((zip) =>
-    zip?.file("word/styles.xml")?.async("text")
+  return JSZIP.loadAsync(source).then(
+    (zip) => zip?.file("word/styles.xml")?.async("text"),
   );
 }
 

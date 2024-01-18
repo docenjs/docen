@@ -1,6 +1,6 @@
 {
   "name": "docen",
-  "version": "0.0.7-edge.1",
+  "version": "0.0.7-edge.2",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
