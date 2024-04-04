@@ -1,7 +1,7 @@
 {
-  "name": "@docen/csv",
+  "name": "@docen/jsonp",
   "version": "0.0.7-edge.3",
-  "description": "Programmed implementation of csv format, powered by Demo Macro.",
+  "description": "Programmed implementation of jsonp format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
@@ -22,7 +22,7 @@
   },
   "keywords": [
     "pandoc",
-    "papaparse",
+    "jsonp",
     "csv",
     "json"
   ],

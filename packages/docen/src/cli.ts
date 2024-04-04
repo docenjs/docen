@@ -1,35 +1,30 @@
-import { readFileSync, writeFileSync } from "fs";
-import { CLI } from "@funish/cli";
+import { readFileSync, writeFileSync } from "node:fs";
+import { defineCommand, runMain } from "@funish/cli";
 import { extractText } from ".";
 
-const cli = new CLI("docen");
-
-cli.command({
-  options: [
-    {
+const main = defineCommand({
+  meta: {
+    name: "docen",
+  },
+  args: {
+    source: {
       name: "source",
       alias: "s",
       description: "Source file",
     },
-    {
+    target: {
       name: "target",
       alias: "t",
       description: "Target file",
     },
-  ],
-  action: async (argv) => {
-    if (argv.source && argv.target) {
-      const sourceBuffer = readFileSync(argv.source as string);
-
+  },
+  async run({ args }) {
+    if (args.source && args.target) {
+      const sourceBuffer = readFileSync(args.source as string);
       const text = await extractText(new Uint8Array(sourceBuffer));
-
-      writeFileSync(argv.target as string, text);
-    } else {
-      cli.help();
+      writeFileSync(args.target as string, text);
     }
   },
 });
 
-cli.version();
-
-cli.help();
+runMain(main);

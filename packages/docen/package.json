@@ -1,6 +1,6 @@
 {
   "name": "docen",
-  "version": "0.0.7-edge.2",
+  "version": "0.0.7-edge.3",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -41,7 +41,7 @@
   "dependencies": {
     "@docen/docx": "workspace:*",
     "@docen/pdf": "workspace:*",
-    "@funish/cli": "0.0.4",
-    "file-type": "18.7.0"
+    "@funish/cli": "0.0.5",
+    "file-type": "19.0.0"
   }
 }

@@ -1,7 +1,7 @@
 import { fileTypeFromBuffer } from "file-type";
 
 export async function detectFileType(source: Uint8Array) {
-  let fileType;
+  let fileType = null;
 
   fileType = await fileTypeFromBuffer(source);
 

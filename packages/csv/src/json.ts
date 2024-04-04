@@ -129,8 +129,9 @@ export function convertJSONToCSV(
         line += delimiter;
       }
 
-      line +=
-        quotechar + `${row[header[i]] ?? Object.values(row)[i]}` + quotechar;
+      line += `${quotechar}${
+        row[header[i]] ?? Object.values(row)[i]
+      }${quotechar}`;
     }
 
     csv += line + newline;

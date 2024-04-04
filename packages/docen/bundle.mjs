@@ -1,5 +1,5 @@
-import { execSync } from "child_process";
-import { readFileSync, rmdirSync } from "fs";
+import { execSync } from "node:child_process";
+import { readFileSync, rmdirSync } from "node:fs";
 
 execSync("pnpm prepack", { stdio: "inherit" });
 

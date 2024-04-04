@@ -1,4 +1,5 @@
 import { getResolvedPDFJS } from "unpdf";
+import type { TextItem } from "unpdf/dist/types/src/display/api";
 
 export async function extractTextFromPDF(
   source: Uint8Array,
@@ -26,16 +27,12 @@ export async function extractTextFromPDF(
     const textContent = await page.getTextContent();
     // Content contains lots of information about the text layout and
     // styles, but we need only strings at the moment
-    for (const item of textContent.items) {
-      // @ts-ignore
+    for (const item of textContent.items as TextItem[]) {
       if (lastY === item.transform[5] || !lastY) {
-        // @ts-ignore
         text += item.str;
       } else {
-        // @ts-ignore
         text += `\n${item.str}`;
       }
-      // @ts-ignore
       lastY = item.transform[5];
     }
   }

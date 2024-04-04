@@ -7,9 +7,9 @@
     "build": "pnpm -r prepack",
     "check": "biome check . --apply-unsafe && biome format . --write",
     "format": "prettier --write --list-different . --ignore-path .gitignore",
-    "edge": "pnpm -r exec bump v",
-    "release": "pnpm -r exec bump v -r patch",
-    "public": "pnpm -r exec bump p",
+    "edge": "pnpm -r exec bump version",
+    "release": "pnpm -r exec bump version -r patch",
+    "public": "pnpm -r --no-bail exec bump publish",
     "postinstall": "githooks install"
   },
   "repository": {
@@ -31,14 +31,14 @@
   },
   "homepage": "https://github.com/docenjs/docen#readme",
   "devDependencies": {
-    "@funish/githooks": "edge",
-    "@funish/githooks-config": "edge",
-    "@funish/lint": "edge",
-    "@types/node": "20.10.5",
+    "@funish/githooks": "0.0.5",
+    "@funish/githooks-config": "0.0.2",
+    "@funish/lint": "0.0.2",
+    "@types/node": "20.12.4",
     "@vercel/ncc": "0.38.1",
     "pkg": "5.8.1",
-    "prettier": "3.1.1",
-    "@biomejs/biome": "1.4.1",
+    "prettier": "3.2.5",
+    "@biomejs/biome": "1.6.4",
     "unbuild": "2.0.0"
   }
 }
