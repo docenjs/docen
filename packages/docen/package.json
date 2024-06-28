@@ -42,6 +42,7 @@
     "@docen/docx": "workspace:*",
     "@docen/pdf": "workspace:*",
     "@funish/cli": "0.0.5",
-    "file-type": "19.0.0"
+    "file-type": "19.0.0",
+    "undio": "0.2.0"
   }
 }

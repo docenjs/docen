@@ -1,15 +1,16 @@
 import * as canvas from "canvas";
+import { type DataType, toUint8Array } from "undio";
 import { getResolvedPDFJS, renderPageAsImage } from "unpdf";
 
 export async function extractImageFromPDF(
-  source: Uint8Array,
+  source: DataType,
   options?: {
     pages?: number[];
   },
 ) {
   // Load a PDF document.
   const { getDocument, OPS } = await getResolvedPDFJS();
-  const loadingTask = getDocument(Uint8Array.from(source));
+  const loadingTask = getDocument(Uint8Array.from(toUint8Array(source)));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.
@@ -80,7 +81,7 @@ export async function extractImageFromPDF(
 }
 
 export async function convertPDFToImage(
-  source: Uint8Array,
+  source: DataType,
   options?: {
     pages?: number[];
     canvas?: () => Promise<typeof canvas>;
@@ -88,7 +89,7 @@ export async function convertPDFToImage(
 ) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();
-  const loadingTask = getDocument(Uint8Array.from(source));
+  const loadingTask = getDocument(Uint8Array.from(toUint8Array(source)));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.
@@ -101,9 +102,13 @@ export async function convertPDFToImage(
     options?.pages ?? Array.from({ length: numPages }, (_, i) => i + 1);
 
   for (let i = 1; i <= pages.length; i++) {
-    const image = await renderPageAsImage(Uint8Array.from(source), i, {
-      canvas: options?.canvas,
-    });
+    const image = await renderPageAsImage(
+      Uint8Array.from(toUint8Array(source)),
+      i,
+      {
+        canvas: options?.canvas,
+      },
+    );
 
     images.push(image);
   }

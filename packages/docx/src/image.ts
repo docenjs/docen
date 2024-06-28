@@ -1,7 +1,8 @@
 import JSZIP from "jszip";
+import { type DataType, toUint8Array } from "undio";
 
-export async function extractImageFromDocx(source: Uint8Array) {
-  const files = (await JSZIP.loadAsync(source))?.files;
+export async function extractImageFromDocx(source: DataType) {
+  const files = (await JSZIP.loadAsync(toUint8Array(source)))?.files;
 
   const images: {
     name: string;

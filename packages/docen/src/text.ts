@@ -1,16 +1,18 @@
 import { extractTextFromDocx } from "@docen/docx";
 import { extractTextFromPDF } from "@docen/pdf";
+import { type DataType, toText, toUint8Array } from "undio";
 import { detectFileType } from "./utils";
 
 export async function extractText(
-  source: Uint8Array,
+  source: DataType,
   options?: {
     sourceType?: string;
   },
 ) {
   let text: string;
 
-  const fileType = options?.sourceType ?? (await detectFileType(source)).ext;
+  const fileType =
+    options?.sourceType ?? (await detectFileType(toUint8Array(source))).ext;
 
   switch (fileType) {
     case "docx":
@@ -20,7 +22,7 @@ export async function extractText(
       text = await extractTextFromPDF(source);
       break;
     case "txt":
-      text = Buffer.from(source).toString();
+      text = toText(source);
       break;
     default:
       throw new Error("Unsupported file type");

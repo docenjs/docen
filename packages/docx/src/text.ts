@@ -1,7 +1,8 @@
 import { Parser } from "htmlparser2";
+import { type DataType, toUint8Array } from "undio";
 import { getDocumentXML } from "./document";
 
-export async function extractTextFromDocx(source: Uint8Array) {
+export async function extractTextFromDocx(source: DataType) {
   const documentXML = await getDocumentXML(source);
 
   let text = "";

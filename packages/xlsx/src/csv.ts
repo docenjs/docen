@@ -1,6 +1,7 @@
+import type { DataType } from "undio";
 import { parseSheets } from "./parse";
 
-export async function convertXLSXToCSV(source: Uint8Array) {
+export async function convertXLSXToCSV(source: DataType) {
   const sheets = await parseSheets(source);
 
   const sheetsCSV = sheets.map((sheet) => {

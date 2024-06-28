@@ -1,15 +1,16 @@
+import { type DataType, toUint8Array } from "undio";
 import { getResolvedPDFJS } from "unpdf";
 import type { TextItem } from "unpdf/dist/types/src/display/api";
 
 export async function extractTextFromPDF(
-  source: Uint8Array,
+  source: DataType,
   options?: {
     pages?: number[];
   },
 ) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();
-  const loadingTask = getDocument(Uint8Array.from(source));
+  const loadingTask = getDocument(Uint8Array.from(toUint8Array(source)));
   const pdf = await loadingTask.promise;
 
   // Get the number of pages.

@@ -1,9 +1,10 @@
 import { Parser } from "htmlparser2";
 import JSZIP from "jszip";
+import { type DataType, toUint8Array } from "undio";
 import { parseCellPosition } from "./utils";
 
-export async function parseSheets(source: Uint8Array) {
-  const xlsxSource = await JSZIP.loadAsync(source);
+export async function parseSheets(source: DataType) {
+  const xlsxSource = await JSZIP.loadAsync(toUint8Array(source));
   const files = xlsxSource?.files;
 
   const worksheets = [];

@@ -36,6 +36,7 @@
   },
   "homepage": "https://github.com/docenjs/docen#readme",
   "dependencies": {
+    "undio": "0.2.0",
     "unpdf": "0.10.1"
   },
   "devDependencies": {

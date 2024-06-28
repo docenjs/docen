@@ -1,8 +1,9 @@
+import type { DataType } from "undio";
 import { parseSheets } from "./parse";
 import { generateCellColumn } from "./utils";
 
 export async function convertXLSXToJSON(
-  source: Uint8Array,
+  source: DataType,
   options: { header?: boolean | string | string[]; repeatMarker?: string },
 ) {
   const sheets = await parseSheets(source);
