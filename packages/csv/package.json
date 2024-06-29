@@ -4,9 +4,7 @@
   "description": "Programmed implementation of csv format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -20,12 +18,7 @@
     "type": "git",
     "url": "git+https://github.com/docenjs/docen.git"
   },
-  "keywords": [
-    "pandoc",
-    "papaparse",
-    "csv",
-    "json"
-  ],
+  "keywords": ["pandoc", "papaparse", "csv", "json"],
   "author": {
     "name": "Demo Macro",
     "email": "abc@imst.xyz",

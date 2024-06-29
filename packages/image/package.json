@@ -1,7 +1,7 @@
 {
-  "name": "@docen/pdf",
+  "name": "@docen/image",
   "version": "0.0.7-edge.3",
-  "description": "Programmed implementation of pdf format, powered by Demo Macro.",
+  "description": "Programmed implementation of image format, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": ["dist"],
@@ -18,7 +18,7 @@
     "type": "git",
     "url": "git+https://github.com/docenjs/docen.git"
   },
-  "keywords": ["pandoc", "unpdf", "pdf"],
+  "keywords": ["pandoc", "image"],
   "author": {
     "name": "Demo Macro",
     "email": "abc@imst.xyz",
@@ -30,10 +30,8 @@
   },
   "homepage": "https://github.com/docenjs/docen#readme",
   "dependencies": {
-    "undio": "0.2.0",
-    "unpdf": "0.11.0"
-  },
-  "devDependencies": {
-    "canvas": "2.11.2"
+    "image-meta": "^0.2.0",
+    "tesseract.js": "5.1.0",
+    "undio": "0.2.0"
   }
 }

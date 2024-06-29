@@ -6,7 +6,7 @@ export async function extractImageFromPDF(
   source: DataType,
   options?: {
     pages?: number[];
-  },
+  }
 ) {
   // Load a PDF document.
   const { getDocument, OPS } = await getResolvedPDFJS();
@@ -71,7 +71,7 @@ export async function extractImageFromPDF(
               index: index,
               data: useCanvas.toBuffer("image/png"),
             });
-          },
+          }
         );
       }
     });
@@ -85,7 +85,7 @@ export async function convertPDFToImage(
   options?: {
     pages?: number[];
     canvas?: () => Promise<typeof canvas>;
-  },
+  }
 ) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();
@@ -107,7 +107,7 @@ export async function convertPDFToImage(
       i,
       {
         canvas: options?.canvas,
-      },
+      }
     );
 
     images.push(image);

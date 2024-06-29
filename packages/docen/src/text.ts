@@ -7,7 +7,7 @@ export async function extractText(
   source: DataType,
   options?: {
     sourceType?: string;
-  },
+  }
 ) {
   let text: string;
 
