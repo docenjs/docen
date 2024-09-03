@@ -1,11 +1,11 @@
 export function convertJSONPToJSON(
   source: string,
-  options: { callbackName?: string; multiple?: boolean } = {}
+  options: { callbackName?: string; multiple?: boolean } = {},
 ): unknown {
   const multiple: boolean = options.multiple ?? false;
 
   const regGroup: RegExpMatchArray | null = source.match(
-    /(?<functionName>.+)\(.*\)/
+    /(?<functionName>.+)\(.*\)/,
   );
 
   const functionName: string | undefined = regGroup?.groups?.functionName;

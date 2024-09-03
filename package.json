@@ -16,7 +16,10 @@
     "type": "git",
     "url": "git+https://github.com/docenjs/docen.git"
   },
-  "keywords": ["pandoc", "mammoth"],
+  "keywords": [
+    "pandoc",
+    "mammoth"
+  ],
   "author": {
     "name": "Demo Macro",
     "email": "abc@imst.xyz",

@@ -19,7 +19,7 @@ export function convertCSVToJSON(source: string, options?: csvConvertOptions) {
     // const regex = /("[^"]*"|[^,]+)/g;
     const regex = new RegExp(
       `(${quotechar}[^${quotechar}]*${quotechar}|[^${delimiter}]+)`,
-      "g"
+      "g",
     );
 
     return row.match(regex) ?? [];
@@ -40,7 +40,7 @@ export function convertCSVToJSON(source: string, options?: csvConvertOptions) {
   } else if (options?.header) {
     header = Array.from(
       { length: maxColumns },
-      (_, i) => `${options?.header}${i + 1}`
+      (_, i) => `${options?.header}${i + 1}`,
     );
   }
 
@@ -52,7 +52,7 @@ export function convertCSVToJSON(source: string, options?: csvConvertOptions) {
 
   if (header.length < maxColumns) {
     header = header.concat(
-      Array.from({ length: maxColumns - header.length }, (_, i) => `${i + 1}`)
+      Array.from({ length: maxColumns - header.length }, (_, i) => `${i + 1}`),
     );
   }
 
@@ -80,7 +80,7 @@ export function convertCSVToJSON(source: string, options?: csvConvertOptions) {
 export function convertJSONToCSV(
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   source: Record<string, any>[],
-  options?: csvConvertOptions
+  options?: csvConvertOptions,
 ) {
   const delimiter = options?.delimiter ?? ",";
 
@@ -103,7 +103,7 @@ export function convertJSONToCSV(
   } else if (options?.header) {
     header = Array.from(
       { length: maxColumns },
-      (_, i) => `${options?.header}${i + 1}`
+      (_, i) => `${options?.header}${i + 1}`,
     );
   }
 
@@ -115,7 +115,7 @@ export function convertJSONToCSV(
 
   if (header.length < maxColumns) {
     header = header.concat(
-      Array.from({ length: maxColumns - header.length }, (_, i) => `${i + 1}`)
+      Array.from({ length: maxColumns - header.length }, (_, i) => `${i + 1}`),
     );
   }
 

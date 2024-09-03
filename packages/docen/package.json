@@ -1,10 +1,12 @@
 {
   "name": "docen",
-  "version": "0.0.7-edge.3",
+  "version": "0.0.7",
   "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "bin": {
     "docen": "dist/cli.mjs"
   },
@@ -22,7 +24,10 @@
     "type": "git",
     "url": "git+https://github.com/docenjs/docen.git"
   },
-  "keywords": ["pandoc", "mammoth"],
+  "keywords": [
+    "pandoc",
+    "mammoth"
+  ],
   "author": {
     "name": "Demo Macro",
     "email": "abc@imst.xyz",

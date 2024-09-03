@@ -3,13 +3,13 @@ import { type DataType, toUint8Array } from "undio";
 
 export async function getDocumentXML(source: DataType) {
   return JSZIP.loadAsync(toUint8Array(source)).then((zip) =>
-    zip?.file("word/document.xml")?.async("text")
+    zip?.file("word/document.xml")?.async("text"),
   );
 }
 
 export async function getStylesXML(source: DataType) {
   return JSZIP.loadAsync(toUint8Array(source)).then((zip) =>
-    zip?.file("word/styles.xml")?.async("text")
+    zip?.file("word/styles.xml")?.async("text"),
   );
 }
 

@@ -1,18 +1,18 @@
 import { extractTextFromDocx } from "@docen/docx";
 import { extractTextFromPDF } from "@docen/pdf";
-import { type DataType, toText, toUint8Array } from "undio";
+import { type DataType, toArrayBuffer, toText } from "undio";
 import { detectFileType } from "./utils";
 
 export async function extractText(
   source: DataType,
   options?: {
     sourceType?: string;
-  }
+  },
 ) {
   let text: string;
 
   const fileType =
-    options?.sourceType ?? (await detectFileType(toUint8Array(source))).ext;
+    options?.sourceType ?? (await detectFileType(toArrayBuffer(source))).ext;
 
   switch (fileType) {
     case "docx":

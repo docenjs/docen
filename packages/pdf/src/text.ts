@@ -6,7 +6,7 @@ export async function extractTextFromPDF(
   source: DataType,
   options?: {
     pages?: number[];
-  }
+  },
 ) {
   // Load a PDF document.
   const { getDocument } = await getResolvedPDFJS();

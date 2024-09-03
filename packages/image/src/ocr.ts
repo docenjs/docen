@@ -7,7 +7,7 @@ export async function convertImageToText(
   options?: {
     // https://tesseract-ocr.github.io/tessdoc/Data-Files
     lang?: string | string[];
-  }
+  },
 ) {
   const { type } = imageMeta(toUint8Array(source));
 

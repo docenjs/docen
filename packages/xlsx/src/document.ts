@@ -3,7 +3,7 @@ import { type DataType, toUint8Array } from "undio";
 
 export async function getStylesXML(source: DataType) {
   return JSZIP.loadAsync(toUint8Array(source)).then((zip) =>
-    zip?.file("xl/styles.xml")?.async("text")
+    zip?.file("xl/styles.xml")?.async("text"),
   );
 }
 
@@ -40,6 +40,6 @@ export async function getWorksheetsXML(source: DataType) {
 
 export async function getSharedStringsXML(source: DataType) {
   return JSZIP.loadAsync(toUint8Array(source)).then((zip) =>
-    zip?.file("xl/sharedStrings.xml")?.async("text")
+    zip?.file("xl/sharedStrings.xml")?.async("text"),
   );
 }
