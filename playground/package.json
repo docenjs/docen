@@ -1,11 +1,17 @@
 {
+  "name": "@docen/playground",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:document": "vitest run document-tests",
+    "test:media": "vitest run media-tests",
+    "test:data": "vitest run data-tests",
+    "test:watch": "vitest watch"
+  },
   "dependencies": {
-    "@docen/csv": "workspace:*",
-    "@docen/docx": "workspace:*",
-    "@docen/pdf": "workspace:*",
-    "@docen/xlsx": "workspace:*",
     "docen": "workspace:*",
-    "image-meta": "0.2.0"
+    "image-meta": "0.2.1"
   }
 }

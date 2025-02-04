@@ -1,0 +1,15 @@
+Sheet1:
+Product ID,Product Name,Category,Price,Stock
+1001,Laptop,Electronics,999.99,50
+1002,Smartphone,Electronics,599.99,100
+1003,Headphones,Accessories,89.99,200
+1004,Mouse,Accessories,29.99,150
+1005,Keyboard,Accessories,49.99,120
+
+Sheet2:
+Order ID,Customer,Date,Product ID,Quantity
+O001,John Doe,2024-01-15,1001,2
+O002,Jane Smith,2024-01-16,1003,1
+O003,Bob Johnson,2024-01-17,1002,1
+O004,Alice Brown,2024-01-18,1005,3
+O005,Charlie Wilson,2024-01-19,1004,2 

@@ -1,0 +1,40 @@
+Sample PDF Document
+
+This is a sample PDF document for testing document conversion functionality.
+
+Section 1: Text Content
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Section 2: Formatting
+• Headings and Subheadings
+• Bold and Italic Text
+• Different Font Sizes
+• Color Text
+• Underlined Text
+
+Section 3: Lists
+1. Ordered List Item 1
+2. Ordered List Item 2
+3. Ordered List Item 3
+
+• Unordered List Item 1
+• Unordered List Item 2
+• Unordered List Item 3
+
+Section 4: Table
++------------+------------+------------+
+| Column 1   | Column 2   | Column 3   |
++------------+------------+------------+
+| Data 1     | Data 2     | Data 3     |
+| Data 4     | Data 5     | Data 6     |
++------------+------------+------------+
+
+Section 5: Links and References
+Website: https://example.com
+Email: contact@example.com
+
+Section 6: Images
+[Image placeholder: Sample diagram]
+[Image placeholder: Sample chart]
+
+End of Document 

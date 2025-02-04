@@ -1,48 +1,108 @@
 {
   "name": "docen",
-  "version": "0.0.7",
-  "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
-  "main": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "version": "0.1.0",
+  "description": "Universal document conversion and processing library that works in any JavaScript runtime, powered by Demo Macro",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.mjs",
+      "require": "./dist/cli/index.cjs"
+    },
+    "./processors/pdf": {
+      "types": "./dist/processors/pdf/index.d.ts",
+      "import": "./dist/processors/pdf/index.mjs",
+      "require": "./dist/processors/pdf/index.cjs"
+    },
+    "./processors/docx": {
+      "types": "./dist/processors/docx/index.d.ts",
+      "import": "./dist/processors/docx/index.mjs",
+      "require": "./dist/processors/docx/index.cjs"
+    },
+    "./processors/xlsx": {
+      "types": "./dist/processors/xlsx/index.d.ts",
+      "import": "./dist/processors/xlsx/index.mjs",
+      "require": "./dist/processors/xlsx/index.cjs"
+    },
+    "./processors/csv": {
+      "types": "./dist/processors/csv/index.d.ts",
+      "import": "./dist/processors/csv/index.mjs",
+      "require": "./dist/processors/csv/index.cjs"
+    },
+    "./processors/image": {
+      "types": "./dist/processors/image/index.d.ts",
+      "import": "./dist/processors/image/index.mjs",
+      "require": "./dist/processors/image/index.cjs"
+    },
+    "./processors/json": {
+      "types": "./dist/processors/json/index.d.ts",
+      "import": "./dist/processors/json/index.mjs",
+      "require": "./dist/processors/json/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "bin": {
-    "docen": "dist/cli.mjs"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    }
+    "docen": "./dist/cli/index.mjs"
   },
   "scripts": {
-    "prepack": "unbuild",
-    "bundle": "node bundle.mjs"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/docenjs/docen.git"
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepack": "pnpm build"
   },
   "keywords": [
-    "pandoc",
-    "mammoth"
+    "document",
+    "conversion",
+    "processing",
+    "text",
+    "pdf",
+    "docx",
+    "xlsx",
+    "csv",
+    "image",
+    "json"
   ],
-  "author": {
-    "name": "Demo Macro",
-    "email": "abc@imst.xyz",
-    "url": "https://imst.xyz/"
-  },
+  "author": "Demo Macro",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/docenjs/docen/issues"
-  },
-  "homepage": "https://github.com/docenjs/docen#readme",
   "dependencies": {
-    "@docen/docx": "workspace:*",
-    "@docen/pdf": "workspace:*",
-    "@funish/cli": "0.0.5",
-    "file-type": "19.0.0",
-    "undio": "0.2.0"
+    "@funish/cli": "^0.0.5",
+    "file-type": "20.0.1",
+    "htmlparser2": "10.0.0",
+    "image-meta": "0.2.1",
+    "jszip": "3.10.1",
+    "tesseract.js": "6.0.0",
+    "undio": "^0.2.0",
+    "unenv": "1.10.0",
+    "unpdf": "0.12.1"
+  },
+  "peerDependencies": {
+    "canvas": "2.11.2"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "optionalDependencies": {
+    "canvas": "2.11.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

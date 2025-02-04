@@ -1,7 +1,7 @@
 {
   "name": "docen-edge",
   "version": "0.0.0",
-  "description": "Programmatically and command-line implementation of document formatting, powered by Demo Macro.",
+  "description": "Universal document conversion and processing library that works in any JavaScript runtime, powered by Demo Macro",
   "private": true,
   "scripts": {
     "build": "pnpm -r prepack",
@@ -31,14 +31,20 @@
   },
   "homepage": "https://github.com/docenjs/docen#readme",
   "devDependencies": {
-    "@biomejs/biome": "1.8.3",
+    "@biomejs/biome": "1.9.4",
     "@funish/githooks": "0.0.5",
     "@funish/githooks-config": "0.0.2",
     "@funish/lint": "0.0.2",
-    "@types/node": "20.14.9",
-    "@vercel/ncc": "0.38.1",
+    "@types/htmlparser2": "3.10.7",
+    "@types/node": "22.13.1",
+    "@vercel/ncc": "0.38.3",
     "pkg": "5.8.1",
-    "prettier": "3.3.2",
-    "unbuild": "2.0.0"
-  }
+    "prettier": "3.4.2",
+    "rimraf": "6.0.1",
+    "tsup": "8.3.6",
+    "typescript": "5.7.3",
+    "unbuild": "3.3.1",
+    "vitest": "3.0.5"
+  },
+  "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
 }
