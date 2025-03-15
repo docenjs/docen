@@ -1,18 +1,13 @@
 {
-  "name": "docen",
+  "name": "@docen/core",
   "version": "0.1.0",
-  "description": "Universal document conversion and processing library that works in any JavaScript runtime",
+  "description": "Core module for Docen - Universal document conversion and processing library",
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
-    },
-    "./cli": {
-      "types": "./dist/cli/index.d.ts",
-      "import": "./dist/cli/index.mjs",
-      "require": "./dist/cli/index.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -21,9 +16,6 @@
   "files": [
     "dist"
   ],
-  "bin": {
-    "docen": "./dist/cli/index.mjs"
-  },
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
@@ -33,19 +25,12 @@
     "document",
     "conversion",
     "processing",
-    "text",
-    "pdf",
-    "docx",
-    "xlsx",
-    "csv",
-    "image",
-    "json"
+    "ast",
+    "processor"
   ],
   "author": "Demo Macro",
   "license": "MIT",
   "dependencies": {
-    "@docen/core": "workspace:*",
-    "@docen/document": "workspace:*",
-    "@funish/cli": "0.0.5"
+    "undio": "0.2.0"
   }
 }

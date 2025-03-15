@@ -1,6 +1,0 @@
-{
-  "pkg": {
-    "scripts": [".cache/ncc/*.js"],
-    "assets": ["package.json"]
-  }
-}

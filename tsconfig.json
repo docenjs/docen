@@ -6,6 +6,12 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "paths": {
+      "docen": ["./packages/docen/src/index.ts"],
+      "@docen/core": ["./packages/core/src/index.ts"],
+      "@docen/data": ["./packages/data/src/index.ts"],
+      "@docen/document": ["./packages/document/src/index.ts"]
+    }
   }
 }

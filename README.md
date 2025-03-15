@@ -5,132 +5,137 @@
 
 > Universal document conversion and processing library that works in any JavaScript runtime, powered by Demo Macro
 
-## 🎯 Features
+## 🌟 Features
 
-- **Universal Format Support**: Convert between various document formats seamlessly
-- **Cross-Platform**: Works on Windows, macOS, and Linux
-- **Modular Architecture**: Use only what you need with tree-shaking support
-- **Type Safety**: Written in TypeScript with full type support
-- **High Performance**: Optimized for speed and memory efficiency
-- **Extensible**: Easy to add new format support
-- **CLI Support**: Command-line interface for quick conversions
+- 🌐 **Runtime Agnostic**
+  - Works in Browsers
+  - Works in Node.js
+  - Works in Deno
+  - Works in Cloudflare Workers
+  - Works in Edge Functions
+  - Same API everywhere
+- 📄 **Multiple Format Support**
+  - PDF: Extract text and metadata
+  - DOCX: Convert to text, extract metadata
+  - XLSX: Convert to CSV/text, extract metadata
+  - CSV: Convert to JSON/text, extract metadata
+  - Image: OCR text extraction, metadata
+  - JSON/JSONP: Format conversion, metadata
+- 🛠️ **Rich Functionality**
+  - Format conversion
+  - Text extraction
+  - Metadata retrieval
+  - OCR capabilities
+- 🔧 **Highly Configurable**
+  - Format-specific options
+  - Customizable output
+  - Extensible architecture
 
-## 💻 Platform Support
+## 📦 Packages
 
-Docen is designed to work across all major platforms:
+Docen follows a modular design organized by content essence and user needs:
 
-- **Windows**: Full support (x64, arm64)
-- **macOS**: Full support (x64, arm64)
-- **Linux**: Full support (x64, arm64)
+- **[@docen/core](./packages/core)**: Defines universal AST structure, processor interfaces, and registry system
+- **[@docen/document](./packages/document)**: Handles text-based documents (PDF, DOCX, Markdown, HTML)
+- **[@docen/data](./packages/data)**: Processes structured data (XLSX, CSV, JSON, YAML, XML)
+- **[docen](./packages/docen)**: Main package that provides a unified API for all functionality
 
-Some features require additional setup:
-
-### Image Processing & OCR
-
-- Windows: Requires Visual Studio Build Tools
-- Linux: Requires `build-essential` and `libcairo2-dev`
-- macOS: Requires Xcode Command Line Tools
-
-### Docker Support
-
-We provide Docker images for consistent environment across platforms:
+## 🚀 Installation
 
 ```bash
-docker pull docenjs/docen
+# npm
+$ npm install docen
+
+# yarn
+$ yarn add docen
+
+# pnpm
+$ pnpm add docen
+
+# deno
+import { extractText } from "https://esm.sh/docen"
 ```
 
-For detailed platform-specific setup, see [Installation Guide](docs/2.installation.md).
+## 📝 Usage
 
-## 📦 Installation
+### Basic Document Processing
+
+```js
+import { extractText, convert, getMetadata } from "docen";
+
+// Extract text from any supported format
+const text = await extractText(sourceData);
+
+// Convert between formats
+const result = await convert(sourceData, "txt", {
+  preserveFormatting: true,
+});
+
+// Get document metadata
+const metadata = await getMetadata(sourceData);
+```
+
+### Format-Specific Options
+
+```js
+import { convert } from "docen";
+
+// CSV Options
+const jsonData = await convert(csvData, "json", {
+  csv: {
+    header: true,
+    delimiter: ",",
+    quotechar: '"',
+  },
+});
+
+// XLSX Options
+const csvData = await convert(xlsxData, "csv", {
+  xlsx: {
+    sheets: ["Sheet1"],
+    includeFormulas: true,
+  },
+});
+
+// Image OCR Options
+const textData = await convert(imageData, "txt", {
+  ocr: true,
+  language: "eng",
+});
+```
+
+### CLI
 
 ```bash
-# Install the package
-npm install docen
+Usage: docen [command] [options]
 
-# Or with specific processors
-npm install docen pdf-lib mammoth xlsx
+Commands:
+  convert     Convert document to target format
+  extract     Extract text from document
+  metadata    Get document metadata
+
+Options:
+  -s, --source          Source file
+  -t, --target          Target file
+  -f, --format          Target format
+  -o, --options         Format-specific options (JSON string)
+  -v, --version         Show version number
+  -h, --help            Show help
+
+Examples:
+  $ docen convert -s input.pdf -t output.txt
+  $ docen extract -s document.docx
+  $ docen metadata -s image.jpg
 ```
 
-## 📖 Documentation
+## 🧩 Architecture
 
-- [Introduction](docs/1.introduction.md)
-- [Installation Guide](docs/2.installation.md)
-- [Quick Start Guide](docs/3.quickstart.md)
-- [Core Concepts](docs/4.core-concepts.md)
-- [Processors](docs/5.processors.md)
-- [CLI Usage](docs/6.cli-usage.md)
-- [API Reference](docs/7.api-reference.md)
-- [Contributing Guide](docs/8.contributing.md)
+Docen uses a universal Abstract Syntax Tree (AST) to represent document content, allowing seamless conversion between different formats. The architecture consists of:
 
-## 🏗️ Project Structure
-
-```
-docen/
-  ├── packages/
-  │   ├── docen/          # Core package
-  │   │   ├── core/           # Core conversion engine
-  │   │   ├── processors/     # Format processors
-  │   │   ├── cli/           # CLI implementation
-  │   │   └── utils/         # Shared utilities
-  │   └── processors/     # Official processors
-  ├── docs/              # Documentation
-  ├── examples/          # Usage examples
-  └── tests/            # Test suites
-```
-
-## 🔧 Supported Formats
-
-For a detailed format conversion compatibility matrix, see [Format Conversion Matrix](docs/5.processors.md#format-conversion-matrix).
-
-### Document Formats
-
-- PDF (.pdf)
-- Microsoft Word (.docx)
-- Microsoft Excel (.xlsx)
-- CSV (.csv)
-- Markdown (.md)
-- HTML (.html)
-
-### Media Formats
-
-- Images (.png, .jpg, .gif, etc.)
-- Audio (.mp3, .wav, etc.)
-- Video (.mp4, .avi, etc.)
-
-### Data Formats
-
-- JSON (.json)
-- XML (.xml)
-- YAML (.yaml)
-
-## 🗺️ Roadmap
-
-### Phase 1 - Core Functionality (Current)
-
-- [x] Basic document format support (PDF, DOCX, XLSX, CSV)
-- [x] Text extraction
-- [x] Basic conversion capabilities
-- [x] CLI implementation
-
-### Phase 2 - Enhanced Features
-
-- [ ] Advanced format support (Markdown, HTML)
-- [ ] Media file processing
-- [ ] Batch processing
-- [ ] Progress tracking
-- [ ] Error recovery
-
-### Phase 3 - Advanced Features
-
-- [ ] Cloud storage integration
-- [ ] Streaming support
-- [ ] Format validation
-- [ ] Custom format plugins
-- [ ] Web API
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](docs/8.contributing.md) for details.
+1. **Core AST**: A unified representation of document structure
+2. **Processors**: Format-specific parsers and generators
+3. **Registry**: System for managing available processors
+4. **Pipeline**: Conversion workflow from input to output
 
 ## 📄 License
 

@@ -3,15 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
-    "test": "vitest run",
-    "test:document": "vitest run document-tests",
-    "test:media": "vitest run media-tests",
-    "test:data": "vitest run data-tests",
-    "test:watch": "vitest watch"
-  },
+  "scripts": {},
   "dependencies": {
-    "docen": "workspace:*",
-    "image-meta": "0.2.1"
+    "@docen/core": "workspace:*",
+    "@docen/data": "workspace:*",
+    "@docen/document": "workspace:*",
+    "docen": "workspace:*"
   }
 }

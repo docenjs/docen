@@ -134,3 +134,6 @@ dist
 
 # tauri
 target
+
+# draft
+*.draft.*
