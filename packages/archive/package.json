@@ -1,0 +1,43 @@
+{
+  "name": "@docen/archive",
+  "version": "0.1.0",
+  "description": "Archive and container format processing module for Docen",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepack": "pnpm build"
+  },
+  "keywords": [
+    "document",
+    "conversion",
+    "processing",
+    "archive",
+    "ooxml",
+    "zip",
+    "epub"
+  ],
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@docen/core": "workspace:*",
+    "fflate": "0.8.2"
+  }
+}

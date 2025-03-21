@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r prepack",
-    "check": "biome check . --apply-unsafe && biome format . --write",
+    "check": "biome check . --write --unsafe && biome format . --write",
     "format": "prettier --write --list-different . --ignore-path .gitignore",
     "edge": "pnpm -r exec bump version",
     "release": "pnpm -r exec bump version -r patch",

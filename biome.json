@@ -6,7 +6,8 @@
       "*/.cache/*",
       "*/src-tauri/target/*",
       "*/.output/*",
-      "*/.nuxt/*"
+      "*/.nuxt/*",
+      "*/dependencies/*"
     ]
   },
   "formatter": {

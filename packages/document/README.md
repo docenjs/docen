@@ -45,12 +45,6 @@ const parser = new PDFParser();
 // Parse PDF document
 const document = await parser.parse(pdfData);
 
-// Extract text
-const text = await parser.extractText(pdfData);
-
-// Get metadata
-const metadata = await parser.getMetadata(pdfData);
-
 // Create PDF generator
 const generator = new PDFGenerator();
 

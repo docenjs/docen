@@ -1,0 +1,34 @@
+{
+  "name": "Example JSON",
+  "version": "1.0.0",
+  "description": "A sample JSON file with various data types",
+  "author": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "age": 30
+  },
+  "tags": ["example", "json", "data"],
+  "settings": {
+    "enabled": true,
+    "maxItems": 100,
+    "timeout": 5000
+  },
+  "items": [
+    {
+      "id": 1,
+      "name": "Item 1",
+      "price": 9.99,
+      "inStock": true
+    },
+    {
+      "id": 2,
+      "name": "Item 2",
+      "price": 19.99,
+      "inStock": false
+    }
+  ],
+  "metadata": {
+    "created": "2024-01-01T00:00:00Z",
+    "modified": "2024-01-02T00:00:00Z"
+  }
+}
