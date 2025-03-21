@@ -6,15 +6,64 @@
  */
 
 /**
+ * Base node types
+ */
+export type NodeType =
+  | "root"
+  | "paragraph"
+  | "heading"
+  | "text"
+  | "emphasis"
+  | "strong"
+  | "link"
+  | "list"
+  | "listItem"
+  | "table"
+  | "tableRow"
+  | "tableCell"
+  | "code"
+  | "inlineCode"
+  | "blockquote"
+  | "thematicBreak"
+  | "break"
+  | "image"
+  | "inlineImage"
+  | "media"
+  | "section"
+  | "comment"
+  | "field"
+  | "shape"
+  | "chart"
+  | "smartArt"
+  | "equation"
+  | "cell"
+  | "row"
+  | "column"
+  | "sheet"
+  | "slide"
+  | "slideLayout"
+  | "slideMaster"
+  | "theme"
+  | "style"
+  | "template"
+  | "custom";
+
+/**
  * Base node interface that all AST nodes must implement
  */
 export interface Node {
   /** Type of the node */
-  type: string;
+  type: NodeType;
   /** Position information (optional) */
   position?: Position;
   /** Custom data that can be attached to the node */
   data?: Record<string, unknown>;
+  /** Style information */
+  style?: Record<string, string>;
+  /** Language information */
+  lang?: string;
+  /** Custom attributes */
+  attributes?: Record<string, string>;
 }
 
 /**
@@ -53,7 +102,21 @@ export interface Root extends Node {
 /**
  * Content node types that can appear as children of various containers
  */
-export type Content = Block | Inline;
+export type Content =
+  | Block
+  | Inline
+  | Section
+  | Comment
+  | Field
+  | Shape
+  | Chart
+  | SmartArt
+  | Equation
+  | Cell
+  | Row
+  | Column
+  | Sheet
+  | Slide;
 
 /**
  * Block-level content
@@ -266,7 +329,7 @@ export interface InlineImage extends Node {
 }
 
 /**
- * Media node (audio, video, etc.)
+ * Media node
  */
 export interface Media extends Node {
   type: "media";
@@ -278,12 +341,195 @@ export interface Media extends Node {
   alt?: string;
   /** Media title */
   title?: string;
-  /** Additional attributes */
-  attributes?: Record<string, string>;
 }
 
 /**
- * Document metadata
+ * Section node for document sections
+ */
+export interface Section extends Node {
+  type: "section";
+  /** Section properties */
+  properties?: {
+    pageSize?: {
+      width: number;
+      height: number;
+      orientation?: "portrait" | "landscape";
+    };
+    margins?: {
+      top: number;
+      right: number;
+      bottom: number;
+      left: number;
+      header: number;
+      footer: number;
+      gutter: number;
+    };
+    columns?: {
+      count: number;
+      space?: number;
+      equalWidth?: boolean;
+    };
+  };
+  /** Section content */
+  children: Content[];
+}
+
+/**
+ * Comment node for document comments
+ */
+export interface Comment extends Node {
+  type: "comment";
+  /** Comment author */
+  author?: string;
+  /** Comment date */
+  date?: Date;
+  /** Comment content */
+  children: Content[];
+}
+
+/**
+ * Field node for document fields
+ */
+export interface Field extends Node {
+  type: "field";
+  /** Field type */
+  fieldType: string;
+  /** Field properties */
+  properties?: Record<string, string>;
+  /** Field content */
+  children: Content[];
+}
+
+/**
+ * Shape node for drawings and shapes
+ */
+export interface Shape extends Node {
+  type: "shape";
+  /** Shape type */
+  shapeType: string;
+  /** Shape properties */
+  properties?: {
+    width?: number;
+    height?: number;
+    position?: {
+      x: number;
+      y: number;
+    };
+    rotation?: number;
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+  };
+  /** Shape content */
+  children: Content[];
+}
+
+/**
+ * Chart node for charts
+ */
+export interface Chart extends Node {
+  type: "chart";
+  /** Chart type */
+  chartType: string;
+  /** Chart data */
+  data?: Record<string, unknown>;
+  /** Chart options */
+  options?: Record<string, unknown>;
+}
+
+/**
+ * SmartArt node for SmartArt graphics
+ */
+export interface SmartArt extends Node {
+  type: "smartArt";
+  /** SmartArt type */
+  smartArtType: string;
+  /** SmartArt data */
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Equation node for mathematical equations
+ */
+export interface Equation extends Node {
+  type: "equation";
+  /** Equation content */
+  content: string;
+  /** Equation format */
+  format?: string;
+}
+
+/**
+ * Cell node for spreadsheet cells
+ */
+export interface Cell extends Node {
+  type: "cell";
+  /** Cell reference (e.g., A1, B2) */
+  reference?: string;
+  /** Cell value */
+  value?: string | number | boolean | Date;
+  /** Cell formula */
+  formula?: string;
+  /** Cell format */
+  format?: string;
+  /** Cell comments */
+  comments?: Comment[];
+}
+
+/**
+ * Row node for spreadsheet rows
+ */
+export interface Row extends Node {
+  type: "row";
+  /** Row number */
+  number?: number;
+  /** Row height */
+  height?: number;
+  /** Row cells */
+  children: Cell[];
+}
+
+/**
+ * Column node for spreadsheet columns
+ */
+export interface Column extends Node {
+  type: "column";
+  /** Column letter */
+  letter?: string;
+  /** Column width */
+  width?: number;
+}
+
+/**
+ * Sheet node for spreadsheet sheets
+ */
+export interface Sheet extends Node {
+  type: "sheet";
+  /** Sheet name */
+  name: string;
+  /** Sheet visibility */
+  visibility?: "visible" | "hidden" | "veryHidden";
+  /** Sheet content */
+  children: (Row | Column)[];
+}
+
+/**
+ * Slide node for presentation slides
+ */
+export interface Slide extends Node {
+  type: "slide";
+  /** Slide number */
+  number?: number;
+  /** Slide layout */
+  layout?: string;
+  /** Slide notes */
+  notes?: string;
+  /** Slide content */
+  children: Content[];
+}
+
+/**
+ * Metadata interface
  */
 export interface Metadata {
   /** Document title */
@@ -305,7 +551,7 @@ export interface Metadata {
 }
 
 /**
- * Complete document with metadata and content
+ * Document interface
  */
 export interface Document {
   /** Document metadata */
