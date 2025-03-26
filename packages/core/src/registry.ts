@@ -53,7 +53,7 @@ export class ProcessorRegistry {
   async findParser(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<Parser | undefined> {
     for (const parser of this.parsers) {
       if (await parser.canParse(source, mimeType, extension)) {
@@ -72,7 +72,7 @@ export class ProcessorRegistry {
    */
   findGenerator(mimeType?: string, extension?: string): Generator | undefined {
     return this.generators.find((generator) =>
-      generator.canGenerate(mimeType, extension),
+      generator.canGenerate(mimeType, extension)
     );
   }
 
@@ -91,7 +91,7 @@ export class ProcessorRegistry {
     sourceMimeType?: string,
     sourceExtension?: string,
     targetMimeType?: string,
-    targetExtension?: string,
+    targetExtension?: string
   ): Promise<FullProcessor | undefined> {
     // First try to find a processor that can handle both source and target
     for (const parser of this.parsers) {
@@ -134,7 +134,7 @@ export class ProcessorRegistry {
    */
   getFullProcessors(): FullProcessor[] {
     return this.parsers.filter(
-      (parser) => "canGenerate" in parser,
+      (parser) => "canGenerate" in parser
     ) as FullProcessor[];
   }
 }

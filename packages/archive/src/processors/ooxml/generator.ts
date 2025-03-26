@@ -55,7 +55,7 @@ export class OOXMLGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult> {
     // Determine the target format
     const targetFormat = this.determineTargetFormat(options);
@@ -90,7 +90,7 @@ export class OOXMLGenerator implements Generator {
 
       // Check if it's a MIME type
       const mimeTypeIndex = this.supportedOutputTypes.findIndex(
-        (mimeType) => mimeType.toLowerCase() === format,
+        (mimeType) => mimeType.toLowerCase() === format
       );
       if (mimeTypeIndex >= 0) {
         return this.supportedOutputExtensions[mimeTypeIndex];
@@ -131,7 +131,7 @@ export class OOXMLGenerator implements Generator {
   private async createOOXMLFiles(
     document: Document,
     targetFormat: string,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Record<string, Uint8Array>> {
     const files: Record<string, Uint8Array> = {};
 
@@ -163,7 +163,7 @@ export class OOXMLGenerator implements Generator {
   private async createDocxFiles(
     document: Document,
     files: Record<string, Uint8Array>,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // This is a simplified implementation
     // A real implementation would create all the necessary XML files for a DOCX document
@@ -177,7 +177,7 @@ export class OOXMLGenerator implements Generator {
         '  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>\n' +
         '  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>\n' +
         '  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>\n' +
-        "</Types>",
+        "</Types>"
     );
 
     // Create _rels/.rels
@@ -186,7 +186,7 @@ export class OOXMLGenerator implements Generator {
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n' +
         '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>\n' +
         '  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>\n' +
-        "</Relationships>",
+        "</Relationships>"
     );
 
     // Create word/_rels/document.xml.rels
@@ -194,7 +194,7 @@ export class OOXMLGenerator implements Generator {
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n' +
         '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>\n' +
-        "</Relationships>",
+        "</Relationships>"
     );
 
     // Create word/styles.xml
@@ -206,13 +206,13 @@ export class OOXMLGenerator implements Generator {
         "    <w:pPr/>\n" +
         "    <w:rPr/>\n" +
         "  </w:style>\n" +
-        "</w:styles>",
+        "</w:styles>"
     );
 
     // Create docProps/core.xml with metadata
     const metadata = document.metadata || {};
     files["docProps/core.xml"] = this.stringToUint8Array(
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <dc:title>${metadata.title || ""}</dc:title>\n  <dc:creator>${metadata.creator || ""}</dc:creator>\n  <dc:description>${metadata.description || ""}</dc:description>\n  <cp:lastModifiedBy>${metadata.lastModifiedBy || ""}</cp:lastModifiedBy>\n  <dcterms:created xsi:type="dcterms:W3CDTF">${metadata.created || new Date().toISOString()}</dcterms:created>\n  <dcterms:modified xsi:type="dcterms:W3CDTF">${metadata.modified || new Date().toISOString()}</dcterms:modified>\n</cp:coreProperties>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <dc:title>${metadata.title || ""}</dc:title>\n  <dc:creator>${metadata.creator || ""}</dc:creator>\n  <dc:description>${metadata.description || ""}</dc:description>\n  <cp:lastModifiedBy>${metadata.lastModifiedBy || ""}</cp:lastModifiedBy>\n  <dcterms:created xsi:type="dcterms:W3CDTF">${metadata.created || new Date().toISOString()}</dcterms:created>\n  <dcterms:modified xsi:type="dcterms:W3CDTF">${metadata.modified || new Date().toISOString()}</dcterms:modified>\n</cp:coreProperties>`
     );
 
     // Create word/document.xml with content
@@ -230,7 +230,7 @@ export class OOXMLGenerator implements Generator {
   private async createXlsxFiles(
     document: Document,
     files: Record<string, Uint8Array>,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // This is a placeholder implementation
     // A real implementation would create all the necessary XML files for an XLSX document
@@ -243,7 +243,7 @@ export class OOXMLGenerator implements Generator {
         '  <Default Extension="xml" ContentType="application/xml"/>\n' +
         '  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>\n' +
         '  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>\n' +
-        "</Types>",
+        "</Types>"
     );
 
     // Create a simple workbook.xml
@@ -253,7 +253,7 @@ export class OOXMLGenerator implements Generator {
         "  <sheets>\n" +
         '    <sheet name="Sheet1" sheetId="1" r:id="rId1"/>\n' +
         "  </sheets>\n" +
-        "</workbook>",
+        "</workbook>"
     );
   }
 
@@ -267,7 +267,7 @@ export class OOXMLGenerator implements Generator {
   private async createPptxFiles(
     document: Document,
     files: Record<string, Uint8Array>,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // This is a placeholder implementation
     // A real implementation would create all the necessary XML files for a PPTX document
@@ -280,7 +280,7 @@ export class OOXMLGenerator implements Generator {
         '  <Default Extension="xml" ContentType="application/xml"/>\n' +
         '  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>\n' +
         '  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>\n' +
-        "</Types>",
+        "</Types>"
     );
 
     // Create _rels/.rels
@@ -289,7 +289,7 @@ export class OOXMLGenerator implements Generator {
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n' +
         '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>\n' +
         '  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>\n' +
-        "</Relationships>",
+        "</Relationships>"
     );
 
     // Create a simple presentation.xml
@@ -304,13 +304,13 @@ export class OOXMLGenerator implements Generator {
         "  </p:sldIdLst>\n" +
         '  <p:sldSz cx="9144000" cy="6858000"/>\n' +
         '  <p:notesSz cx="6858000" cy="9144000"/>\n' +
-        "</p:presentation>",
+        "</p:presentation>"
     );
 
     // Create docProps/core.xml with metadata
     const metadata = document.metadata || {};
     files["docProps/core.xml"] = this.stringToUint8Array(
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <dc:title>${metadata.title || ""}</dc:title>\n  <dc:creator>${metadata.creator || ""}</dc:creator>\n  <dc:description>${metadata.description || ""}</dc:description>\n  <cp:lastModifiedBy>${metadata.lastModifiedBy || ""}</cp:lastModifiedBy>\n  <dcterms:created xsi:type="dcterms:W3CDTF">${metadata.created || new Date().toISOString()}</dcterms:created>\n  <dcterms:modified xsi:type="dcterms:W3CDTF">${metadata.modified || new Date().toISOString()}</dcterms:modified>\n</cp:coreProperties>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <dc:title>${metadata.title || ""}</dc:title>\n  <dc:creator>${metadata.creator || ""}</dc:creator>\n  <dc:description>${metadata.description || ""}</dc:description>\n  <cp:lastModifiedBy>${metadata.lastModifiedBy || ""}</cp:lastModifiedBy>\n  <dcterms:created xsi:type="dcterms:W3CDTF">${metadata.created || new Date().toISOString()}</dcterms:created>\n  <dcterms:modified xsi:type="dcterms:W3CDTF">${metadata.modified || new Date().toISOString()}</dcterms:modified>\n</cp:coreProperties>`
     );
   }
 
@@ -423,7 +423,7 @@ export class OOXMLGenerator implements Generator {
    * @returns Compressed OOXML package
    */
   private createOOXMLPackage(
-    files: Record<string, Uint8Array>,
+    files: Record<string, Uint8Array>
   ): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
       try {

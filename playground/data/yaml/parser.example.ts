@@ -19,7 +19,7 @@ async function main() {
     // Write parsed content to JSON file for inspection
     writeFileSync(
       join(__dirname, "output.draft.json"),
-      JSON.stringify(document, null, 2),
+      JSON.stringify(document, null, 2)
     );
   } catch (error) {
     console.error("Error parsing YAML:", error);

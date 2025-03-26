@@ -42,7 +42,7 @@ export class XMLParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check MIME type first
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -150,7 +150,7 @@ export class XMLParser implements Parser {
       preserveComments: boolean;
       preserveAttributes: boolean;
       convertPrimitives: boolean;
-    },
+    }
   ): unknown {
     const { preserveComments, preserveAttributes, convertPrimitives } = options;
 
@@ -185,7 +185,7 @@ export class XMLParser implements Parser {
       preserveComments: boolean;
       preserveAttributes: boolean;
       convertPrimitives: boolean;
-    },
+    }
   ): unknown {
     const { preserveAttributes, convertPrimitives } = options;
 

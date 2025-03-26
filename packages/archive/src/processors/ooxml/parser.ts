@@ -41,7 +41,7 @@ export class OOXMLParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check if the MIME type or extension is supported
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -140,17 +140,17 @@ export class OOXMLParser implements Parser {
         metadata.creator = this.extractXmlValue(xmlString, "dc:creator");
         metadata.description = this.extractXmlValue(
           xmlString,
-          "dc:description",
+          "dc:description"
         );
         metadata.lastModifiedBy = this.extractXmlValue(
           xmlString,
-          "cp:lastModifiedBy",
+          "cp:lastModifiedBy"
         );
         metadata.created = new Date(
-          this.extractXmlValue(xmlString, "dcterms:created"),
+          this.extractXmlValue(xmlString, "dcterms:created")
         );
         metadata.modified = new Date(
-          this.extractXmlValue(xmlString, "dcterms:modified"),
+          this.extractXmlValue(xmlString, "dcterms:modified")
         );
       }
     } catch (error) {
@@ -169,7 +169,7 @@ export class OOXMLParser implements Parser {
    */
   private async parseContent(
     data: Uint8Array,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -241,7 +241,7 @@ export class OOXMLParser implements Parser {
   private async parseDocx(
     files: Record<string, Uint8Array>,
     root: Root,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // Get the main document.xml file
     const documentXml = files["word/document.xml"];
@@ -281,7 +281,7 @@ export class OOXMLParser implements Parser {
   private async parseXlsx(
     files: Record<string, Uint8Array>,
     root: Root,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // Get the workbook.xml file
     const workbookXml = files["xl/workbook.xml"];
@@ -312,7 +312,7 @@ export class OOXMLParser implements Parser {
   private async parsePptx(
     files: Record<string, Uint8Array>,
     root: Root,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // Get the presentation.xml file
     const presentationXml = files["ppt/presentation.xml"];

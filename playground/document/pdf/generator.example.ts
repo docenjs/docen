@@ -276,7 +276,7 @@ const result = await generator.generate(document);`,
     // Write to file
     writeFileSync(
       join(__dirname, "output.draft.pdf"),
-      toDataView(result.content),
+      toDataView(result.content)
     );
     console.log("Successfully generated PDF file: output.draft.pdf");
   } catch (error) {

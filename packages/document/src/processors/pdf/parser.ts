@@ -6,7 +6,9 @@
  */
 
 import type {
+  Chart,
   Document,
+  Equation,
   Heading,
   Image,
   Metadata,
@@ -17,6 +19,8 @@ import type {
   Source,
   Table,
   TableCell,
+  TableEnhanced,
+  TableHeader,
   TableRow,
   Text,
 } from "@docen/core";
@@ -67,7 +71,7 @@ export class PDFParser implements Parser {
    */
   private createHeadingNode(
     text: string,
-    level: 1 | 2 | 3 | 4 | 5 | 6,
+    level: 1 | 2 | 3 | 4 | 5 | 6
   ): Heading {
     return {
       type: "heading",
@@ -90,7 +94,7 @@ export class PDFParser implements Parser {
    */
   private async extractImages(
     page: PDFPageProxy,
-    pageNum: number,
+    pageNum: number
   ): Promise<Image[]> {
     const images: Image[] = [];
     try {
@@ -131,7 +135,7 @@ export class PDFParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check if the MIME type or extension is supported
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -182,7 +186,7 @@ export class PDFParser implements Parser {
         sourceData = new Uint8Array(
           source.buffer,
           source.byteOffset,
-          source.byteLength,
+          source.byteLength
         );
       } else if (source instanceof ArrayBuffer) {
         // If source is already an ArrayBuffer, create Uint8Array directly
@@ -244,7 +248,7 @@ export class PDFParser implements Parser {
    * @returns Extracted metadata
    */
   private async extractMetadata(
-    pdfDocument: PDFDocumentProxy,
+    pdfDocument: PDFDocumentProxy
   ): Promise<Metadata> {
     try {
       const metaResult = await pdfDocument.getMetadata();
@@ -269,7 +273,7 @@ export class PDFParser implements Parser {
    */
   private async parseContent(
     pdfDocument: PDFDocumentProxy,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -301,51 +305,47 @@ export class PDFParser implements Parser {
   private async parsePage(
     page: PDFPageProxy,
     pageNum: number,
-    options?: ProcessorOptions,
-  ): Promise<(Paragraph | Heading | Image | Table)[]> {
-    const content: (Paragraph | Heading | Image | Table)[] = [];
+    options?: ProcessorOptions
+  ): Promise<
+    (Paragraph | Heading | Image | Table | Equation | Chart | TableEnhanced)[]
+  > {
+    const nodes: (
+      | Paragraph
+      | Heading
+      | Image
+      | Table
+      | Equation
+      | Chart
+      | TableEnhanced
+    )[] = [];
 
     try {
       // Get text content
       const textContent = await page.getTextContent();
-
-      // Get page viewport for positioning
       const viewport = page.getViewport({ scale: 1.0 });
 
-      // Process text items
-      const processedContent = this.processTextContent(
-        textContent,
-        viewport,
-        pageNum,
-      );
-      content.push(...processedContent);
+      // Process text content
+      nodes.push(...this.processTextContent(textContent, viewport, pageNum));
 
-      // Extract tables if requested
-      if (options?.extractTables) {
-        const tables = await this.extractTables(textContent, viewport);
-        content.push(...tables);
-      }
+      // Extract tables
+      nodes.push(...(await this.extractTables(textContent, viewport)));
 
-      // Extract images if requested
-      if (options?.extractImages) {
-        const images = await this.extractImages(page, pageNum);
-        content.push(...images);
-      }
+      // Extract equations
+      nodes.push(...(await this.extractEquations(textContent, viewport)));
+
+      // Extract charts
+      nodes.push(...(await this.extractCharts(page, pageNum)));
+
+      // Extract enhanced tables
+      nodes.push(...(await this.extractEnhancedTables(textContent, viewport)));
+
+      // Extract images
+      nodes.push(...(await this.extractImages(page, pageNum)));
     } catch (error) {
-      console.error(`Error processing page ${pageNum}:`, error);
-      // Add a simple paragraph with error information
-      content.push({
-        type: "paragraph",
-        children: [
-          {
-            type: "text",
-            value: `Error processing page ${pageNum}: ${error}`,
-          } as Text,
-        ],
-      });
+      console.error(`Error parsing page ${pageNum}:`, error);
     }
 
-    return content;
+    return nodes;
   }
 
   /**
@@ -359,7 +359,7 @@ export class PDFParser implements Parser {
   private processTextContent(
     textContent: TextContent,
     viewport: PageViewport,
-    pageNum: number,
+    pageNum: number
   ): (Paragraph | Heading)[] {
     const content: (Paragraph | Heading)[] = [];
     const items = textContent.items;
@@ -425,7 +425,7 @@ export class PDFParser implements Parser {
         // Empty line - end of paragraph
         if (currentParagraphLines.length > 0) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" ")),
+            this.createParagraphNode(currentParagraphLines.join(" "))
           );
           currentParagraphLines = [];
         }
@@ -436,13 +436,13 @@ export class PDFParser implements Parser {
       const avgFontSize =
         line.reduce(
           (sum, item) => sum + ("height" in item ? item.height || 0 : 0),
-          0,
+          0
         ) / line.length;
       const isBold = line.some(
         (item) =>
           "fontName" in item &&
           item.fontName &&
-          item.fontName.toLowerCase().includes("bold"),
+          item.fontName.toLowerCase().includes("bold")
       );
 
       // Detect if this is likely a heading
@@ -456,7 +456,7 @@ export class PDFParser implements Parser {
         // End current paragraph if any
         if (currentParagraphLines.length > 0) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" ")),
+            this.createParagraphNode(currentParagraphLines.join(" "))
           );
           currentParagraphLines = [];
         }
@@ -483,7 +483,7 @@ export class PDFParser implements Parser {
 
         if (isEndOfParagraph) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" ")),
+            this.createParagraphNode(currentParagraphLines.join(" "))
           );
           currentParagraphLines = [];
         }
@@ -509,7 +509,7 @@ export class PDFParser implements Parser {
    */
   private async extractTables(
     textContent: TextContent,
-    viewport: PageViewport,
+    viewport: PageViewport
   ): Promise<Table[]> {
     const tables: Table[] = [];
     const items = textContent.items;
@@ -577,7 +577,7 @@ export class PDFParser implements Parser {
       // Get row position and height
       const rowY = firstItem.transform[5];
       const rowHeight = Math.max(
-        ...row.map((item) => ("height" in item ? item.height : 0)),
+        ...row.map((item) => ("height" in item ? item.height : 0))
       );
 
       // Check if this row belongs to a table
@@ -654,7 +654,7 @@ export class PDFParser implements Parser {
   private isTableRow(
     row: TextContent["items"],
     prevRowY: number | null,
-    prevRowHeight: number | null,
+    prevRowHeight: number | null
   ): boolean {
     if (!row.length) return false;
 
@@ -665,7 +665,7 @@ export class PDFParser implements Parser {
     // Get row position and height
     const rowY = firstItem.transform[5];
     const rowHeight = Math.max(
-      ...row.map((item) => ("height" in item ? item.height : 0)),
+      ...row.map((item) => ("height" in item ? item.height : 0))
     );
 
     // Check if this is the first row
@@ -688,7 +688,7 @@ export class PDFParser implements Parser {
    * @returns Array of cell items
    */
   private groupItemsIntoCells(
-    row: TextContent["items"],
+    row: TextContent["items"]
   ): TextContent["items"][] {
     const cells: TextContent["items"][] = [];
     let currentCell: TextContent["items"] = [];
@@ -727,5 +727,193 @@ export class PDFParser implements Parser {
     }
 
     return cells;
+  }
+
+  private async extractEquations(
+    textContent: TextContent,
+    viewport: PageViewport
+  ): Promise<Equation[]> {
+    const equations: Equation[] = [];
+
+    // Look for LaTeX-style equations
+    const latexPattern = /\$(.*?)\$/g;
+
+    for (const item of textContent.items) {
+      if ("str" in item) {
+        const matches = item.str.matchAll(latexPattern);
+        for (const match of matches) {
+          equations.push({
+            type: "equation",
+            content: match[1].trim(),
+            format: "latex",
+          });
+        }
+      }
+    }
+
+    return equations;
+  }
+
+  private async extractCharts(
+    page: PDFPageProxy,
+    pageNum: number
+  ): Promise<Chart[]> {
+    const charts: Chart[] = [];
+
+    try {
+      const operatorList = await page.getOperatorList();
+
+      // Look for chart-related operators
+      for (let i = 0; i < operatorList.fnArray.length; i++) {
+        // Check for chart-specific operators
+        if (operatorList.fnArray[i] === 44) {
+          // Image operator
+          const imgData = operatorList.argsArray[i][0];
+          if (imgData?.data) {
+            // Check if this is a chart image
+            const chartData = await this.extractChartData(imgData);
+            if (chartData) {
+              charts.push({
+                type: "chart",
+                chartType: chartData.type,
+                data: chartData.data,
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error extracting charts from page ${pageNum}:`, error);
+    }
+
+    return charts;
+  }
+
+  private async extractChartData(imgData: {
+    data: Uint8Array;
+    mimeType?: string;
+  }): Promise<{ type: string; data: { image: string } } | null> {
+    try {
+      // Convert image data to base64
+      const base64Data = Buffer.from(imgData.data).toString("base64");
+
+      // Try to detect chart type and extract data
+      // This is a simplified example - in practice, you'd need more sophisticated detection
+      if (
+        imgData.mimeType === "image/png" ||
+        imgData.mimeType === "image/jpeg"
+      ) {
+        // Here you would implement chart detection logic
+        // For now, we'll return a basic chart structure
+        return {
+          type: "bar", // or other chart type
+          data: {
+            image: `data:${imgData.mimeType};base64,${base64Data}`,
+          },
+        };
+      }
+    } catch (error) {
+      console.error("Error extracting chart data:", error);
+    }
+
+    return null;
+  }
+
+  private async extractEnhancedTables(
+    textContent: TextContent,
+    viewport: PageViewport
+  ): Promise<TableEnhanced[]> {
+    const tables: TableEnhanced[] = [];
+
+    try {
+      // Use existing table extraction logic but enhance its functionality
+      const basicTables = await this.extractTables(textContent, viewport);
+
+      // Convert basic tables to enhanced tables
+      for (const table of basicTables) {
+        // If the table has at least one row, treat the first row as a header
+        if (table.children && table.children.length > 0) {
+          const headerRows = [table.children[0]];
+          const bodyRows = table.children.slice(1);
+
+          const header: TableHeader = {
+            type: "tableHeader",
+            rows: headerRows,
+          };
+
+          const enhancedTable: TableEnhanced = {
+            type: "table",
+            children: bodyRows,
+            header,
+            style: {
+              primary: "#000000",
+              secondary: "#ffffff",
+              accent: "#0000ff",
+              background: "#ffffff",
+              text: "#000000",
+              border: "#000000",
+            },
+            theme: {
+              type: "tableTheme",
+              name: "default",
+              colors: {
+                primary: "#000000",
+                secondary: "#ffffff",
+                accent: "#0000ff",
+                background: "#ffffff",
+                text: "#000000",
+                border: "#000000",
+              },
+              fonts: {
+                heading: "Helvetica",
+                body: "Helvetica",
+              },
+            },
+            template: {
+              type: "tableTemplate",
+              name: "default",
+              content: {
+                type: "table",
+                children: [],
+                header: {
+                  type: "tableHeader",
+                  rows: [],
+                },
+                style: {
+                  primary: "#000000",
+                  secondary: "#ffffff",
+                  accent: "#0000ff",
+                  background: "#ffffff",
+                  text: "#000000",
+                  border: "#000000",
+                },
+                theme: {
+                  type: "tableTheme",
+                  name: "default",
+                  colors: {
+                    primary: "#000000",
+                    secondary: "#ffffff",
+                    accent: "#0000ff",
+                    background: "#ffffff",
+                    text: "#000000",
+                    border: "#000000",
+                  },
+                  fonts: {
+                    heading: "Helvetica",
+                    body: "Helvetica",
+                  },
+                },
+              },
+            },
+          };
+
+          tables.push(enhancedTable);
+        }
+      }
+    } catch (error) {
+      console.error("Error extracting enhanced tables:", error);
+    }
+
+    return tables;
   }
 }

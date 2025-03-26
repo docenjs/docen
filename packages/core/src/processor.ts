@@ -85,7 +85,7 @@ export interface Parser extends Processor {
   canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean>;
 }
 
@@ -102,7 +102,7 @@ export interface Generator extends Processor {
    */
   generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult>;
 
   /**
@@ -130,6 +130,6 @@ export interface FullProcessor extends Parser, Generator {
   convert(
     source: Source,
     targetFormat: string,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult>;
 }

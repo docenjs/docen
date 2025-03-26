@@ -66,7 +66,7 @@ export class JSONGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: JSONGeneratorOptions,
+    options?: JSONGeneratorOptions
   ): Promise<ConversionResult> {
     try {
       // Get options with defaults
@@ -113,7 +113,7 @@ export class JSONGenerator implements Generator {
    */
   private generateJSONData(
     document: Document,
-    options?: JSONGeneratorOptions,
+    options?: JSONGeneratorOptions
   ): unknown {
     // Find table nodes in the document
     if (document.content?.children) {
@@ -169,7 +169,7 @@ export class JSONGenerator implements Generator {
     // First row is treated as header row
     const headerRow = rows[0] as TableRow;
     const headers = headerRow.children.map((cell) =>
-      this.getCellTextContent(cell as TableCell),
+      this.getCellTextContent(cell as TableCell)
     );
 
     // Check if this is a key-value table (two columns with "Key" and "Value" headers)
@@ -186,7 +186,7 @@ export class JSONGenerator implements Generator {
         if (row.children.length >= 2) {
           const key = this.getCellTextContent(row.children[0] as TableCell);
           const value = this.parseJSONValue(
-            this.getCellTextContent(row.children[1] as TableCell),
+            this.getCellTextContent(row.children[1] as TableCell)
           );
           result[key] = value;
         }
@@ -204,7 +204,7 @@ export class JSONGenerator implements Generator {
       for (let j = 0; j < headers.length && j < row.children.length; j++) {
         const header = headers[j];
         const value = this.parseJSONValue(
-          this.getCellTextContent(row.children[j] as TableCell),
+          this.getCellTextContent(row.children[j] as TableCell)
         );
         obj[header] = value;
       }
@@ -228,7 +228,7 @@ export class JSONGenerator implements Generator {
     const startIndex =
       table.children.length > 0 &&
       this.getCellTextContent(
-        (table.children[0] as TableRow).children[0] as TableCell,
+        (table.children[0] as TableRow).children[0] as TableCell
       ) === "Value"
         ? 1
         : 0;
@@ -237,7 +237,7 @@ export class JSONGenerator implements Generator {
       const row = table.children[i] as TableRow;
       if (row.children.length > 0) {
         const value = this.parseJSONValue(
-          this.getCellTextContent(row.children[0] as TableCell),
+          this.getCellTextContent(row.children[0] as TableCell)
         );
         result.push(value);
       }

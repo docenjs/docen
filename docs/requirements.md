@@ -188,8 +188,10 @@ interface ConversionPipeline {
    - Maintain consistent naming conventions
 
 3. **Dependencies**
+   - Minimize third-party dependencies to reduce complexity and security risks
    - Prefer existing dependencies in the codebase
    - Consult before adding new dependencies
+   - Implement core functionality using native APIs when possible
 
 ### Testing Strategy
 

@@ -49,7 +49,7 @@ export class YAMLParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check if the MIME type or extension is supported
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -120,7 +120,7 @@ export class YAMLParser implements Parser {
    */
   private async parseYAML(
     text: string,
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -369,7 +369,7 @@ export class YAMLParser implements Parser {
    */
   private yamlToTable(
     data: unknown,
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table | undefined {
     // Create table node
     const table: Table = {
@@ -424,7 +424,7 @@ export class YAMLParser implements Parser {
    */
   private objectArrayToTable(
     data: Record<string, unknown>[],
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table {
     const table: Table = {
       type: "table",
@@ -490,7 +490,7 @@ export class YAMLParser implements Parser {
    */
   private primitiveArrayToTable(
     data: (string | number | boolean | null)[],
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table {
     const table: Table = {
       type: "table",
@@ -550,7 +550,7 @@ export class YAMLParser implements Parser {
    */
   private objectToTable(
     data: Record<string, unknown>,
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table {
     const table: Table = {
       type: "table",

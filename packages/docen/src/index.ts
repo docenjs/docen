@@ -29,7 +29,7 @@ import type {
  */
 export async function extractText(
   source: Source,
-  options?: ProcessorOptions,
+  options?: ProcessorOptions
 ): Promise<string> {
   // Find a parser that can handle the source
   const parser = await defaultRegistry.findParser(source);
@@ -135,7 +135,7 @@ function extractTextFromDocument(document: Document): string {
 export async function convert(
   source: Source,
   targetFormat: string,
-  options?: ProcessorOptions,
+  options?: ProcessorOptions
 ): Promise<ConversionResult> {
   // Determine if targetFormat is a MIME type or extension
   const isMimeType = targetFormat.includes("/");
@@ -146,7 +146,7 @@ export async function convert(
     undefined,
     undefined,
     isMimeType ? targetFormat : undefined,
-    !isMimeType ? targetFormat : undefined,
+    !isMimeType ? targetFormat : undefined
   );
 
   if (processor) {
@@ -162,11 +162,11 @@ export async function convert(
 
   const generator = defaultRegistry.findGenerator(
     isMimeType ? targetFormat : undefined,
-    !isMimeType ? targetFormat : undefined,
+    !isMimeType ? targetFormat : undefined
   );
   if (!generator) {
     throw new Error(
-      `No generator found for the target format: ${targetFormat}`,
+      `No generator found for the target format: ${targetFormat}`
     );
   }
 
@@ -186,7 +186,7 @@ export async function convert(
  */
 export async function getMetadata(
   source: Source,
-  options?: ProcessorOptions,
+  options?: ProcessorOptions
 ): Promise<Metadata> {
   // Find a parser that can handle the source
   const parser = await defaultRegistry.findParser(source);
