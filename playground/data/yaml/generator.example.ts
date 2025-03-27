@@ -78,7 +78,7 @@ async function main() {
       writeFileSync(
         join(__dirname, "output.draft.yaml"),
         String(result.content),
-        "utf-8"
+        "utf-8",
       );
     }
 

@@ -68,7 +68,7 @@ export class XMLGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: XMLGeneratorOptions
+    options?: XMLGeneratorOptions,
   ): Promise<ConversionResult> {
     try {
       // Get options with defaults
@@ -122,7 +122,7 @@ export class XMLGenerator implements Generator {
    */
   private generateXMLData(
     document: Document,
-    options?: XMLGeneratorOptions
+    options?: XMLGeneratorOptions,
   ): Record<string, unknown> {
     // Find table nodes in the document
     if (document.content?.children) {
@@ -146,7 +146,7 @@ export class XMLGenerator implements Generator {
    */
   private tableToXML(
     table: Table,
-    options?: XMLGeneratorOptions
+    options?: XMLGeneratorOptions,
   ): Record<string, unknown> {
     if (table.children.length === 0) {
       return {};
@@ -179,7 +179,7 @@ export class XMLGenerator implements Generator {
     // First row is treated as header row
     const headerRow = rows[0] as TableRow;
     const headers = headerRow.children.map((cell) =>
-      this.getCellTextContent(cell as TableCell)
+      this.getCellTextContent(cell as TableCell),
     );
 
     // Check if this is a key-value table (two columns with "Key" and "Value" headers)
@@ -196,7 +196,7 @@ export class XMLGenerator implements Generator {
         if (row.children.length >= 2) {
           const key = this.getCellTextContent(row.children[0] as TableCell);
           const value = this.parseXMLValue(
-            this.getCellTextContent(row.children[1] as TableCell)
+            this.getCellTextContent(row.children[1] as TableCell),
           );
           result[key] = value;
         }
@@ -214,7 +214,7 @@ export class XMLGenerator implements Generator {
       for (let j = 0; j < headers.length && j < row.children.length; j++) {
         const header = headers[j];
         const value = this.parseXMLValue(
-          this.getCellTextContent(row.children[j] as TableCell)
+          this.getCellTextContent(row.children[j] as TableCell),
         );
         obj[header] = value;
       }
@@ -240,7 +240,7 @@ export class XMLGenerator implements Generator {
     const startIndex =
       table.children.length > 0 &&
       this.getCellTextContent(
-        (table.children[0] as TableRow).children[0] as TableCell
+        (table.children[0] as TableRow).children[0] as TableCell,
       ) === "Value"
         ? 1
         : 0;
@@ -249,7 +249,7 @@ export class XMLGenerator implements Generator {
       const row = table.children[i] as TableRow;
       if (row.children.length > 0) {
         const value = this.parseXMLValue(
-          this.getCellTextContent(row.children[0] as TableCell)
+          this.getCellTextContent(row.children[0] as TableCell),
         );
         result[`item${i + 1}`] = value;
       }
@@ -338,7 +338,7 @@ export class XMLGenerator implements Generator {
       preserveAttributes: boolean;
       handleSpecialValues: boolean;
       indentSize: number;
-    }
+    },
   ): string {
     const {
       includeDeclaration,
@@ -380,7 +380,7 @@ export class XMLGenerator implements Generator {
       preserveAttributes: boolean;
       handleSpecialValues: boolean;
       indentSize: number;
-    }
+    },
   ): string {
     const { preserveAttributes, handleSpecialValues, indentSize } = options;
 
@@ -401,8 +401,8 @@ export class XMLGenerator implements Generator {
             `${" ".repeat(indent)}<item>${this.generateXMLElement(
               item,
               indent + indentSize,
-              options
-            )}</item>`
+              options,
+            )}</item>`,
           );
         }
         return arrayLines.join("\n");
@@ -412,7 +412,7 @@ export class XMLGenerator implements Generator {
       }
       const objectLines: string[] = [];
       for (const [key, value] of Object.entries(
-        data as Record<string, unknown>
+        data as Record<string, unknown>,
       )) {
         if (preserveAttributes && key === "@attributes") {
           const attrs = value as Record<string, string>;
@@ -426,16 +426,16 @@ export class XMLGenerator implements Generator {
             `${" ".repeat(indent)}${this.generateXMLElement(
               value,
               indent + indentSize,
-              options
-            )}`
+              options,
+            )}`,
           );
         } else {
           objectLines.push(
             `${" ".repeat(indent)}<${key}>${this.generateXMLElement(
               value,
               indent + indentSize,
-              options
-            )}</${key}>`
+              options,
+            )}</${key}>`,
           );
         }
       }

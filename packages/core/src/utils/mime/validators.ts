@@ -96,7 +96,7 @@ export function validateExtension(extension: string): MimeValidationResult {
  */
 export function validateMimeTypeExtensionMatch(
   mimeType: string,
-  extension: string
+  extension: string,
 ): MimeValidationResult {
   const normalizedMimeType = mimeType.toLowerCase();
   const normalizedExtension = extension.toLowerCase().replace(/^\./, "");

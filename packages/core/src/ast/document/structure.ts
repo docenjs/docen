@@ -124,6 +124,51 @@ export interface Comment extends Node {
 }
 
 /**
+ * Field properties containing field-specific configuration
+ */
+export interface FieldProperties {
+  /** Field default value */
+  defaultValue?: string | number | boolean | Date;
+  /** Field validation rules */
+  validation?: {
+    /** Required field */
+    required?: boolean;
+    /** Minimum value or length */
+    min?: number;
+    /** Maximum value or length */
+    max?: number;
+    /** Regular expression pattern */
+    pattern?: string;
+    /** Custom validation message */
+    message?: string;
+  };
+  /** Field appearance */
+  appearance?: {
+    /** Label position */
+    labelPosition?: "top" | "left" | "right" | "bottom" | "hidden";
+    /** Placeholder text */
+    placeholder?: string;
+    /** Help text */
+    helpText?: string;
+    /** Is the field disabled */
+    disabled?: boolean;
+    /** Is the field read-only */
+    readOnly?: boolean;
+  };
+  /** Field auto-completion behavior */
+  autocomplete?: {
+    /** Enable autocomplete */
+    enabled?: boolean;
+    /** Autocomplete data source */
+    source?: string[] | string;
+    /** Autocomplete minimum characters */
+    minChars?: number;
+  };
+  /** Additional field-specific properties */
+  [key: string]: unknown;
+}
+
+/**
  * Field node for document fields
  */
 export interface Field extends Node {
@@ -131,7 +176,7 @@ export interface Field extends Node {
   /** Field type */
   fieldType: string;
   /** Field properties */
-  properties?: Record<string, unknown>;
+  properties?: FieldProperties;
   /** Field content */
   children: (Block | Inline)[];
 }

@@ -65,7 +65,7 @@ export class CSVGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: CSVGeneratorOptions
+    options?: CSVGeneratorOptions,
   ): Promise<ConversionResult> {
     // Generate CSV content from the document AST
     const csvContent = this.generateCSVContent(document, options);
@@ -90,7 +90,7 @@ export class CSVGenerator implements Generator {
    */
   private generateCSVContent(
     document: Document,
-    options?: CSVGeneratorOptions
+    options?: CSVGeneratorOptions,
   ): string {
     let csvContent = "";
 
@@ -98,7 +98,7 @@ export class CSVGenerator implements Generator {
     if (document.content?.children) {
       for (const node of document.content.children) {
         if (node.type === "table") {
-          csvContent += this.tableToCSV(node, options);
+          csvContent += this.tableToCSV(node as Table, options);
           break; // Only process the first table for now
         }
       }

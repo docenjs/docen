@@ -1,18 +1,45 @@
 /**
- * Processor registry for Docen
+ * Processor registry implementation for Docen
  *
- * This file defines the registry system that manages available processors
- * and provides methods to find appropriate processors for specific formats.
+ * This file implements the registry for managing processor components.
  */
 
-import type { FullProcessor, Generator, Parser, Source } from "./processor";
+import type { FullProcessor } from "../processor/index";
+import type { Source } from "../processor/interfaces";
+import type { Generator, Parser } from "../processor/interfaces";
+import type { ProcessorRegistry } from "./interfaces";
 
 /**
  * Registry for document processors
  */
-export class ProcessorRegistry {
+export class ProcessorRegistryImpl implements ProcessorRegistry {
   private parsers: Parser[] = [];
   private generators: Generator[] = [];
+
+  /**
+   * Register a component in the registry
+   *
+   * @param component The component to register
+   */
+  register(component: Parser | Generator): void {
+    if ("parse" in component) {
+      this.registerParser(component as Parser);
+    }
+    if ("generate" in component) {
+      this.registerGenerator(component as Generator);
+    }
+  }
+
+  /**
+   * Get all registered components
+   *
+   * @returns Array of all components
+   */
+  getAll(): (Parser | Generator)[] {
+    // Return unique set of components
+    const allComponents = [...this.parsers, ...this.generators];
+    return [...new Set(allComponents)];
+  }
 
   /**
    * Register a parser in the registry
@@ -20,7 +47,9 @@ export class ProcessorRegistry {
    * @param parser The parser to register
    */
   registerParser(parser: Parser): void {
-    this.parsers.push(parser);
+    if (!this.parsers.find((p) => p.id === parser.id)) {
+      this.parsers.push(parser);
+    }
   }
 
   /**
@@ -29,7 +58,9 @@ export class ProcessorRegistry {
    * @param generator The generator to register
    */
   registerGenerator(generator: Generator): void {
-    this.generators.push(generator);
+    if (!this.generators.find((g) => g.id === generator.id)) {
+      this.generators.push(generator);
+    }
   }
 
   /**
@@ -53,7 +84,7 @@ export class ProcessorRegistry {
   async findParser(
     source: Source,
     mimeType?: string,
-    extension?: string
+    extension?: string,
   ): Promise<Parser | undefined> {
     for (const parser of this.parsers) {
       if (await parser.canParse(source, mimeType, extension)) {
@@ -72,7 +103,7 @@ export class ProcessorRegistry {
    */
   findGenerator(mimeType?: string, extension?: string): Generator | undefined {
     return this.generators.find((generator) =>
-      generator.canGenerate(mimeType, extension)
+      generator.canGenerate(mimeType, extension),
     );
   }
 
@@ -91,21 +122,20 @@ export class ProcessorRegistry {
     sourceMimeType?: string,
     sourceExtension?: string,
     targetMimeType?: string,
-    targetExtension?: string
+    targetExtension?: string,
   ): Promise<FullProcessor | undefined> {
-    // First try to find a processor that can handle both source and target
-    for (const parser of this.parsers) {
-      // Check if parser is also a FullProcessor by checking if canGenerate exists
+    // Try to find processors that can handle both parse and generate operations
+    const fullProcessors = this.getFullProcessors();
+
+    for (const processor of fullProcessors) {
       if (
-        "canGenerate" in parser &&
-        (await parser.canParse(source, sourceMimeType, sourceExtension))
+        (await processor.canParse(source, sourceMimeType, sourceExtension)) &&
+        processor.canGenerate(targetMimeType, targetExtension)
       ) {
-        const fullProcessor = parser as FullProcessor;
-        if (fullProcessor.canGenerate(targetMimeType, targetExtension)) {
-          return fullProcessor;
-        }
+        return processor;
       }
     }
+
     return undefined;
   }
 
@@ -134,12 +164,15 @@ export class ProcessorRegistry {
    */
   getFullProcessors(): FullProcessor[] {
     return this.parsers.filter(
-      (parser) => "canGenerate" in parser
-    ) as FullProcessor[];
+      (parser): parser is FullProcessor => "canGenerate" in parser,
+    );
+  }
+
+  /**
+   * Clear all registered processors
+   */
+  clear(): void {
+    this.parsers = [];
+    this.generators = [];
   }
 }
-
-/**
- * Global default processor registry instance
- */
-export const defaultRegistry = new ProcessorRegistry();

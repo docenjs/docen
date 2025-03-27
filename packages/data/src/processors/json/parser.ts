@@ -6,13 +6,13 @@
 
 import type {
   Document,
-  Parser,
   ProcessorOptions,
   Root,
   Source,
   Table,
   TableRow,
 } from "@docen/core";
+import { AbstractParser, createProcessorError } from "@docen/core";
 import { toUint8Array } from "@docen/core";
 
 /**
@@ -30,7 +30,7 @@ export interface JSONParserOptions extends ProcessorOptions {
 /**
  * JSON Parser implementation
  */
-export class JSONParser implements Parser {
+export class JSONParser extends AbstractParser {
   id = "json-parser";
   name = "JSON Parser";
   supportedInputTypes = ["application/json"];
@@ -39,28 +39,49 @@ export class JSONParser implements Parser {
   supportedOutputExtensions: string[] = [];
 
   /**
-   * Check if this parser can handle the given source
+   * Parse JSON data into a document AST
+   *
+   * @param source The source data to parse
+   * @param options Parsing options
+   * @returns Parsed document
+   */
+  async parse(source: Source, options?: JSONParserOptions): Promise<Document> {
+    try {
+      // Convert source to string
+      const data = toUint8Array(source);
+      const text = new TextDecoder().decode(data);
+
+      // Create empty document structure
+      const document: Document = {
+        metadata: {},
+        content: {
+          type: "root",
+          children: [],
+        },
+      };
+
+      // Parse JSON content
+      const content = await this.parseJSON(text, options);
+      document.content = content;
+
+      return document;
+    } catch (error) {
+      throw createProcessorError(
+        "Failed to parse JSON content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  /**
+   * Try to detect if the source is in JSON format
    *
    * @param source The source to check
-   * @param mimeType Optional MIME type hint
-   * @param extension Optional file extension hint
-   * @returns True if this parser can handle the source
+   * @returns True if the source appears to be JSON
    */
-  async canParse(
-    source: Source,
-    mimeType?: string,
-    extension?: string
-  ): Promise<boolean> {
-    // Check if the MIME type or extension is supported
-    if (mimeType && this.supportedInputTypes.includes(mimeType)) {
-      return true;
-    }
-
-    if (extension && this.supportedInputExtensions.includes(extension)) {
-      return true;
-    }
-
-    // If no hints are provided, try to detect the format
+  protected async detectFormat(source: Source): Promise<boolean> {
     try {
       // Convert source to string for basic format detection
       const data = toUint8Array(source);
@@ -74,44 +95,15 @@ export class JSONParser implements Parser {
       ) {
         // Try to parse a small sample to confirm it's valid JSON
         JSON.parse(
-          trimmed.length > 100 ? `${trimmed.substring(0, 100)}...` : trimmed
+          trimmed.length > 100 ? `${trimmed.substring(0, 100)}...` : trimmed,
         );
         return true;
       }
     } catch (error) {
-      // If we can't check the content or it's not valid JSON, return false
       return false;
     }
 
     return false;
-  }
-
-  /**
-   * Parse JSON data into a document AST
-   *
-   * @param source The source data to parse
-   * @param options Parsing options
-   * @returns Parsed document
-   */
-  async parse(source: Source, options?: JSONParserOptions): Promise<Document> {
-    // Convert source to string
-    const data = toUint8Array(source);
-    const text = new TextDecoder().decode(data);
-
-    // Create empty document structure
-    const document: Document = {
-      metadata: {},
-      content: {
-        type: "root",
-        children: [],
-      },
-    };
-
-    // Parse JSON content
-    const content = await this.parseJSON(text, options);
-    document.content = content;
-
-    return document;
   }
 
   /**
@@ -123,7 +115,7 @@ export class JSONParser implements Parser {
    */
   private async parseJSON(
     text: string,
-    options?: JSONParserOptions
+    options?: JSONParserOptions,
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -146,17 +138,12 @@ export class JSONParser implements Parser {
         root.children.push(table);
       }
     } catch (error) {
-      console.error("Error parsing JSON content:", error);
-      // Add an error paragraph to the AST
-      root.children.push({
-        type: "paragraph",
-        children: [
-          {
-            type: "text",
-            value: `Error parsing JSON document: ${error}`,
-          },
-        ],
-      });
+      throw createProcessorError(
+        "Failed to parse JSON content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
 
     return root;
@@ -171,7 +158,7 @@ export class JSONParser implements Parser {
    */
   private jsonToTable(
     data: unknown,
-    options?: JSONParserOptions
+    options?: JSONParserOptions,
   ): Table | undefined {
     // Create table node
     const table: Table = {
@@ -226,7 +213,7 @@ export class JSONParser implements Parser {
    */
   private objectArrayToTable(
     data: Record<string, unknown>[],
-    options?: JSONParserOptions
+    options?: JSONParserOptions,
   ): Table {
     const table: Table = {
       type: "table",
@@ -292,7 +279,7 @@ export class JSONParser implements Parser {
    */
   private primitiveArrayToTable(
     data: (string | number | boolean | null)[],
-    options?: JSONParserOptions
+    options?: JSONParserOptions,
   ): Table {
     const table: Table = {
       type: "table",
@@ -352,7 +339,7 @@ export class JSONParser implements Parser {
    */
   private objectToTable(
     data: Record<string, unknown>,
-    options?: JSONParserOptions
+    options?: JSONParserOptions,
   ): Table {
     const table: Table = {
       type: "table",

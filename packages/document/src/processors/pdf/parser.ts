@@ -6,32 +6,78 @@
  */
 
 import type {
-  Chart,
   Document,
-  Equation,
   Heading,
   Image,
   Metadata,
+  Node,
   Paragraph,
   Parser,
   ProcessorOptions,
   Root,
   Source,
   Table,
+  TableCaption,
   TableCell,
   TableEnhanced,
   TableHeader,
   TableRow,
+  TableTheme,
   Text,
 } from "@docen/core";
-import { toUint8Array } from "@docen/core";
-import { getResolvedPDFJS } from "unpdf";
-import type { TextContent } from "unpdf/types/src/display/xfa_text";
-import type {
-  PDFDocumentProxy,
-  PDFPageProxy,
-  PageViewport,
-} from "unpdf/types/src/pdf";
+import { UnsupportedNodeHandling, toUint8Array } from "@docen/core";
+import { configureUnPDF, extractText, getResolvedPDFJS } from "unpdf";
+
+/**
+ * PDF.js types - since the library is imported dynamically,
+ * we define the interfaces here for type safety
+ */
+interface PDFOperatorList {
+  fnArray: number[];
+  argsArray: unknown[][];
+}
+
+interface PDFImgData {
+  data: Uint8Array;
+  mimeType?: string;
+}
+
+interface PDFTextItem {
+  str: string;
+  transform?: number[];
+  fontName?: string;
+  height?: number;
+}
+
+interface PDFTextContent {
+  items: PDFTextItem[];
+  styles?: Record<string, unknown>;
+}
+
+interface PDFViewport {
+  width: number;
+  height: number;
+  scale: number;
+}
+
+interface PDFPageProxy {
+  getOperatorList(): Promise<PDFOperatorList>;
+  getTextContent(): Promise<PDFTextContent>;
+  getViewport(options: { scale: number }): PDFViewport;
+  commonObjs: unknown;
+  objs: unknown;
+}
+
+interface PDFDocumentMetadata {
+  info?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+interface PDFDocumentProxy {
+  numPages: number;
+  getPage(pageNumber: number): Promise<PDFPageProxy>;
+  getMetadata(): Promise<PDFDocumentMetadata>;
+}
 
 /**
  * PDF Parser implementation
@@ -71,7 +117,7 @@ export class PDFParser implements Parser {
    */
   private createHeadingNode(
     text: string,
-    level: 1 | 2 | 3 | 4 | 5 | 6
+    level: 1 | 2 | 3 | 4 | 5 | 6,
   ): Heading {
     return {
       type: "heading",
@@ -94,7 +140,7 @@ export class PDFParser implements Parser {
    */
   private async extractImages(
     page: PDFPageProxy,
-    pageNum: number
+    pageNum: number,
   ): Promise<Image[]> {
     const images: Image[] = [];
     try {
@@ -106,7 +152,7 @@ export class PDFParser implements Parser {
       for (let i = 0; i < operatorList.fnArray.length; i++) {
         if (operatorList.fnArray[i] === 44) {
           // PDF.js operator for images
-          const imgData = operatorList.argsArray[i][0];
+          const imgData = operatorList.argsArray[i][0] as PDFImgData;
           if (imgData?.data) {
             const image: Image = {
               type: "image",
@@ -135,7 +181,7 @@ export class PDFParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string
+    extension?: string,
   ): Promise<boolean> {
     // Check if the MIME type or extension is supported
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -186,7 +232,7 @@ export class PDFParser implements Parser {
         sourceData = new Uint8Array(
           source.buffer,
           source.byteOffset,
-          source.byteLength
+          source.byteLength,
         );
       } else if (source instanceof ArrayBuffer) {
         // If source is already an ArrayBuffer, create Uint8Array directly
@@ -213,11 +259,15 @@ export class PDFParser implements Parser {
     };
 
     try {
+      // Configure unpdf if needed
+      await configureUnPDF({});
+
       // Get the PDF.js library
       const pdfjs = await getResolvedPDFJS();
 
       // Load the PDF document
-      const pdfDocument = await pdfjs.getDocument(sourceData).promise;
+      const pdfDocument = (await pdfjs.getDocument(sourceData)
+        .promise) as unknown as PDFDocumentProxy;
 
       // Extract metadata if requested
       if (options?.extractMetadata) {
@@ -229,6 +279,20 @@ export class PDFParser implements Parser {
 
       // Parse the content
       document.content = await this.parseContent(pdfDocument, options);
+
+      // Use extractText to get raw text if needed for debugging or further processing
+      if (options?.extractRawText) {
+        try {
+          // Cast to unknown first to handle the type incompatibility
+          const extractedText = await extractText(sourceData);
+          document.metadata.rawText =
+            typeof extractedText.text === "string"
+              ? extractedText.text
+              : extractedText.text.join("\n");
+        } catch (error) {
+          console.error("Error extracting raw text:", error);
+        }
+      }
     } catch (error) {
       console.error("Failed to parse PDF document:", error);
       // Return empty document if parsing fails
@@ -248,19 +312,61 @@ export class PDFParser implements Parser {
    * @returns Extracted metadata
    */
   private async extractMetadata(
-    pdfDocument: PDFDocumentProxy
+    pdfDocument: PDFDocumentProxy,
   ): Promise<Metadata> {
     try {
       const metaResult = await pdfDocument.getMetadata();
-      const metadata: Metadata = {};
 
-      // Add basic document info
-      metadata.pageCount = pdfDocument.numPages;
+      // Handle PDF.js metadata which can vary in structure
+      const info = metaResult?.info || {};
+
+      const metadata: Metadata = {
+        pageCount: pdfDocument.numPages,
+      };
+
+      // Convert PDF metadata to our metadata format
+      if (info && typeof info === "object") {
+        if ("Title" in info && info.Title) metadata.title = String(info.Title);
+        if ("Author" in info && info.Author)
+          metadata.authors = [String(info.Author)];
+        if ("Subject" in info && info.Subject)
+          metadata.description = String(info.Subject);
+        if ("Keywords" in info && info.Keywords) {
+          metadata.keywords = String(info.Keywords)
+            .split(",")
+            .map((k) => k.trim());
+        }
+
+        // Handle dates with fallbacks in case they're invalid
+        try {
+          if ("CreationDate" in info && info.CreationDate) {
+            const creationDate = new Date(String(info.CreationDate));
+            if (!Number.isNaN(creationDate.getTime())) {
+              metadata.created = creationDate;
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing creation date:", e);
+        }
+
+        try {
+          if ("ModDate" in info && info.ModDate) {
+            const modDate = new Date(String(info.ModDate));
+            if (!Number.isNaN(modDate.getTime())) {
+              metadata.modified = modDate;
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing modification date:", e);
+        }
+      }
 
       return metadata;
     } catch (error) {
       console.error("Error extracting metadata:", error);
-      return {};
+      return {
+        pageCount: pdfDocument.numPages,
+      };
     }
   }
 
@@ -273,7 +379,7 @@ export class PDFParser implements Parser {
    */
   private async parseContent(
     pdfDocument: PDFDocumentProxy,
-    options?: ProcessorOptions
+    options?: ProcessorOptions,
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -305,19 +411,9 @@ export class PDFParser implements Parser {
   private async parsePage(
     page: PDFPageProxy,
     pageNum: number,
-    options?: ProcessorOptions
-  ): Promise<
-    (Paragraph | Heading | Image | Table | Equation | Chart | TableEnhanced)[]
-  > {
-    const nodes: (
-      | Paragraph
-      | Heading
-      | Image
-      | Table
-      | Equation
-      | Chart
-      | TableEnhanced
-    )[] = [];
+    options?: ProcessorOptions,
+  ): Promise<Node[]> {
+    const nodes: Node[] = [];
 
     try {
       // Get text content
@@ -330,17 +426,10 @@ export class PDFParser implements Parser {
       // Extract tables
       nodes.push(...(await this.extractTables(textContent, viewport)));
 
-      // Extract equations
-      nodes.push(...(await this.extractEquations(textContent, viewport)));
-
-      // Extract charts
-      nodes.push(...(await this.extractCharts(page, pageNum)));
-
-      // Extract enhanced tables
-      nodes.push(...(await this.extractEnhancedTables(textContent, viewport)));
-
-      // Extract images
-      nodes.push(...(await this.extractImages(page, pageNum)));
+      // Extract images if requested
+      if (options?.extractImages) {
+        nodes.push(...(await this.extractImages(page, pageNum)));
+      }
     } catch (error) {
       console.error(`Error parsing page ${pageNum}:`, error);
     }
@@ -357,9 +446,9 @@ export class PDFParser implements Parser {
    * @returns Array of content nodes
    */
   private processTextContent(
-    textContent: TextContent,
-    viewport: PageViewport,
-    pageNum: number
+    textContent: PDFTextContent,
+    viewport: PDFViewport,
+    pageNum: number,
   ): (Paragraph | Heading)[] {
     const content: (Paragraph | Heading)[] = [];
     const items = textContent.items;
@@ -369,14 +458,14 @@ export class PDFParser implements Parser {
     }
 
     // Group text items by their vertical position to identify paragraphs
-    const lineGroups: TextContent["items"][] = [];
+    const lineGroups: Array<Array<PDFTextItem>> = [];
     let currentLineY: number | null = null;
-    let currentLineItems: TextContent["items"] = [];
+    let currentLineItems: Array<PDFTextItem> = [];
 
     // Sort items by their vertical position (top to bottom) and then by horizontal position (left to right)
     const sortedItems = [...items].sort((a, b) => {
       // Only sort TextItems, skip TextMarkedContent
-      if ("transform" in a && "transform" in b) {
+      if (a.transform && b.transform) {
         const yDiff = a.transform[5] - b.transform[5];
         if (Math.abs(yDiff) < 2) {
           // Items on the same line (with small tolerance)
@@ -389,7 +478,7 @@ export class PDFParser implements Parser {
 
     // Group items into lines
     for (const item of sortedItems) {
-      if (!("transform" in item)) continue;
+      if (!item.transform) continue;
 
       const y = item.transform[5];
 
@@ -417,7 +506,7 @@ export class PDFParser implements Parser {
     for (let i = 0; i < lineGroups.length; i++) {
       const line = lineGroups[i];
       const lineText = line
-        .map((item) => ("str" in item ? item.str : ""))
+        .map((item) => (item.str ? item.str : ""))
         .join(" ")
         .trim();
 
@@ -425,7 +514,7 @@ export class PDFParser implements Parser {
         // Empty line - end of paragraph
         if (currentParagraphLines.length > 0) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" "))
+            this.createParagraphNode(currentParagraphLines.join(" ")),
           );
           currentParagraphLines = [];
         }
@@ -434,15 +523,10 @@ export class PDFParser implements Parser {
 
       // Check if this might be a heading based on font size and style
       const avgFontSize =
-        line.reduce(
-          (sum, item) => sum + ("height" in item ? item.height || 0 : 0),
-          0
-        ) / line.length;
-      const isBold = line.some(
-        (item) =>
-          "fontName" in item &&
-          item.fontName &&
-          item.fontName.toLowerCase().includes("bold")
+        line.reduce((sum: number, item) => sum + (item.height ?? 0), 0) /
+        line.length;
+      const isBold = line.some((item) =>
+        item.fontName?.toLowerCase().includes("bold"),
       );
 
       // Detect if this is likely a heading
@@ -456,7 +540,7 @@ export class PDFParser implements Parser {
         // End current paragraph if any
         if (currentParagraphLines.length > 0) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" "))
+            this.createParagraphNode(currentParagraphLines.join(" ")),
           );
           currentParagraphLines = [];
         }
@@ -477,13 +561,13 @@ export class PDFParser implements Parser {
           !nextLine ||
           nextLine.length === 0 ||
           nextLine
-            .map((item) => ("str" in item ? item.str : ""))
+            .map((item) => (item.str ? item.str : ""))
             .join(" ")
             .trim().length === 0;
 
         if (isEndOfParagraph) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" "))
+            this.createParagraphNode(currentParagraphLines.join(" ")),
           );
           currentParagraphLines = [];
         }
@@ -508,25 +592,25 @@ export class PDFParser implements Parser {
    * @returns Array of table nodes
    */
   private async extractTables(
-    textContent: TextContent,
-    viewport: PageViewport
-  ): Promise<Table[]> {
+    textContent: PDFTextContent,
+    viewport: PDFViewport,
+  ): Promise<TableEnhanced[]> {
     const tables: Table[] = [];
     const items = textContent.items;
 
     if (!items || items.length === 0) {
-      return tables;
+      return [];
     }
 
     // Group text items by their vertical position to identify rows
-    const rows: TextContent["items"][] = [];
+    const rows: Array<Array<PDFTextItem>> = [];
     let currentRowY: number | null = null;
-    let currentRowItems: TextContent["items"] = [];
+    let currentRowItems: Array<PDFTextItem> = [];
 
     // Sort items by their vertical position (top to bottom) and then by horizontal position (left to right)
     const sortedItems = [...items].sort((a, b) => {
       // Only sort TextItems, skip TextMarkedContent
-      if ("transform" in a && "transform" in b) {
+      if (a.transform && b.transform) {
         const yDiff = a.transform[5] - b.transform[5];
         if (Math.abs(yDiff) < 2) {
           // Items on the same line (with small tolerance)
@@ -539,7 +623,7 @@ export class PDFParser implements Parser {
 
     // Group items into rows
     for (const item of sortedItems) {
-      if (!("transform" in item)) continue;
+      if (!item.transform) continue;
 
       const y = item.transform[5];
 
@@ -571,14 +655,12 @@ export class PDFParser implements Parser {
       if (!row.length) continue;
 
       // Get first TextItem with transform
-      const firstItem = row.find((item) => "transform" in item);
-      if (!firstItem || !("transform" in firstItem)) continue;
+      const firstItem = row.find((item) => item.transform);
+      if (!firstItem || !firstItem.transform) continue;
 
       // Get row position and height
       const rowY = firstItem.transform[5];
-      const rowHeight = Math.max(
-        ...row.map((item) => ("height" in item ? item.height : 0))
-      );
+      const rowHeight = Math.max(...row.map((item) => item.height ?? 0));
 
       // Check if this row belongs to a table
       const isTableRow = this.isTableRow(row, prevRowY, prevRowHeight);
@@ -604,7 +686,7 @@ export class PDFParser implements Parser {
         // Create table cells
         for (const cellItems of cells) {
           const cellText = cellItems
-            .map((item) => ("str" in item ? item.str : ""))
+            .map((item) => (item.str ? item.str : ""))
             .join(" ")
             .trim();
 
@@ -640,7 +722,8 @@ export class PDFParser implements Parser {
       tables.push(currentTable);
     }
 
-    return tables;
+    // Convert basic tables to enhanced tables
+    return tables.map((table) => this.convertToEnhancedTable(table));
   }
 
   /**
@@ -652,21 +735,19 @@ export class PDFParser implements Parser {
    * @returns True if the row belongs to a table
    */
   private isTableRow(
-    row: TextContent["items"],
+    row: Array<PDFTextItem>,
     prevRowY: number | null,
-    prevRowHeight: number | null
+    prevRowHeight: number | null,
   ): boolean {
     if (!row.length) return false;
 
     // Get first TextItem with transform
-    const firstItem = row.find((item) => "transform" in item);
-    if (!firstItem || !("transform" in firstItem)) return false;
+    const firstItem = row.find((item) => item.transform);
+    if (!firstItem || !firstItem.transform) return false;
 
     // Get row position and height
     const rowY = firstItem.transform[5];
-    const rowHeight = Math.max(
-      ...row.map((item) => ("height" in item ? item.height : 0))
-    );
+    const rowHeight = Math.max(...row.map((item) => item.height ?? 0));
 
     // Check if this is the first row
     if (prevRowY === null) {
@@ -688,24 +769,24 @@ export class PDFParser implements Parser {
    * @returns Array of cell items
    */
   private groupItemsIntoCells(
-    row: TextContent["items"]
-  ): TextContent["items"][] {
-    const cells: TextContent["items"][] = [];
-    let currentCell: TextContent["items"] = [];
+    row: Array<PDFTextItem>,
+  ): Array<Array<PDFTextItem>> {
+    const cells: Array<Array<PDFTextItem>> = [];
+    let currentCell: Array<PDFTextItem> = [];
     let lastX = -1;
 
     // Filter and sort items by x position
     const sortedItems = row
-      .filter((item) => "transform" in item)
+      .filter((item) => item.transform)
       .sort((a, b) => {
-        if ("transform" in a && "transform" in b) {
+        if (a.transform && b.transform) {
           return a.transform[4] - b.transform[4];
         }
         return 0;
       });
 
     for (const item of sortedItems) {
-      if (!("transform" in item)) continue;
+      if (!item.transform) continue;
 
       const x = item.transform[4];
 
@@ -729,191 +810,92 @@ export class PDFParser implements Parser {
     return cells;
   }
 
-  private async extractEquations(
-    textContent: TextContent,
-    viewport: PageViewport
-  ): Promise<Equation[]> {
-    const equations: Equation[] = [];
+  /**
+   * Create an enhanced table from a basic table
+   *
+   * @param table The basic table
+   * @returns An enhanced table
+   */
+  private convertToEnhancedTable(table: Table): TableEnhanced {
+    // If the table has at least one row, treat the first row as a header
+    if (table.children && table.children.length > 0) {
+      const headerRows = [table.children[0]];
+      const bodyRows = table.children.slice(1);
 
-    // Look for LaTeX-style equations
-    const latexPattern = /\$(.*?)\$/g;
+      const header: TableHeader = {
+        type: "tableHeader",
+        rows: headerRows,
+      };
 
-    for (const item of textContent.items) {
-      if ("str" in item) {
-        const matches = item.str.matchAll(latexPattern);
-        for (const match of matches) {
-          equations.push({
-            type: "equation",
-            content: match[1].trim(),
-            format: "latex",
-          });
-        }
-      }
+      const theme: TableTheme = {
+        type: "tableTheme",
+        name: "default",
+        colors: {
+          primary: "#000000",
+          secondary: "#ffffff",
+          accent: "#0000ff",
+          background: "#ffffff",
+          text: "#000000",
+          border: "#000000",
+        },
+        fonts: {
+          heading: "Helvetica",
+          body: "Helvetica",
+        },
+      };
+
+      const tableCaption: TableCaption = {
+        type: "tableCaption",
+        text: table.caption || "Table",
+      };
+
+      const enhancedTable: TableEnhanced = {
+        type: "table",
+        children: bodyRows,
+        header,
+        caption: tableCaption,
+        style: {
+          primary: "#000000",
+          secondary: "#ffffff",
+          accent: "#0000ff",
+          background: "#ffffff",
+          text: "#000000",
+          border: "#000000",
+        },
+        theme,
+      };
+
+      return enhancedTable;
     }
 
-    return equations;
+    // If the table doesn't have rows, return a basic enhanced table
+    const basicEnhanced: TableEnhanced = {
+      type: "table",
+      children: table.children,
+    };
+
+    if (table.caption) {
+      basicEnhanced.caption = {
+        type: "tableCaption",
+        text: table.caption,
+      };
+    }
+
+    return basicEnhanced;
   }
 
-  private async extractCharts(
-    page: PDFPageProxy,
-    pageNum: number
-  ): Promise<Chart[]> {
-    const charts: Chart[] = [];
-
-    try {
-      const operatorList = await page.getOperatorList();
-
-      // Look for chart-related operators
-      for (let i = 0; i < operatorList.fnArray.length; i++) {
-        // Check for chart-specific operators
-        if (operatorList.fnArray[i] === 44) {
-          // Image operator
-          const imgData = operatorList.argsArray[i][0];
-          if (imgData?.data) {
-            // Check if this is a chart image
-            const chartData = await this.extractChartData(imgData);
-            if (chartData) {
-              charts.push({
-                type: "chart",
-                chartType: chartData.type,
-                data: chartData.data,
-              });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error extracting charts from page ${pageNum}:`, error);
-    }
-
-    return charts;
-  }
-
-  private async extractChartData(imgData: {
-    data: Uint8Array;
-    mimeType?: string;
-  }): Promise<{ type: string; data: { image: string } } | null> {
-    try {
-      // Convert image data to base64
-      const base64Data = Buffer.from(imgData.data).toString("base64");
-
-      // Try to detect chart type and extract data
-      // This is a simplified example - in practice, you'd need more sophisticated detection
-      if (
-        imgData.mimeType === "image/png" ||
-        imgData.mimeType === "image/jpeg"
-      ) {
-        // Here you would implement chart detection logic
-        // For now, we'll return a basic chart structure
-        return {
-          type: "bar", // or other chart type
-          data: {
-            image: `data:${imgData.mimeType};base64,${base64Data}`,
-          },
-        };
-      }
-    } catch (error) {
-      console.error("Error extracting chart data:", error);
-    }
-
-    return null;
-  }
-
-  private async extractEnhancedTables(
-    textContent: TextContent,
-    viewport: PageViewport
-  ): Promise<TableEnhanced[]> {
-    const tables: TableEnhanced[] = [];
-
-    try {
-      // Use existing table extraction logic but enhance its functionality
-      const basicTables = await this.extractTables(textContent, viewport);
-
-      // Convert basic tables to enhanced tables
-      for (const table of basicTables) {
-        // If the table has at least one row, treat the first row as a header
-        if (table.children && table.children.length > 0) {
-          const headerRows = [table.children[0]];
-          const bodyRows = table.children.slice(1);
-
-          const header: TableHeader = {
-            type: "tableHeader",
-            rows: headerRows,
-          };
-
-          const enhancedTable: TableEnhanced = {
-            type: "table",
-            children: bodyRows,
-            header,
-            style: {
-              primary: "#000000",
-              secondary: "#ffffff",
-              accent: "#0000ff",
-              background: "#ffffff",
-              text: "#000000",
-              border: "#000000",
-            },
-            theme: {
-              type: "tableTheme",
-              name: "default",
-              colors: {
-                primary: "#000000",
-                secondary: "#ffffff",
-                accent: "#0000ff",
-                background: "#ffffff",
-                text: "#000000",
-                border: "#000000",
-              },
-              fonts: {
-                heading: "Helvetica",
-                body: "Helvetica",
-              },
-            },
-            template: {
-              type: "tableTemplate",
-              name: "default",
-              content: {
-                type: "table",
-                children: [],
-                header: {
-                  type: "tableHeader",
-                  rows: [],
-                },
-                style: {
-                  primary: "#000000",
-                  secondary: "#ffffff",
-                  accent: "#0000ff",
-                  background: "#ffffff",
-                  text: "#000000",
-                  border: "#000000",
-                },
-                theme: {
-                  type: "tableTheme",
-                  name: "default",
-                  colors: {
-                    primary: "#000000",
-                    secondary: "#ffffff",
-                    accent: "#0000ff",
-                    background: "#ffffff",
-                    text: "#000000",
-                    border: "#000000",
-                  },
-                  fonts: {
-                    heading: "Helvetica",
-                    body: "Helvetica",
-                  },
-                },
-              },
-            },
-          };
-
-          tables.push(enhancedTable);
-        }
-      }
-    } catch (error) {
-      console.error("Error extracting enhanced tables:", error);
-    }
-
-    return tables;
+  /**
+   * Handle an unsupported node
+   *
+   * @param node The node that cannot be handled
+   * @param context Additional context about the node
+   * @returns The handling strategy to use
+   */
+  handleUnsupportedNode(
+    node: Node,
+    context?: Record<string, unknown>,
+  ): UnsupportedNodeHandling {
+    // Default to converting the node to something that can be handled
+    return UnsupportedNodeHandling.CONVERT;
   }
 }

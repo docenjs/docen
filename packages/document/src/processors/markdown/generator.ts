@@ -7,14 +7,17 @@
 
 import type {
   BlockQuote,
-  Chart,
   Code,
   ConversionResult,
   Document,
-  Equation,
+  DocumentContent,
+  Emphasis,
   Generator,
   Heading,
   Image,
+  InlineCode,
+  InlineImage,
+  LineBreak,
   Link,
   List,
   ListItem,
@@ -22,12 +25,14 @@ import type {
   Paragraph,
   ProcessorOptions,
   Root,
+  Strong,
   Table,
   TableEnhanced,
   TableRow,
   Text,
   ThematicBreak,
 } from "@docen/core";
+import { createProcessorError } from "@docen/core";
 
 /**
  * Markdown Generator implementation
@@ -68,59 +73,134 @@ export class MarkdownGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: ProcessorOptions
+    options?: ProcessorOptions,
   ): Promise<ConversionResult> {
-    let markdown = "";
+    try {
+      let markdown = "";
 
-    // Add YAML frontmatter if metadata exists and has content
-    if (
-      document.metadata &&
-      Object.keys(document.metadata).length > 0 &&
-      options?.includeFrontmatter !== false
-    ) {
-      markdown += "---\n";
-      for (const [key, value] of Object.entries(document.metadata)) {
-        // Skip internal metadata that shouldn't be exposed
-        if (key.startsWith("_")) continue;
+      // Add YAML frontmatter if metadata exists and has content
+      if (
+        document.metadata &&
+        Object.keys(document.metadata).length > 0 &&
+        options?.includeFrontmatter !== false
+      ) {
+        markdown += "---\n";
+        for (const [key, value] of Object.entries(document.metadata)) {
+          // Skip internal metadata that shouldn't be exposed
+          if (key.startsWith("_")) continue;
 
-        // Format the value based on its type
-        let formattedValue = value;
-        if (typeof value === "string") {
-          // Check if the string needs quotes (contains special characters)
-          if (
-            value.includes("\n") ||
-            value.includes(":") ||
-            value.includes("'") ||
-            value.includes('"')
-          ) {
-            formattedValue = `"${value.replace(/"/g, '\\"')}"`;
+          // Format the value based on its type
+          let formattedValue = value;
+          if (typeof value === "string") {
+            // Check if the string needs quotes (contains special characters)
+            if (
+              value.includes("\n") ||
+              value.includes(":") ||
+              value.includes("'") ||
+              value.includes('"')
+            ) {
+              formattedValue = `"${value.replace(/"/g, '\\"')}"`;
+            }
           }
+
+          markdown += `${key}: ${formattedValue}\n`;
         }
-
-        markdown += `${key}: ${formattedValue}\n`;
+        markdown += "---\n\n";
       }
-      markdown += "---\n\n";
-    }
 
-    // Generate markdown from content
-    if (document.content) {
-      markdown += this.generateFromNode(document.content);
-    }
+      // Generate markdown from content
+      if (document.content) {
+        markdown += this.convertNodeToMarkdown(document.content);
+      }
 
-    return {
-      content: markdown,
-      mimeType: "text/markdown",
-      extension: "md",
-    };
+      return {
+        content: markdown,
+        mimeType: "text/markdown",
+        extension: "md",
+      };
+    } catch (error) {
+      throw createProcessorError(
+        "Failed to generate Markdown document",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
   }
 
   /**
-   * Generate markdown from a node
+   * Generate output for a specific node type
    *
-   * @param node The node to generate markdown from
+   * @param node The node to generate from
+   * @param options Generation options
+   * @returns Generated content for the node, or null if the node type is not supported
+   */
+  async generateFromNode(
+    node: DocumentContent,
+    options?: ProcessorOptions,
+  ): Promise<ConversionResult | null> {
+    try {
+      // Check if this is a node type we can handle
+      if (!this.isDocumentNode(node)) {
+        return null;
+      }
+
+      const markdown = this.convertNodeToMarkdown(node);
+
+      return {
+        content: markdown,
+        mimeType: "text/markdown",
+        extension: "md",
+      };
+    } catch (error) {
+      console.error("Error generating markdown from node:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if a node is a document node that we can process
+   */
+  private isDocumentNode(node: unknown): boolean {
+    if (!node || typeof node !== "object" || node === null) {
+      return false;
+    }
+
+    const nodeObj = node as { type?: string };
+    if (!nodeObj.type) {
+      return false;
+    }
+
+    const supportedTypes = [
+      "root",
+      "heading",
+      "paragraph",
+      "text",
+      "emphasis",
+      "strong",
+      "inlineCode",
+      "break",
+      "list",
+      "listItem",
+      "table",
+      "image",
+      "inlineImage",
+      "link",
+      "code",
+      "blockquote",
+      "thematicBreak",
+    ];
+
+    return supportedTypes.includes(nodeObj.type);
+  }
+
+  /**
+   * Convert a node to markdown
+   *
+   * @param node The node to convert
    * @returns Generated markdown
    */
-  private generateFromNode(node: Node): string {
+  private convertNodeToMarkdown(node: Node): string {
     if (!node) return "";
 
     switch (node.type) {
@@ -132,6 +212,14 @@ export class MarkdownGenerator implements Generator {
         return this.generateFromParagraph(node as Paragraph);
       case "text":
         return this.generateFromText(node as Text);
+      case "emphasis":
+        return this.generateFromEmphasis(node as Emphasis);
+      case "strong":
+        return this.generateFromStrong(node as Strong);
+      case "inlineCode":
+        return this.generateFromInlineCode(node as InlineCode);
+      case "break":
+        return this.generateFromLineBreak(node as LineBreak);
       case "list":
         return this.generateFromList(node as List);
       case "listItem":
@@ -142,6 +230,8 @@ export class MarkdownGenerator implements Generator {
           : this.generateFromTable(node as Table);
       case "image":
         return this.generateFromImage(node as Image);
+      case "inlineImage":
+        return this.generateFromInlineImage(node as InlineImage);
       case "link":
         return this.generateFromLink(node as Link);
       case "code":
@@ -150,10 +240,6 @@ export class MarkdownGenerator implements Generator {
         return this.generateFromBlockquote(node as BlockQuote);
       case "thematicBreak":
         return this.generateFromThematicBreak(node as ThematicBreak);
-      case "equation":
-        return this.generateFromEquation(node as Equation);
-      case "chart":
-        return this.generateFromChart(node as Chart);
       default:
         // Unknown node type, return empty string
         return "";
@@ -172,7 +258,7 @@ export class MarkdownGenerator implements Generator {
     }
 
     return root.children
-      .map((node) => this.generateFromNode(node))
+      .map((node) => this.convertNodeToMarkdown(node))
       .join("\n\n");
   }
 
@@ -186,8 +272,9 @@ export class MarkdownGenerator implements Generator {
     const level = heading.depth || 1;
     const prefix = "#".repeat(level);
     const text =
-      heading.children?.map((node) => this.generateFromNode(node)).join("") ||
-      "";
+      heading.children
+        ?.map((node) => this.convertNodeToMarkdown(node))
+        .join("") || "";
 
     return `${prefix} ${text}`;
   }
@@ -204,7 +291,7 @@ export class MarkdownGenerator implements Generator {
     }
 
     return paragraph.children
-      .map((node) => this.generateFromNode(node))
+      .map((node) => this.convertNodeToMarkdown(node))
       .join("");
   }
 
@@ -216,6 +303,62 @@ export class MarkdownGenerator implements Generator {
    */
   private generateFromText(text: Text): string {
     return text.value || "";
+  }
+
+  /**
+   * Generate markdown from emphasis (italic) node
+   *
+   * @param emphasis The emphasis node
+   * @returns Generated markdown
+   */
+  private generateFromEmphasis(emphasis: Emphasis): string {
+    if (!emphasis.children || emphasis.children.length === 0) {
+      return "";
+    }
+
+    const content = emphasis.children
+      .map((node) => this.convertNodeToMarkdown(node))
+      .join("");
+
+    return `*${content}*`;
+  }
+
+  /**
+   * Generate markdown from strong (bold) node
+   *
+   * @param strong The strong node
+   * @returns Generated markdown
+   */
+  private generateFromStrong(strong: Strong): string {
+    if (!strong.children || strong.children.length === 0) {
+      return "";
+    }
+
+    const content = strong.children
+      .map((node) => this.convertNodeToMarkdown(node))
+      .join("");
+
+    return `**${content}**`;
+  }
+
+  /**
+   * Generate markdown from inline code node
+   *
+   * @param inlineCode The inline code node
+   * @returns Generated markdown
+   */
+  private generateFromInlineCode(inlineCode: InlineCode): string {
+    return `\`${inlineCode.value || ""}\``;
+  }
+
+  /**
+   * Generate markdown from line break node
+   *
+   * @param lineBreak The line break node
+   * @returns Generated markdown
+   */
+  private generateFromLineBreak(lineBreak: LineBreak): string {
+    return "\\\n";
   }
 
   /**
@@ -232,7 +375,7 @@ export class MarkdownGenerator implements Generator {
     return list.children
       .map((node, index) => {
         const prefix = list.ordered ? `${index + 1}. ` : "- ";
-        const content = this.generateFromNode(node);
+        const content = this.convertNodeToMarkdown(node);
         // Remove the leading "- " or "1. " from list items as we'll add our own
         const cleanedContent = content.replace(/^(- |[0-9]+\. )/, "");
 
@@ -254,7 +397,7 @@ export class MarkdownGenerator implements Generator {
     }
 
     return listItem.children
-      .map((node) => this.generateFromNode(node))
+      .map((node) => this.convertNodeToMarkdown(node))
       .join("\n");
   }
 
@@ -280,8 +423,8 @@ export class MarkdownGenerator implements Generator {
     // Get the maximum number of columns based on all rows
     const maxColumns = Math.max(
       ...rows.map((row) =>
-        row.type === "tableRow" ? row.children?.length || 0 : 0
-      )
+        row.type === "tableRow" ? row.children?.length || 0 : 0,
+      ),
     );
 
     // Generate header row
@@ -318,8 +461,9 @@ export class MarkdownGenerator implements Generator {
       const cell = row.children[i];
       if (cell && cell.type === "tableCell") {
         const cellContent =
-          cell.children?.map((node) => this.generateFromNode(node)).join("") ||
-          "";
+          cell.children
+            ?.map((node) => this.convertNodeToMarkdown(node))
+            .join("") || "";
         markdown += ` ${cellContent} |`;
       } else {
         markdown += " |";
@@ -344,6 +488,20 @@ export class MarkdownGenerator implements Generator {
   }
 
   /**
+   * Generate markdown from inline image node
+   *
+   * @param inlineImage The inline image node
+   * @returns Generated markdown
+   */
+  private generateFromInlineImage(inlineImage: InlineImage): string {
+    const alt = inlineImage.alt || "";
+    const url = inlineImage.url || "";
+    const title = inlineImage.title ? ` "${inlineImage.title}"` : "";
+
+    return `![${alt}](${url}${title})`;
+  }
+
+  /**
    * Generate markdown from link node
    *
    * @param link The link node
@@ -351,7 +509,8 @@ export class MarkdownGenerator implements Generator {
    */
   private generateFromLink(link: Link): string {
     const text =
-      link.children?.map((node) => this.generateFromNode(node)).join("") || "";
+      link.children?.map((node) => this.convertNodeToMarkdown(node)).join("") ||
+      "";
     const url = link.url || "";
     const title = link.title ? ` "${link.title}"` : "";
 
@@ -383,7 +542,7 @@ export class MarkdownGenerator implements Generator {
     }
 
     const content = blockquote.children
-      .map((node) => this.generateFromNode(node))
+      .map((node) => this.convertNodeToMarkdown(node))
       .join("\n\n");
 
     // Add > prefix to each line
@@ -401,44 +560,6 @@ export class MarkdownGenerator implements Generator {
    */
   private generateFromThematicBreak(thematicBreak: ThematicBreak): string {
     return "---";
-  }
-
-  /**
-   * Generate markdown from equation node
-   *
-   * @param equation The equation node
-   * @returns Generated markdown
-   */
-  private generateFromEquation(equation: Equation): string {
-    const content = equation.content || "";
-    const format = equation.format || "latex";
-
-    // Check if it appears to be a block equation based on content
-    const isBlockEquation = content.includes("\n") || content.length > 40;
-
-    // Display mode (block) equations are wrapped with $$
-    if (isBlockEquation) {
-      return `$$\n${content}\n$$`;
-    }
-
-    // Inline equations are wrapped with single $
-    return `$${content}$`;
-  }
-
-  /**
-   * Generate markdown from chart node
-   *
-   * @param chart The chart node
-   * @returns Generated markdown
-   */
-  private generateFromChart(chart: Chart): string {
-    const chartType = chart.chartType || "bar";
-    const data = chart.data || {};
-
-    // Format data as JSON string with 2-space indentation
-    const jsonData = JSON.stringify(data, null, 2);
-
-    return `\`\`\`chart ${chartType}\n${jsonData}\n\`\`\``;
   }
 
   /**
@@ -471,8 +592,8 @@ export class MarkdownGenerator implements Generator {
     // Get the maximum number of columns based on all rows
     const maxColumns = Math.max(
       ...allRows.map((row) =>
-        row.type === "tableRow" ? row.children?.length || 0 : 0
-      )
+        row.type === "tableRow" ? row.children?.length || 0 : 0,
+      ),
     );
 
     // Generate header row (first row)
@@ -488,7 +609,7 @@ export class MarkdownGenerator implements Generator {
     }
 
     // Add table metadata as HTML comments if available
-    if (table.style || table.theme || table.template) {
+    if (table.style || table.theme) {
       markdown += "\n\n<!-- Table Properties:";
 
       if (table.style) {
@@ -499,13 +620,6 @@ export class MarkdownGenerator implements Generator {
         markdown += `\nTheme: ${JSON.stringify({
           name: table.theme.name,
           type: table.theme.type,
-        })}`;
-      }
-
-      if (table.template) {
-        markdown += `\nTemplate: ${JSON.stringify({
-          name: table.template.name,
-          type: table.template.type,
         })}`;
       }
 

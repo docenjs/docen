@@ -83,7 +83,7 @@ async function main() {
     } else {
       writeFileSync(
         join(__dirname, "output.draft.csv"),
-        new TextEncoder().encode(String(result.content))
+        new TextEncoder().encode(String(result.content)),
       );
     }
     console.log("Generated CSV file: output.csv");

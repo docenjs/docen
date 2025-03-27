@@ -6,13 +6,13 @@
 
 import type {
   Document,
-  Parser,
   ProcessorOptions,
   Root,
   Source,
   Table,
   TableRow,
 } from "@docen/core";
+import { AbstractParser, createProcessorError } from "@docen/core";
 import { toUint8Array } from "@docen/core";
 
 /**
@@ -30,7 +30,7 @@ export interface YAMLParserOptions extends ProcessorOptions {
 /**
  * YAML Parser implementation
  */
-export class YAMLParser implements Parser {
+export class YAMLParser extends AbstractParser {
   id = "yaml-parser";
   name = "YAML Parser";
   supportedInputTypes = ["text/yaml", "text/x-yaml"];
@@ -39,28 +39,49 @@ export class YAMLParser implements Parser {
   supportedOutputExtensions: string[] = [];
 
   /**
-   * Check if this parser can handle the given source
+   * Parse YAML data into a document AST
+   *
+   * @param source The source data to parse
+   * @param options Parsing options
+   * @returns Parsed document
+   */
+  async parse(source: Source, options?: YAMLParserOptions): Promise<Document> {
+    try {
+      // Convert source to string
+      const data = toUint8Array(source);
+      const text = new TextDecoder().decode(data);
+
+      // Create empty document structure
+      const document: Document = {
+        metadata: {},
+        content: {
+          type: "root",
+          children: [],
+        } as Root,
+      };
+
+      // Parse YAML content
+      const content = await this.parseYAML(text, options);
+      document.content = content;
+
+      return document;
+    } catch (error) {
+      throw createProcessorError(
+        "Failed to parse YAML content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  /**
+   * Try to detect if the source is in YAML format
    *
    * @param source The source to check
-   * @param mimeType Optional MIME type hint
-   * @param extension Optional file extension hint
-   * @returns True if this parser can handle the source
+   * @returns True if the source appears to be YAML
    */
-  async canParse(
-    source: Source,
-    mimeType?: string,
-    extension?: string
-  ): Promise<boolean> {
-    // Check if the MIME type or extension is supported
-    if (mimeType && this.supportedInputTypes.includes(mimeType)) {
-      return true;
-    }
-
-    if (extension && this.supportedInputExtensions.includes(extension)) {
-      return true;
-    }
-
-    // If no hints are provided, try to detect the format
+  protected async detectFormat(source: Source): Promise<boolean> {
     try {
       // Convert source to string for basic format detection
       const data = toUint8Array(source);
@@ -76,39 +97,10 @@ export class YAMLParser implements Parser {
         return true;
       }
     } catch (error) {
-      // If we can't check the content, return false
       return false;
     }
 
     return false;
-  }
-
-  /**
-   * Parse YAML data into a document AST
-   *
-   * @param source The source data to parse
-   * @param options Parsing options
-   * @returns Parsed document
-   */
-  async parse(source: Source, options?: YAMLParserOptions): Promise<Document> {
-    // Convert source to string
-    const data = toUint8Array(source);
-    const text = new TextDecoder().decode(data);
-
-    // Create empty document structure
-    const document: Document = {
-      metadata: {},
-      content: {
-        type: "root",
-        children: [],
-      },
-    };
-
-    // Parse YAML content
-    const content = await this.parseYAML(text, options);
-    document.content = content;
-
-    return document;
   }
 
   /**
@@ -120,7 +112,7 @@ export class YAMLParser implements Parser {
    */
   private async parseYAML(
     text: string,
-    options?: YAMLParserOptions
+    options?: YAMLParserOptions,
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -138,16 +130,26 @@ export class YAMLParser implements Parser {
       }
     } catch (error) {
       console.error("Error parsing YAML content:", error);
-      // Add an error paragraph to the AST
+      // Add an error table to the AST
       root.children.push({
-        type: "paragraph",
+        type: "table",
         children: [
           {
-            type: "text",
-            value: `Error parsing YAML document: ${error}`,
+            type: "tableRow",
+            children: [
+              {
+                type: "tableCell",
+                children: [
+                  {
+                    type: "text",
+                    value: `Error parsing YAML document: ${error}`,
+                  },
+                ],
+              },
+            ],
           },
         ],
-      });
+      } as Table);
     }
 
     return root;
@@ -369,7 +371,7 @@ export class YAMLParser implements Parser {
    */
   private yamlToTable(
     data: unknown,
-    options?: YAMLParserOptions
+    options?: YAMLParserOptions,
   ): Table | undefined {
     // Create table node
     const table: Table = {
@@ -424,7 +426,7 @@ export class YAMLParser implements Parser {
    */
   private objectArrayToTable(
     data: Record<string, unknown>[],
-    options?: YAMLParserOptions
+    options?: YAMLParserOptions,
   ): Table {
     const table: Table = {
       type: "table",
@@ -490,7 +492,7 @@ export class YAMLParser implements Parser {
    */
   private primitiveArrayToTable(
     data: (string | number | boolean | null)[],
-    options?: YAMLParserOptions
+    options?: YAMLParserOptions,
   ): Table {
     const table: Table = {
       type: "table",
@@ -550,7 +552,7 @@ export class YAMLParser implements Parser {
    */
   private objectToTable(
     data: Record<string, unknown>,
-    options?: YAMLParserOptions
+    options?: YAMLParserOptions,
   ): Table {
     const table: Table = {
       type: "table",

@@ -9,21 +9,10 @@ export * from "./table";
 export * from "./table-enhanced";
 export * from "./spreadsheet";
 
+import type { Sheet } from "./spreadsheet";
 // Import types for type definitions
-import type { Table, TableCell, TableRow } from "./table";
-
-import type {
-  TableCaption,
-  TableEnhanced,
-  TableFooter,
-  TableGroup,
-  TableHeader,
-  TableNote,
-  TableStyle,
-  TableTheme,
-} from "./table-enhanced";
-
-import type { Cell, Column, Row, Sheet } from "./spreadsheet";
+import type { Table } from "./table";
+import type { TableEnhanced } from "./table-enhanced";
 
 /**
  * All data content types

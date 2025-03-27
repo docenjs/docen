@@ -7,34 +7,29 @@
 
 import type {
   BlockQuote,
-  Chart,
   Code,
   Document,
-  Equation,
   Heading,
   Image,
-  Link,
+  Inline,
   List,
   ListItem,
   Metadata,
   Paragraph,
-  Parser,
   ProcessorOptions,
   Root,
   Source,
-  Table,
   TableCell,
   TableEnhanced,
   TableRow,
-  Text,
   ThematicBreak,
 } from "@docen/core";
-import { toText } from "@docen/core";
+import { AbstractParser, createProcessorError, toText } from "@docen/core";
 
 /**
  * Markdown Parser implementation
  */
-export class MarkdownParser implements Parser {
+export class MarkdownParser extends AbstractParser {
   id = "markdown-parser";
   name = "Markdown Parser";
   supportedInputTypes = ["text/markdown", "text/plain"];
@@ -43,28 +38,12 @@ export class MarkdownParser implements Parser {
   supportedOutputExtensions: string[] = [];
 
   /**
-   * Check if this parser can handle the given source
+   * Try to detect if the source is in Markdown format
    *
    * @param source The source to check
-   * @param mimeType Optional MIME type hint
-   * @param extension Optional file extension hint
-   * @returns True if this parser can handle the source
+   * @returns True if the source appears to be Markdown
    */
-  async canParse(
-    source: Source,
-    mimeType?: string,
-    extension?: string
-  ): Promise<boolean> {
-    // Check if the MIME type or extension is supported
-    if (mimeType && this.supportedInputTypes.includes(mimeType)) {
-      return true;
-    }
-
-    if (extension && this.supportedInputExtensions.includes(extension)) {
-      return true;
-    }
-
-    // If no hints are provided, try to detect if it's markdown
+  protected async detectFormat(source: Source): Promise<boolean> {
     try {
       const text = toText(source);
       // Simple heuristic to detect markdown: look for common markdown patterns
@@ -81,12 +60,11 @@ export class MarkdownParser implements Parser {
 
       // If at least two patterns match, assume it's markdown
       const matchCount = markdownPatterns.filter((pattern) =>
-        pattern.test(text)
+        pattern.test(text),
       ).length;
 
       return matchCount >= 2;
     } catch (error) {
-      // If we can't check the content, return false
       return false;
     }
   }
@@ -99,19 +77,19 @@ export class MarkdownParser implements Parser {
    * @returns Parsed document
    */
   async parse(source: Source, options?: ProcessorOptions): Promise<Document> {
-    // Convert source to string
-    const text = toText(source);
-
-    // Create empty document structure
-    const document: Document = {
-      metadata: {},
-      content: {
-        type: "root",
-        children: [],
-      },
-    };
-
     try {
+      // Convert source to string
+      const text = toText(source);
+
+      // Create empty document structure
+      const document: Document = {
+        metadata: {},
+        content: {
+          type: "root",
+          children: [],
+        },
+      };
+
       // Extract metadata if present (YAML frontmatter)
       if (options?.extractMetadata !== false) {
         document.metadata = this.extractMetadata(text);
@@ -119,16 +97,16 @@ export class MarkdownParser implements Parser {
 
       // Parse the content
       document.content = this.parseContent(text);
-    } catch (error) {
-      console.error("Failed to parse Markdown document:", error);
-      // Return empty document if parsing fails
-      document.content = {
-        type: "root",
-        children: [],
-      };
-    }
 
-    return document;
+      return document;
+    } catch (error) {
+      throw createProcessorError(
+        "Failed to parse Markdown document",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
   }
 
   /**
@@ -205,56 +183,44 @@ export class MarkdownParser implements Parser {
         continue;
       }
 
-      // Math block
-      const mathBlockMatch = line.match(/^\$\$\s*(.+)\s*\$\$$/);
-      if (mathBlockMatch) {
-        const [, content] = mathBlockMatch;
-        const equation: Equation = {
-          type: "equation",
-          content: content.trim(),
-          format: "latex",
-        };
-        root.children.push(equation);
+      // Check for block image
+      const blockImage = this.parseBlockImage(line);
+      if (blockImage) {
+        root.children.push(blockImage);
         i++;
         continue;
       }
 
-      // Inline math
-      const mathInlineMatch = line.match(/\$([^$]+)\$/g);
-      if (mathInlineMatch) {
-        const equation: Equation = {
-          type: "equation",
-          content: mathInlineMatch[0].replace(/\$/g, "").trim(),
-          format: "latex",
-        };
-        root.children.push(equation);
-        i++;
+      // Check for table
+      const tableEnhanced = this.parseEnhancedTable(lines, i);
+      if (tableEnhanced) {
+        root.children.push(tableEnhanced);
+        i += tableEnhanced.children.length + 2; // Skip header, separator, and all rows
         continue;
       }
 
-      // Chart
-      const chartMatch = line.match(/^```chart\s*(\w+)\s*(\{[\s\S]*?\})$/);
-      if (chartMatch) {
-        const [, chartType, data] = chartMatch;
-        const chartData = JSON.parse(data);
-        const chart: Chart = {
-          type: "chart",
-          chartType,
-          data: chartData,
-        };
+      // Code block
+      if (line.startsWith("```")) {
+        const codeBlockMatch = line.match(/^```(\w+)?/);
+        if (codeBlockMatch) {
+          const [, lang] = codeBlockMatch;
+          let codeContent = "";
+          let j = i + 1;
 
-        root.children.push(chart);
-        i++;
-        continue;
-      }
+          // Collect code content until end marker
+          while (j < lines.length && !lines[j].startsWith("```")) {
+            codeContent += `${lines[j]}\n`;
+            j++;
+          }
 
-      // Enhanced table
-      const tableMatch = line.match(/^\|(.+)\|$/);
-      if (tableMatch) {
-        const table = this.parseEnhancedTable(lines, i);
-        if (table) {
-          root.children.push(table);
-          i += table.children.length + 2; // Skip header and separator
+          const code: Code = {
+            type: "code",
+            lang: lang || undefined,
+            value: codeContent.trim(),
+          };
+
+          root.children.push(code);
+          i = j < lines.length ? j + 1 : j; // Skip closing ```
           continue;
         }
       }
@@ -262,282 +228,139 @@ export class MarkdownParser implements Parser {
       // Heading
       const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
       if (headingMatch) {
-        const [, marks, content] = headingMatch;
+        const [, hashes, content] = headingMatch;
+        const depth = hashes.length as 1 | 2 | 3 | 4 | 5 | 6;
         const heading: Heading = {
           type: "heading",
-          depth: marks.length as 1 | 2 | 3 | 4 | 5 | 6,
-          children: [
-            {
-              type: "text",
-              value: content.trim(),
-            } as Text,
-          ],
+          depth,
+          children: this.parseInlineMarkdown(content).children,
         };
         root.children.push(heading);
         i++;
         continue;
       }
 
-      // Horizontal rule
-      if (/^-{3,}$|^_{3,}$|^\*{3,}$/.test(line.trim())) {
-        const rule: ThematicBreak = { type: "thematicBreak" };
-        root.children.push(rule);
-        i++;
-        continue;
-      }
+      // List
+      const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
+      if (listMatch) {
+        const [, indent, marker, content] = listMatch;
+        const ordered = /\d+\./.test(marker);
 
-      // Code block
-      if (line.startsWith("```")) {
-        const language = line.slice(3).trim();
-        const codeLines = [];
-        i++;
-
-        while (i < lines.length && !lines[i].startsWith("```")) {
-          codeLines.push(lines[i]);
-          i++;
-        }
-
-        const code: Code = {
-          type: "code",
-          lang: language || undefined,
-          value: codeLines.join("\n"),
+        // Parse the list (including nested items)
+        const list: List = {
+          type: "list",
+          ordered,
+          children: [],
         };
 
-        root.children.push(code);
-        i++; // Skip the closing ```
+        // Process this first list item
+        const firstItem: ListItem = {
+          type: "listItem",
+          children: [this.parseInlineMarkdown(content)],
+        };
+        list.children.push(firstItem);
+        i++;
+
+        // Check for more list items with the same indentation
+        while (i < lines.length) {
+          const nextLine = lines[i];
+          const nextMatch = nextLine.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
+
+          if (nextMatch && nextMatch[1].length === indent.length) {
+            // Same level list item
+            const nextItem: ListItem = {
+              type: "listItem",
+              children: [this.parseInlineMarkdown(nextMatch[3])],
+            };
+            list.children.push(nextItem);
+            i++;
+          } else {
+            // Not a list item at the same level
+            break;
+          }
+        }
+
+        root.children.push(list);
         continue;
       }
 
       // Blockquote
-      if (line.startsWith("> ")) {
-        const quoteLines = [];
-        while (i < lines.length && lines[i].startsWith("> ")) {
-          quoteLines.push(lines[i].slice(2));
-          i++;
-        }
-
+      const blockquoteMatch = line.match(/^>\s*(.+)$/);
+      if (blockquoteMatch) {
+        const [, content] = blockquoteMatch;
         const blockquote: BlockQuote = {
           type: "blockquote",
-          children: [
-            {
-              type: "paragraph",
-              children: [
-                {
-                  type: "text",
-                  value: quoteLines.join("\n"),
-                } as Text,
-              ],
-            } as Paragraph,
-          ],
+          children: [this.parseInlineMarkdown(content)],
         };
+
+        // Check for multi-line blockquotes
+        i++;
+        while (i < lines.length) {
+          const nextLine = lines[i];
+          const nextMatch = nextLine.match(/^>\s*(.+)$/);
+
+          if (nextMatch) {
+            // Continue blockquote
+            blockquote.children.push(this.parseInlineMarkdown(nextMatch[1]));
+            i++;
+          } else if (nextLine.trim() === "") {
+            // Empty line might be part of the blockquote
+            i++;
+          } else {
+            // End of blockquote
+            break;
+          }
+        }
 
         root.children.push(blockquote);
         continue;
       }
 
-      // Unordered list
-      if (/^[*+-]\s/.test(line)) {
-        const list: List = {
-          type: "list",
-          ordered: false,
-          children: [],
+      // Thematic break
+      const thematicBreakMatch = line.match(/^[-*_]{3,}$/);
+      if (thematicBreakMatch) {
+        const thematicBreak: ThematicBreak = {
+          type: "thematicBreak",
         };
-
-        while (i < lines.length && /^[*+-]\s/.test(lines[i])) {
-          const itemContent = lines[i].replace(/^[*+-]\s/, "");
-          const listItem: ListItem = {
-            type: "listItem",
-            children: [
-              {
-                type: "paragraph",
-                children: [
-                  {
-                    type: "text",
-                    value: itemContent,
-                  } as Text,
-                ],
-              } as Paragraph,
-            ],
-          };
-
-          list.children.push(listItem);
-          i++;
-        }
-
-        root.children.push(list);
-        continue;
-      }
-
-      // Ordered list
-      if (/^\d+\.\s/.test(line)) {
-        const list: List = {
-          type: "list",
-          ordered: true,
-          children: [],
-        };
-
-        while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
-          const itemContent = lines[i].replace(/^\d+\.\s/, "");
-          const listItem: ListItem = {
-            type: "listItem",
-            children: [
-              {
-                type: "paragraph",
-                children: [
-                  {
-                    type: "text",
-                    value: itemContent,
-                  } as Text,
-                ],
-              } as Paragraph,
-            ],
-          };
-
-          list.children.push(listItem);
-          i++;
-        }
-
-        root.children.push(list);
-        continue;
-      }
-
-      // Table
-      if (
-        line.includes("|") &&
-        i < lines.length - 1 &&
-        lines[i + 1].includes("|") &&
-        lines[i + 1].replace(/[^|\-]/g, "") === lines[i + 1]
-      ) {
-        // Table header found
-        const headerRow = this.parseTableRow(line);
-        i += 2; // Skip the header and separator rows
-
-        const table: Table = {
-          type: "table",
-          children: [
-            {
-              type: "tableRow",
-              children: headerRow.map(
-                (header) =>
-                  ({
-                    type: "tableCell",
-                    children: [
-                      {
-                        type: "text",
-                        value: header.trim(),
-                      } as Text,
-                    ],
-                  }) as TableCell
-              ),
-            } as TableRow,
-          ],
-        };
-
-        // Parse table rows
-        while (i < lines.length && lines[i].includes("|")) {
-          const rowCells = this.parseTableRow(lines[i]);
-
-          const tableRow: TableRow = {
-            type: "tableRow",
-            children: rowCells.map(
-              (cell) =>
-                ({
-                  type: "tableCell",
-                  children: [
-                    {
-                      type: "text",
-                      value: cell.trim(),
-                    } as Text,
-                  ],
-                }) as TableCell
-            ),
-          };
-
-          table.children.push(tableRow);
-          i++;
-        }
-
-        root.children.push(table);
-        continue;
-      }
-
-      // Image
-      const imageMatch = line.match(/!\[(.*)\]\((.*?)(?:\s+"(.*)")?\)/);
-      if (imageMatch) {
-        const [, alt, url, title] = imageMatch;
-        const image: Image = {
-          type: "image",
-          url,
-          alt: alt || undefined,
-          title: title || undefined,
-        };
-
-        root.children.push(image);
-        i++;
-        continue;
-      }
-
-      // Link (standalone in a line)
-      const linkMatch = line.match(/^\[(.*)\]\((.*?)(?:\s+"(.*)")?\)$/);
-      if (linkMatch) {
-        const [, text, url, title] = linkMatch;
-        const link: Link = {
-          type: "link",
-          url,
-          title: title || undefined,
-          children: [
-            {
-              type: "text",
-              value: text,
-            } as Text,
-          ],
-        };
-
-        root.children.push(link);
+        root.children.push(thematicBreak);
         i++;
         continue;
       }
 
       // Regular paragraph
-      let paragraphText = line;
-      i++;
+      const paragraph: Paragraph = this.parseInlineMarkdown(line);
 
-      // Collect all lines that belong to the same paragraph
-      while (
-        i < lines.length &&
-        lines[i].trim() !== "" &&
-        !lines[i].startsWith("#") &&
-        !lines[i].startsWith("```") &&
-        !lines[i].startsWith("> ") &&
-        !/^[*+-]\s/.test(lines[i]) &&
-        !/^\d+\.\s/.test(lines[i]) &&
-        !/^-{3,}$|^_{3,}$|^\*{3,}$/.test(lines[i].trim())
-      ) {
-        paragraphText += `\n${lines[i]}`;
+      // Check for multi-line paragraphs
+      i++;
+      while (i < lines.length) {
+        const nextLine = lines[i];
+
+        if (nextLine.trim() === "") {
+          // Empty line ends paragraph
+          i++;
+          break;
+        }
+
+        // Check if next line is a special element
+        if (
+          nextLine.match(/^(#{1,6}|\s*([-*+]|\d+\.)|\s*>|[-*_]{3,}|```)/) ||
+          this.parseBlockImage(nextLine) ||
+          this.parseEnhancedTable(lines, i)
+        ) {
+          break;
+        }
+
+        // Continue paragraph
+        for (const inlineNode of this.parseInlineMarkdown(nextLine).children) {
+          paragraph.children.push(inlineNode);
+        }
         i++;
       }
 
-      // Parse paragraph text for inline elements
-      const paragraphContent = this.parseInlineMarkdown(paragraphText);
-      root.children.push(paragraphContent);
+      root.children.push(paragraph);
     }
 
     return root;
-  }
-
-  /**
-   * Parse a table row into an array of cell values
-   *
-   * @param row The markdown table row
-   * @returns Array of cell values
-   */
-  private parseTableRow(row: string): string[] {
-    // Split the row into cells and remove empty first/last cells
-    return row
-      .split("|")
-      .map((cell) => cell.trim())
-      .filter((_, i, arr) => i !== 0 || arr[i] !== "")
-      .filter((_, i, arr) => i !== arr.length - 1 || arr[i] !== "");
   }
 
   /**
@@ -553,88 +376,233 @@ export class MarkdownParser implements Parser {
     };
 
     // Create a working copy of the text
-    let lastIndex = 0;
+    const lastIndex = 0;
 
-    // Regular expression to match links [text](url "title")
-    const linkRegex = /\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)/g;
+    // Process bold text
+    this.processRegexPattern(
+      paragraph,
+      text,
+      /\*\*(.*?)\*\*/g,
+      (content: string) => ({
+        type: "strong",
+        children: [{ type: "text", value: content }],
+      }),
+      lastIndex,
+    );
 
-    // Process all links - first get the match
-    let match = linkRegex.exec(text);
-    while (match !== null) {
-      const [fullMatch, linkText, url, title] = match;
-      const matchIndex = match.index;
+    // Process italic text
+    this.processRegexPattern(
+      paragraph,
+      text,
+      /\*(.*?)\*/g,
+      (content: string) => ({
+        type: "emphasis",
+        children: [{ type: "text", value: content }],
+      }),
+      lastIndex,
+    );
 
-      // Add text before the link as a text node
-      if (matchIndex > lastIndex) {
-        const textBefore = text.substring(lastIndex, matchIndex);
-        if (textBefore.trim()) {
-          paragraph.children.push({
-            type: "text",
-            value: textBefore,
-          } as Text);
-        }
-      }
+    // Process inline code
+    this.processRegexPattern(
+      paragraph,
+      text,
+      /`([^`]+)`/g,
+      (content: string) => ({
+        type: "inlineCode",
+        value: content,
+      }),
+      lastIndex,
+    );
 
-      // Add the link
-      const link: Link = {
+    // Process line breaks
+    this.processRegexPattern(
+      paragraph,
+      text,
+      /\\\n/g,
+      () => ({
+        type: "break",
+      }),
+      lastIndex,
+    );
+
+    // Process links
+    this.processRegexPattern(
+      paragraph,
+      text,
+      /\[([^\]]+)\]\(([^)]+)(?:\s+"([^"]+)")?\)/g,
+      (content: string, url: string, title?: string) => ({
         type: "link",
         url,
-        title: title || undefined,
-        children: [
-          {
-            type: "text",
-            value: linkText,
-          } as Text,
-        ],
-      };
+        title,
+        children: [{ type: "text", value: content }],
+      }),
+      lastIndex,
+    );
 
-      paragraph.children.push(link);
-
-      // Update the last index
-      lastIndex = matchIndex + fullMatch.length;
-
-      // Get next match
-      match = linkRegex.exec(text);
-    }
-
-    // Add any remaining text
-    if (lastIndex < text.length) {
-      const remainingContent = text.substring(lastIndex);
-      if (remainingContent.trim()) {
-        paragraph.children.push({
-          type: "text",
-          value: remainingContent,
-        } as Text);
-      }
-    }
+    // Process inline images
+    this.processRegexPattern(
+      paragraph,
+      text,
+      /!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]+)")?\)/g,
+      (alt: string, url: string, title?: string) => ({
+        type: "inlineImage",
+        url,
+        alt: alt || undefined,
+        title,
+      }),
+      lastIndex,
+    );
 
     // If no inline elements were found, add the whole text as a single node
     if (paragraph.children.length === 0) {
       paragraph.children.push({
         type: "text",
         value: text,
-      } as Text);
+      });
     }
 
     return paragraph;
   }
 
+  /**
+   * Helper method to process regex patterns for inline markdown
+   *
+   * @param paragraph The paragraph node to add content to
+   * @param text The text to process
+   * @param regex The regex pattern to match
+   * @param createNode Function to create a node from matches
+   * @param initialLastIndex Tracking last index for adding text between matches
+   */
+  private processRegexPattern(
+    paragraph: Paragraph,
+    text: string,
+    regex: RegExp,
+    createNode: (...args: string[]) => Inline,
+    initialLastIndex: number,
+  ): void {
+    let currentMatch = regex.exec(text);
+    let currentLastIndex = initialLastIndex;
+
+    while (currentMatch !== null) {
+      const fullMatch = currentMatch[0];
+      const matchIndex = currentMatch.index;
+
+      // Add text before the match
+      if (matchIndex > currentLastIndex) {
+        const textBefore = text.substring(currentLastIndex, matchIndex);
+        if (textBefore.trim()) {
+          paragraph.children.push({
+            type: "text",
+            value: textBefore,
+          });
+        }
+      }
+
+      // Create node based on pattern match
+      if (regex.toString().includes("\\\\n")) {
+        // Line break pattern (no capture groups)
+        paragraph.children.push(createNode() as Paragraph["children"][0]);
+      } else if (
+        regex
+          .toString()
+          .includes('\\[([^\\]]+)\\]\\(([^)]+)(?:\\s+"([^"]+)")?\\)')
+      ) {
+        // Link pattern (3 potential capture groups)
+        paragraph.children.push(
+          createNode(
+            currentMatch[1],
+            currentMatch[2],
+            currentMatch[3],
+          ) as Paragraph["children"][0],
+        );
+      } else if (regex.toString().includes("!\\[")) {
+        // Image pattern (3 potential capture groups)
+        paragraph.children.push(
+          createNode(
+            currentMatch[1],
+            currentMatch[2],
+            currentMatch[3],
+          ) as Paragraph["children"][0],
+        );
+      } else {
+        // Other patterns with single capture group (bold, italic, code)
+        paragraph.children.push(
+          createNode(currentMatch[1]) as Paragraph["children"][0],
+        );
+      }
+
+      // Update the last index
+      currentLastIndex = matchIndex + fullMatch.length;
+
+      // Get next match
+      currentMatch = regex.exec(text);
+    }
+
+    // Add any remaining text
+    if (currentLastIndex < text.length) {
+      const remainingContent = text.substring(currentLastIndex);
+      if (remainingContent.trim()) {
+        paragraph.children.push({
+          type: "text",
+          value: remainingContent,
+        });
+      }
+    }
+  }
+
+  /**
+   * Parse block image markdown syntax
+   *
+   * @param text The text with image markdown
+   * @returns Image node if found, null otherwise
+   */
+  private parseBlockImage(text: string): Image | null {
+    const imageMatch = text.match(
+      /^!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]+)")?\)$/,
+    );
+    if (!imageMatch) return null;
+
+    const [, alt, url, title] = imageMatch;
+    return {
+      type: "image",
+      url,
+      alt: alt || undefined,
+      title,
+    };
+  }
+
+  /**
+   * Parse enhanced table from markdown
+   *
+   * @param lines Array of text lines
+   * @param startIndex Starting index in the lines array
+   * @returns TableEnhanced node if found, null otherwise
+   */
   private parseEnhancedTable(
     lines: string[],
-    startIndex: number
+    startIndex: number,
   ): TableEnhanced | null {
+    if (startIndex + 2 >= lines.length) return null;
+
     // Parse header
     const headerMatch = lines[startIndex].match(/^\|(.+)\|$/);
     if (!headerMatch) return null;
 
-    const headers = headerMatch[1].split("|").map((h) => h.trim());
-
-    // Parse separator
+    // Parse separator (must have at least one | character)
     const separatorMatch = lines[startIndex + 1].match(/^\|(.+)\|$/);
     if (!separatorMatch) return null;
 
     const separator = separatorMatch[1].split("|").map((s) => s.trim());
-    if (!separator.every((s) => /^-+$/.test(s))) return null;
+    if (!separator.every((s) => /^:?-+:?$/.test(s))) return null;
+
+    // Get header cells
+    const headers = headerMatch[1]
+      .split("|")
+      .map((h) => h.trim())
+      .map((h) => ({
+        type: "tableCell" as const,
+        children: this.parseInlineMarkdown(h).children,
+      }));
 
     // Parse rows
     const rows: TableRow[] = [];
@@ -644,10 +612,13 @@ export class MarkdownParser implements Parser {
       const rowMatch = lines[i].match(/^\|(.+)\|$/);
       if (!rowMatch) break;
 
-      const cells: TableCell[] = rowMatch[1].split("|").map((c) => ({
-        type: "tableCell" as const,
-        children: [{ type: "text" as const, value: c.trim() }],
-      }));
+      const cells: TableCell[] = rowMatch[1]
+        .split("|")
+        .map((c) => c.trim())
+        .map((c) => ({
+          type: "tableCell" as const,
+          children: this.parseInlineMarkdown(c).children,
+        }));
 
       rows.push({
         type: "tableRow" as const,
@@ -665,10 +636,7 @@ export class MarkdownParser implements Parser {
         rows: [
           {
             type: "tableRow" as const,
-            children: headers.map((h) => ({
-              type: "tableCell" as const,
-              children: [{ type: "text" as const, value: h }],
-            })),
+            children: headers,
           },
         ],
       },

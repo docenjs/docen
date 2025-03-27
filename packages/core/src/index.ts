@@ -7,11 +7,11 @@
 // Export AST types
 export * from "./ast";
 
-// Export processor interfaces
-export * from "./processor";
+// Export processor interfaces, implementations
+export * from "./processor/index";
 
-// Export registry
-export * from "./registry";
+// Export registry system
+export * from "./registry/index";
 
 // Export utility functions
 export * from "./utils";

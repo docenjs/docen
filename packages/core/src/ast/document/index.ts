@@ -10,22 +10,8 @@ export * from "./list";
 export * from "./media";
 export * from "./structure";
 
-// Import types for type definitions
-import type {
-  Emphasis,
-  Heading,
-  Inline,
-  InlineCode,
-  LineBreak,
-  Paragraph,
-  Strong,
-  Text,
-} from "./text";
-
-import type { List, ListItem } from "./list";
-
+import type { List } from "./list";
 import type { Image, InlineImage, Link, Shape } from "./media";
-
 import type {
   BlockQuote,
   Code,
@@ -34,6 +20,8 @@ import type {
   Section,
   ThematicBreak,
 } from "./structure";
+// Import types for type definitions
+import type { Heading, Paragraph, Text, Inline as TextInline } from "./text";
 
 /**
  * Block-level content
@@ -47,9 +35,34 @@ export type Block =
   | ThematicBreak
   | Image
   | Section
-  | Comment;
+  | Comment
+  | Field
+  | Shape;
+
+/**
+ * Extended inline content that includes both text inlines and media inlines
+ */
+export type Inline = TextInline | Link | InlineImage;
 
 /**
  * All document content types
+ *
+ * This union type combines all document content types, used for uniform processing in processors
  */
 export type DocumentContent = Block | Inline;
+
+// Override the Inline type from text.ts with our extended version
+declare module "./text" {
+  interface Paragraph {
+    children: Inline[];
+  }
+  interface Heading {
+    children: Inline[];
+  }
+  interface Emphasis {
+    children: Inline[];
+  }
+  interface Strong {
+    children: Inline[];
+  }
+}

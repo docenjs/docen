@@ -5,9 +5,7 @@
  */
 
 import type { Node } from "../base";
-// Use forward references for circular dependencies
-// This works because TypeScript only needs the names for type checking
-type Block = import("./index").Block;
+import type { Block } from "./index";
 import type { Inline } from "./text";
 
 /**

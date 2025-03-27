@@ -11,7 +11,6 @@ export * from "./container";
 import type {
   ArchiveContainer,
   Container,
-  ContainerEntry,
   EPUBContainer,
   OOXMLContainer,
 } from "./container";

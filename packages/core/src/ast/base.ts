@@ -114,6 +114,14 @@ export interface Node {
 }
 
 /**
+ * Parent node interface for nodes that can contain children
+ */
+export interface Parent extends Node {
+  /** Child nodes */
+  children: Node[];
+}
+
+/**
  * Position information for a node in the source document
  */
 export interface Position {
@@ -140,7 +148,7 @@ export interface Point {
 /**
  * Root document node that contains all other nodes
  */
-export interface Root extends Node {
+export interface Root extends Parent {
   type: "root";
   /** Child nodes */
   children: Content[];

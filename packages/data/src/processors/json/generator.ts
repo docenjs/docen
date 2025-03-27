@@ -7,16 +7,16 @@
 import type {
   ConversionResult,
   Document,
-  Generator,
+  Node,
+  Parent,
   ProcessorOptions,
   Table,
-  TableCell,
   TableRow,
-  Text,
 } from "@docen/core";
+import { AbstractGenerator, createProcessorError } from "@docen/core";
 
 /**
- * JSON Generator options
+ * JSON Generator specific options
  */
 export interface JSONGeneratorOptions extends ProcessorOptions {
   /** Pretty print JSON output (default: true) */
@@ -30,7 +30,7 @@ export interface JSONGeneratorOptions extends ProcessorOptions {
 /**
  * JSON Generator implementation
  */
-export class JSONGenerator implements Generator {
+export class JSONGenerator extends AbstractGenerator {
   id = "json-generator";
   name = "JSON Generator";
   supportedInputTypes: string[] = [];
@@ -39,26 +39,7 @@ export class JSONGenerator implements Generator {
   supportedOutputExtensions = ["json"];
 
   /**
-   * Check if this generator can produce the requested output format
-   *
-   * @param mimeType Target MIME type
-   * @param extension Target file extension
-   * @returns True if this generator can produce the requested format
-   */
-  canGenerate(mimeType?: string, extension?: string): boolean {
-    if (mimeType && this.supportedOutputTypes.includes(mimeType)) {
-      return true;
-    }
-
-    if (extension && this.supportedOutputExtensions.includes(extension)) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Generate JSON output from a document AST
+   * Generate JSON from a document AST
    *
    * @param document The document to generate from
    * @param options Generation options
@@ -66,147 +47,146 @@ export class JSONGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: JSONGeneratorOptions
+    options?: JSONGeneratorOptions,
   ): Promise<ConversionResult> {
     try {
       // Get options with defaults
-      const prettyPrint =
-        options?.prettyPrint !== undefined
-          ? Boolean(options.prettyPrint)
-          : true;
-      const indentSize =
-        options?.indentSize !== undefined ? Number(options.indentSize) : 2;
+      const prettyPrint = options?.prettyPrint ?? true;
+      const indentSize = options?.indentSize ?? 2;
       const handleSpecialValues =
         options?.handleSpecialValues !== undefined
           ? Boolean(options.handleSpecialValues)
           : true;
 
-      // Generate JSON data from the document AST
-      const jsonData = this.generateJSONData(document, options);
+      // Convert document to JSON
+      const jsonData = this.documentToJSON(document);
 
-      // Convert to formatted JSON string
-      const jsonContent = prettyPrint
+      // Convert to string with optional pretty printing
+      const jsonString = prettyPrint
         ? JSON.stringify(jsonData, null, indentSize)
         : JSON.stringify(jsonData);
 
       // Convert to UTF-8 encoded Uint8Array
       const encoder = new TextEncoder();
-      const content = encoder.encode(jsonContent);
+      const content = encoder.encode(jsonString);
 
       return {
         content,
         mimeType: "application/json",
-        extension: "json",
       };
     } catch (error) {
-      console.error("Error generating JSON content:", error);
-      throw new Error(`Failed to generate JSON: ${error}`);
+      throw createProcessorError(
+        "Failed to generate JSON content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   }
 
   /**
-   * Generate JSON data from document AST
+   * Convert a document to JSON data
    *
-   * @param document The document to generate from
-   * @param options Generation options
-   * @returns JSON data object or array
+   * @param document The document to convert
+   * @returns JSON data
    */
-  private generateJSONData(
-    document: Document,
-    options?: JSONGeneratorOptions
-  ): unknown {
-    // Find table nodes in the document
-    if (document.content?.children) {
-      for (const node of document.content.children) {
-        if (node.type === "table") {
-          return this.tableToJSON(node as Table, options);
+  private documentToJSON(document: Document): unknown {
+    // Find the first table in the document
+    const table = this.findFirstTable(document.content);
+    if (!table) {
+      return {};
+    }
+
+    return this.tableToJSON(table);
+  }
+
+  /**
+   * Find the first table in a document
+   *
+   * @param root The root node to search in
+   * @returns The first table found, or undefined
+   */
+  private findFirstTable(root: Node): Table | undefined {
+    if (root.type === "table") {
+      return root as Table;
+    }
+
+    if ("children" in root && Array.isArray((root as Parent).children)) {
+      for (const child of (root as Parent).children) {
+        const table = this.findFirstTable(child);
+        if (table) {
+          return table;
         }
       }
     }
 
-    // If no table found, return empty object
-    return {};
+    return undefined;
   }
 
   /**
-   * Convert a table node to JSON data
+   * Convert a table to JSON data
    *
-   * @param table The table node to convert
-   * @param options Generation options
-   * @returns JSON data object or array
+   * @param table The table to convert
+   * @returns JSON data
    */
-  private tableToJSON(table: Table, options?: JSONGeneratorOptions): unknown {
-    if (table.children.length === 0) {
+  private tableToJSON(table: Table): unknown {
+    if (!table.children || table.children.length === 0) {
       return {};
     }
 
-    // Check if the table has a header row
-    // Instead of relying on isHeader property which is not in the TableCell interface,
-    // we'll check if the first row looks like a header based on content patterns
-    const hasHeader = table.children.length >= 2;
+    // Check if this is a key-value table
     const firstRow = table.children[0] as TableRow;
-
-    if (hasHeader) {
-      // Table with headers - convert to array of objects or key-value object
-      return this.headerTableToJSON(table);
+    if (firstRow.children.length === 2) {
+      return this.keyValueTableToJSON(table);
     }
-    // Table without headers - convert to array of values
-    return this.simpleTableToJSON(table);
+
+    // Otherwise treat as array of objects
+    return this.arrayTableToJSON(table);
   }
 
   /**
-   * Convert a table with headers to JSON data
+   * Convert a key-value table to JSON object
    *
-   * @param table The table with headers to convert
-   * @returns JSON data (array of objects or key-value object)
+   * @param table The table to convert
+   * @returns JSON object
    */
-  private headerTableToJSON(table: Table): unknown {
-    const rows = table.children;
-    if (rows.length < 2) {
-      return {};
+  private keyValueTableToJSON(table: Table): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const row of table.children) {
+      const keyCell = (row as TableRow).children[0];
+      const valueCell = (row as TableRow).children[1];
+
+      const key = this.getCellText(keyCell);
+      const value = this.getCellText(valueCell);
+
+      result[key] = this.parseValue(value);
     }
 
-    // First row is treated as header row
-    const headerRow = rows[0] as TableRow;
-    const headers = headerRow.children.map((cell) =>
-      this.getCellTextContent(cell as TableCell)
-    );
+    return result;
+  }
 
-    // Check if this is a key-value table (two columns with "Key" and "Value" headers)
-    if (
-      headers.length === 2 &&
-      headers[0] === "Key" &&
-      headers[1] === "Value"
-    ) {
-      // Convert to key-value object
-      const result: Record<string, unknown> = {};
+  /**
+   * Convert an array table to JSON array
+   *
+   * @param table The table to convert
+   * @returns JSON array
+   */
+  private arrayTableToJSON(table: Table): unknown[] {
+    const result: unknown[] = [];
 
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i] as TableRow;
-        if (row.children.length >= 2) {
-          const key = this.getCellTextContent(row.children[0] as TableCell);
-          const value = this.parseJSONValue(
-            this.getCellTextContent(row.children[1] as TableCell)
-          );
-          result[key] = value;
-        }
-      }
+    // Get headers from first row
+    const headerRow = table.children[0] as TableRow;
+    const headers = headerRow.children.map((cell) => this.getCellText(cell));
 
-      return result;
-    }
-    // Convert to array of objects
-    const result: Record<string, unknown>[] = [];
-
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i] as TableRow;
+    // Convert each row to an object
+    for (let i = 1; i < table.children.length; i++) {
+      const row = table.children[i] as TableRow;
       const obj: Record<string, unknown> = {};
 
-      for (let j = 0; j < headers.length && j < row.children.length; j++) {
-        const header = headers[j];
-        const value = this.parseJSONValue(
-          this.getCellTextContent(row.children[j] as TableCell)
-        );
-        obj[header] = value;
+      for (let j = 0; j < headers.length; j++) {
+        const value = this.getCellText(row.children[j]);
+        obj[headers[j]] = this.parseValue(value);
       }
 
       result.push(obj);
@@ -216,79 +196,31 @@ export class JSONGenerator implements Generator {
   }
 
   /**
-   * Convert a simple table (without headers) to JSON data
+   * Get text content from a cell
    *
-   * @param table The simple table to convert
-   * @returns Array of values
+   * @param cell The cell to get text from
+   * @returns Cell text content
    */
-  private simpleTableToJSON(table: Table): unknown[] {
-    const result: unknown[] = [];
-
-    // Skip the first row if it's a header-like row (e.g., "Value")
-    const startIndex =
-      table.children.length > 0 &&
-      this.getCellTextContent(
-        (table.children[0] as TableRow).children[0] as TableCell
-      ) === "Value"
-        ? 1
-        : 0;
-
-    for (let i = startIndex; i < table.children.length; i++) {
-      const row = table.children[i] as TableRow;
-      if (row.children.length > 0) {
-        const value = this.parseJSONValue(
-          this.getCellTextContent(row.children[0] as TableCell)
-        );
-        result.push(value);
-      }
+  private getCellText(cell: Node): string {
+    if (!("children" in cell) || !Array.isArray((cell as Parent).children)) {
+      return "";
     }
 
-    return result;
+    return (cell as Parent).children
+      .map((child: Node) =>
+        "value" in child ? (child as { value: string }).value : "",
+      )
+      .join("")
+      .trim();
   }
 
   /**
-   * Get text content from a table cell
-   *
-   * @param cell The table cell
-   * @returns Text content as string
-   */
-  private getCellTextContent(cell: TableCell): string {
-    let content = "";
-
-    for (const child of cell.children) {
-      if (child.type === "text") {
-        content += (child as Text).value;
-      }
-      // Could handle other inline content types here
-    }
-
-    return content;
-  }
-
-  /**
-   * Parse a string value into a JSON value
+   * Parse a string value into appropriate JSON type
    *
    * @param value The string value to parse
-   * @returns Parsed JSON value
+   * @returns Parsed value
    */
-  private parseJSONValue(value: string): unknown {
-    // Handle special values
-    if (value === "null") {
-      return null;
-    }
-    if (value === "undefined") {
-      return undefined;
-    }
-    if (value === "NaN") {
-      return Number.NaN;
-    }
-    if (value === "Infinity") {
-      return Number.POSITIVE_INFINITY;
-    }
-    if (value === "-Infinity") {
-      return Number.NEGATIVE_INFINITY;
-    }
-
+  private parseValue(value: string): unknown {
     // Try to parse as number
     const num = Number(value);
     if (!Number.isNaN(num)) {
@@ -296,18 +228,23 @@ export class JSONGenerator implements Generator {
     }
 
     // Try to parse as boolean
-    if (value === "true") {
+    if (value.toLowerCase() === "true") {
       return true;
     }
-    if (value === "false") {
+    if (value.toLowerCase() === "false") {
       return false;
+    }
+
+    // Try to parse as null
+    if (value.toLowerCase() === "null") {
+      return null;
     }
 
     // Try to parse as JSON
     try {
       return JSON.parse(value);
     } catch {
-      // If parsing fails, return as string
+      // If all else fails, return as string
       return value;
     }
   }

@@ -10,8 +10,7 @@ export * from "./theme";
 
 // Import types for type definitions
 import type { Slide, SlideLayout, SlideMaster } from "./slide";
-
-import type { Theme, ThemeColor, ThemeFont } from "./theme";
+import type { Theme } from "./theme";
 
 /**
  * All presentation content types

@@ -6,12 +6,14 @@
 
 import type {
   Document,
-  Parser,
   ProcessorOptions,
+  Root,
   Source,
   Table,
   TableRow,
 } from "@docen/core";
+import { AbstractParser, createProcessorError } from "@docen/core";
+import { toUint8Array } from "@docen/core";
 
 /**
  * XML Parser options
@@ -28,7 +30,7 @@ export interface XMLParserOptions extends ProcessorOptions {
 /**
  * XML Parser implementation
  */
-export class XMLParser implements Parser {
+export class XMLParser extends AbstractParser {
   id = "xml-parser";
   name = "XML Parser";
   supportedInputTypes = ["text/xml", "application/xml"];
@@ -37,33 +39,58 @@ export class XMLParser implements Parser {
   supportedOutputExtensions: string[] = [];
 
   /**
-   * Check if this parser can handle the given source
+   * Parse XML content into document AST
    */
-  async canParse(
-    source: Source,
-    mimeType?: string,
-    extension?: string
-  ): Promise<boolean> {
-    // Check MIME type first
-    if (mimeType && this.supportedInputTypes.includes(mimeType)) {
-      return true;
-    }
-
-    // Then check file extension
-    if (extension && this.supportedInputExtensions.includes(extension)) {
-      return true;
-    }
-
-    // Finally check content if available
-    if (source) {
+  async parse(source: Source, options?: XMLParserOptions): Promise<Document> {
+    try {
       const content =
-        source instanceof Uint8Array
-          ? new TextDecoder().decode(source)
-          : String(source);
-      return content.trim().startsWith("<?xml");
-    }
+        typeof source === "string"
+          ? source
+          : new TextDecoder().decode(toUint8Array(source));
+      const xmlDoc = this.parseXMLString(content);
 
-    return false;
+      const table: Table = {
+        type: "table",
+        children: this.convertXMLToNodes(xmlDoc.documentElement),
+      };
+
+      const root: Root = {
+        type: "root",
+        children: [table],
+      };
+
+      return {
+        content: root,
+        metadata: {
+          encoding: xmlDoc.characterSet,
+        },
+      };
+    } catch (error) {
+      throw createProcessorError(
+        "Failed to parse XML content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  /**
+   * Try to detect if the source is in XML format
+   *
+   * @param source The source to check
+   * @returns True if the source appears to be XML
+   */
+  protected async detectFormat(source: Source): Promise<boolean> {
+    try {
+      const content =
+        typeof source === "string"
+          ? source
+          : new TextDecoder().decode(toUint8Array(source));
+      return content.trim().startsWith("<?xml");
+    } catch (error) {
+      return false;
+    }
   }
 
   /**
@@ -75,37 +102,6 @@ export class XMLParser implements Parser {
     }
     const parser = new DOMParser();
     return parser.parseFromString(content, "text/xml");
-  }
-
-  /**
-   * Parse XML content into document AST
-   */
-  async parse(source: Source): Promise<Document> {
-    try {
-      const content =
-        source instanceof Uint8Array
-          ? new TextDecoder().decode(source)
-          : String(source);
-      const xmlDoc = this.parseXMLString(content);
-
-      return {
-        content: {
-          type: "root",
-          children: [
-            {
-              type: "table",
-              children: this.convertXMLToNodes(xmlDoc.documentElement),
-            },
-          ],
-        },
-        metadata: {
-          encoding: xmlDoc.characterSet,
-        },
-      };
-    } catch (error) {
-      console.error("Error parsing XML:", error);
-      throw new Error(`Failed to parse XML: ${error}`);
-    }
   }
 
   /**
@@ -150,7 +146,7 @@ export class XMLParser implements Parser {
       preserveComments: boolean;
       preserveAttributes: boolean;
       convertPrimitives: boolean;
-    }
+    },
   ): unknown {
     const { preserveComments, preserveAttributes, convertPrimitives } = options;
 
@@ -185,7 +181,7 @@ export class XMLParser implements Parser {
       preserveComments: boolean;
       preserveAttributes: boolean;
       convertPrimitives: boolean;
-    }
+    },
   ): unknown {
     const { preserveAttributes, convertPrimitives } = options;
 

@@ -77,6 +77,7 @@ export interface InlineCode extends Node {
 }
 
 /**
- * Type for all inline content
+ * Type for basic inline content
+ * Note: This will be augmented in index.ts with Link and InlineImage
  */
 export type Inline = Text | Emphasis | Strong | InlineCode | LineBreak;

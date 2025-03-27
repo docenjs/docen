@@ -79,7 +79,7 @@ async function main() {
       writeFileSync(
         join(__dirname, "output.draft.xml"),
         String(result.content),
-        "utf-8"
+        "utf-8",
       );
     }
 

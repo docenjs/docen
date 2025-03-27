@@ -6,13 +6,13 @@
 
 import type {
   Document,
-  Parser,
   ProcessorOptions,
   Root,
   Source,
   Table,
   TableRow,
 } from "@docen/core";
+import { AbstractParser, createProcessorError } from "@docen/core";
 import { toUint8Array } from "@docen/core";
 
 /**
@@ -38,7 +38,7 @@ export interface CSVParserOptions extends ProcessorOptions {
 /**
  * CSV Parser implementation
  */
-export class CSVParser implements Parser {
+export class CSVParser extends AbstractParser {
   id = "csv-parser";
   name = "CSV Parser";
   supportedInputTypes = ["text/csv"];
@@ -47,28 +47,42 @@ export class CSVParser implements Parser {
   supportedOutputExtensions: string[] = [];
 
   /**
-   * Check if this parser can handle the given source
+   * Parse CSV data into a document AST
+   *
+   * @param source The source data to parse
+   * @param options Parsing options
+   * @returns Parsed document
+   */
+  async parse(source: Source, options?: CSVParserOptions): Promise<Document> {
+    try {
+      // Convert source to string
+      const data = toUint8Array(source);
+      const text = new TextDecoder().decode(data);
+
+      // Parse CSV content
+      const content = await this.parseCSV(text, options);
+
+      return {
+        content,
+        metadata: {},
+      };
+    } catch (error) {
+      throw createProcessorError(
+        "Failed to parse CSV content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }
+
+  /**
+   * Try to detect if the source is in CSV format
    *
    * @param source The source to check
-   * @param mimeType Optional MIME type hint
-   * @param extension Optional file extension hint
-   * @returns True if this parser can handle the source
+   * @returns True if the source appears to be CSV
    */
-  async canParse(
-    source: Source,
-    mimeType?: string,
-    extension?: string
-  ): Promise<boolean> {
-    // Check if the MIME type or extension is supported
-    if (mimeType && this.supportedInputTypes.includes(mimeType)) {
-      return true;
-    }
-
-    if (extension && this.supportedInputExtensions.includes(extension)) {
-      return true;
-    }
-
-    // If no hints are provided, try to detect the format
+  protected async detectFormat(source: Source): Promise<boolean> {
     try {
       // Convert source to string for basic format detection
       const data = toUint8Array(source);
@@ -82,52 +96,23 @@ export class CSVParser implements Parser {
       if (lines.length > 0) {
         // Check if most lines have the same number of commas
         const commasPerLine = lines.map(
-          (line) => (line.match(/,/g) || []).length
+          (line) => (line.match(/,/g) || []).length,
         );
         const mostCommonCount = this.getMostCommonValue(commasPerLine);
 
         // If most lines have the same number of commas and it's at least 1, it's likely CSV
         const matchingLines = commasPerLine.filter(
-          (count) => count === mostCommonCount
+          (count) => count === mostCommonCount,
         ).length;
         if (mostCommonCount >= 1 && matchingLines / lines.length > 0.7) {
           return true;
         }
       }
     } catch (error) {
-      // If we can't check the content, return false
       return false;
     }
 
     return false;
-  }
-
-  /**
-   * Parse CSV data into a document AST
-   *
-   * @param source The source data to parse
-   * @param options Parsing options
-   * @returns Parsed document
-   */
-  async parse(source: Source, options?: CSVParserOptions): Promise<Document> {
-    // Convert source to string
-    const data = toUint8Array(source);
-    const text = new TextDecoder().decode(data);
-
-    // Create empty document structure
-    const document: Document = {
-      metadata: {},
-      content: {
-        type: "root",
-        children: [],
-      },
-    };
-
-    // Parse CSV content
-    const content = await this.parseCSV(text, options);
-    document.content = content;
-
-    return document;
   }
 
   /**
@@ -139,7 +124,7 @@ export class CSVParser implements Parser {
    */
   private async parseCSV(
     text: string,
-    options?: CSVParserOptions
+    options?: CSVParserOptions,
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -180,7 +165,7 @@ export class CSVParser implements Parser {
 
       // Parse CSV into rows and cells
       const rows = filteredLines.map((line) =>
-        this.parseCSVLine(line, delimiter, quote, escapeChar, trimValues)
+        this.parseCSVLine(line, delimiter, quote, escapeChar, trimValues),
       );
 
       // Create table node
@@ -229,17 +214,12 @@ export class CSVParser implements Parser {
       // Add table to root
       root.children.push(table);
     } catch (error) {
-      console.error("Error parsing CSV content:", error);
-      // Add an error paragraph to the AST
-      root.children.push({
-        type: "paragraph",
-        children: [
-          {
-            type: "text",
-            value: `Error parsing CSV document: ${error}`,
-          },
-        ],
-      });
+      throw createProcessorError(
+        "Failed to parse CSV content",
+        this.id,
+        undefined,
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
 
     return root;
@@ -256,7 +236,7 @@ export class CSVParser implements Parser {
   private splitCSVLines(
     text: string,
     quote: string,
-    escapeChar: string
+    escapeChar: string,
   ): string[] {
     const lines: string[] = [];
     let currentLine = "";
@@ -320,7 +300,7 @@ export class CSVParser implements Parser {
     delimiter: string,
     quote: string,
     escapeChar: string,
-    trimValues: boolean
+    trimValues: boolean,
   ): string[] {
     const cells: string[] = [];
     let currentCell = "";

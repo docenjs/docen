@@ -6,6 +6,13 @@
 
 import type { Node } from "../base";
 import type { Block } from "../document/index";
+import type {
+  EPUBGuideItem,
+  EPUBManifestItem,
+  EPUBNavigation,
+  EPUBPackage,
+  EPUBSpineItem,
+} from "./epub";
 
 /**
  * Container entry representing a single file or directory in a container
@@ -34,7 +41,7 @@ export interface ContainerEntry {
   /** Entry children (for directories) */
   children?: ContainerEntry[];
   /** Entry content (for parsed files) */
-  content?: Node;
+  content?: Block | Node;
 }
 
 /**
@@ -81,7 +88,7 @@ export interface Container extends Node {
     entryCount?: number;
   };
   /** Container parsed content */
-  content?: Block[];
+  content?: (Block | Node)[];
 }
 
 /**
@@ -106,20 +113,6 @@ export interface ArchiveContainer extends Container {
 }
 
 /**
- * EPUB navigation
- */
-export interface EPUBNavigation {
-  /** Navigation type */
-  type: string;
-  /** Navigation label */
-  label: string;
-  /** Navigation href */
-  href: string;
-  /** Navigation children */
-  children?: EPUBNavigation[];
-}
-
-/**
  * EPUB container node
  */
 export interface EPUBContainer extends Container {
@@ -127,71 +120,57 @@ export interface EPUBContainer extends Container {
   /** EPUB version */
   epubVersion: "2.0" | "3.0" | "3.1" | "3.2";
   /** EPUB package */
-  package?: {
-    /** EPUB unique identifier */
-    uniqueIdentifier: string;
-    /** EPUB identifier */
-    identifier: string;
-    /** EPUB title */
-    title: string;
-    /** EPUB language */
-    language: string;
-    /** EPUB modified date */
-    modified?: Date;
-    /** EPUB creator */
-    creator?: string;
-    /** EPUB publisher */
-    publisher?: string;
-    /** EPUB description */
-    description?: string;
-    /** EPUB rights */
-    rights?: string;
-    /** EPUB subjects */
-    subjects?: string[];
-    /** EPUB coverage */
-    coverage?: string;
-    /** EPUB source */
-    source?: string;
-    /** EPUB relations */
-    relations?: string[];
-    /** EPUB format */
-    format?: string;
-    /** EPUB type */
-    type?: string;
-    /** EPUB contributor */
-    contributor?: string;
-  };
+  package?: EPUBPackage;
   /** EPUB manifest */
-  manifest?: Array<{
-    /** Item ID */
-    id: string;
-    /** Item href */
-    href: string;
-    /** Item media type */
-    mediaType: string;
-    /** Item properties */
-    properties?: string[];
-  }>;
+  manifest?: EPUBManifestItem[];
   /** EPUB spine */
-  spine?: Array<{
-    /** Item ID reference */
-    idref: string;
-    /** Item linear */
-    linear?: boolean;
-    /** Item properties */
-    properties?: string[];
-  }>;
+  spine?: EPUBSpineItem[];
   /** EPUB guide */
-  guide?: Array<{
-    /** Guide type */
-    type: string;
-    /** Guide title */
-    title: string;
-    /** Guide href */
-    href: string;
-  }>;
+  guide?: EPUBGuideItem[];
   /** EPUB navigation */
   navigation?: EPUBNavigation[];
+}
+
+/**
+ * OOXML relationship interface
+ */
+export interface OOXMLRelationship {
+  /** Relationship ID */
+  id: string;
+  /** Relationship type */
+  type: string;
+  /** Relationship target */
+  target: string;
+  /** Relationship target mode */
+  targetMode?: "Internal" | "External";
+}
+
+/**
+ * OOXML core properties interface
+ */
+export interface OOXMLCoreProperties {
+  /** Core title */
+  title?: string;
+  /** Core subject */
+  subject?: string;
+  /** Core creator */
+  creator?: string;
+  /** Core keywords */
+  keywords?: string;
+  /** Core description */
+  description?: string;
+  /** Core last modified by */
+  lastModifiedBy?: string;
+  /** Core revision */
+  revision?: string;
+  /** Core created */
+  created?: Date;
+  /** Core modified */
+  modified?: Date;
+  /** Core category */
+  category?: string;
+  /** Core content status */
+  contentStatus?: string;
 }
 
 /**
@@ -208,41 +187,9 @@ export interface OOXMLContainer extends Container {
   /** OOXML content type mapping */
   contentTypes?: Record<string, string>;
   /** OOXML relationships */
-  relationships?: Array<{
-    /** Relationship ID */
-    id: string;
-    /** Relationship type */
-    type: string;
-    /** Relationship target */
-    target: string;
-    /** Relationship target mode */
-    targetMode?: "Internal" | "External";
-  }>;
+  relationships?: OOXMLRelationship[];
   /** OOXML custom properties */
   customProperties?: Record<string, unknown>;
   /** OOXML core properties */
-  coreProperties?: {
-    /** Core title */
-    title?: string;
-    /** Core subject */
-    subject?: string;
-    /** Core creator */
-    creator?: string;
-    /** Core keywords */
-    keywords?: string;
-    /** Core description */
-    description?: string;
-    /** Core last modified by */
-    lastModifiedBy?: string;
-    /** Core revision */
-    revision?: string;
-    /** Core created */
-    created?: Date;
-    /** Core modified */
-    modified?: Date;
-    /** Core category */
-    category?: string;
-    /** Core content status */
-    contentStatus?: string;
-  };
+  coreProperties?: OOXMLCoreProperties;
 }

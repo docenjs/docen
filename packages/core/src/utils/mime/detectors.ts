@@ -10,7 +10,7 @@ import { validateMimeType } from "./validators";
  */
 export function getMimeTypeFromExtension(
   extension: string,
-  options: MimeDetectionOptions = {}
+  options: MimeDetectionOptions = {},
 ): string | undefined {
   // Normalize extension
   const normalized = extension.toLowerCase().replace(/^\./, "");
@@ -68,7 +68,7 @@ export function getMimeInfo(mimeType: string): MimeInfo | undefined {
  */
 export function detectMimeTypeFromContent(
   content: Buffer,
-  options: MimeDetectionOptions = {}
+  options: MimeDetectionOptions = {},
 ): string | undefined {
   // Check file signatures
   const signatures = [
@@ -158,7 +158,7 @@ export function detectMimeTypeFromContent(
  */
 export function detectMimeType(
   file: { name: string; content: Buffer },
-  options: MimeDetectionOptions = {}
+  options: MimeDetectionOptions = {},
 ): string | undefined {
   // Get extension from filename
   const extension = file.name.split(".").pop();
