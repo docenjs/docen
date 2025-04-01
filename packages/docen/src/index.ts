@@ -151,7 +151,8 @@ export async function convert(
 
   if (processor) {
     // Use the full processor for direct conversion
-    return processor.convert(source, targetFormat, options);
+    const document = await processor.parse(source, options);
+    return processor.generate(document, options);
   }
 
   // If no full processor is found, try to use separate parser and generator

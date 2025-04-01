@@ -1,6 +1,6 @@
 {
   "name": "docen",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Universal document conversion and processing library that works in any JavaScript runtime",
   "type": "module",
   "exports": {

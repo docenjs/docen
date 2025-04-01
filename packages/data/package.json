@@ -1,6 +1,6 @@
 {
   "name": "@docen/data",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Data processing module for Docen - Handles data formats like XLSX, CSV, JSON, YAML, and XML",
   "type": "module",
   "exports": {

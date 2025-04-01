@@ -1,7 +1,7 @@
 {
-  "name": "@docen/core",
+  "name": "@docen/collaborative",
   "version": "0.0.0",
-  "description": "Core module for Docen - Universal document conversion and processing library",
+  "description": "Real-time collaboration support for Docen using Yjs",
   "type": "module",
   "exports": {
     ".": {
@@ -25,12 +25,19 @@
     "document",
     "conversion",
     "processing",
-    "ast",
-    "processor"
+    "archive",
+    "ooxml",
+    "zip",
+    "epub"
   ],
-  "author": "Demo Macro",
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
   "license": "MIT",
   "dependencies": {
-    "undio": "0.2.0"
+    "@docen/core": "workspace:*",
+    "yjs": "13.6.24"
   }
 }

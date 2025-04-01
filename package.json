@@ -35,9 +35,9 @@
     "@funish/githooks": "0.0.5",
     "@funish/githooks-config": "0.0.2",
     "@funish/lint": "0.0.2",
-    "@types/node": "22.13.1",
-    "prettier": "3.4.2",
-    "unbuild": "3.3.1"
+    "@types/node": "22.13.15",
+    "prettier": "3.5.3",
+    "unbuild": "3.5.0"
   },
-  "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
+  "packageManager": "pnpm@10.7.0+sha512.6b865ad4b62a1d9842b61d674a393903b871d9244954f652b8842c2b553c72176b278f64c463e52d40fff8aba385c235c8c9ecf5cc7de4fd78b8bb6d49633ab6"
 }
