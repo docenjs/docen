@@ -43,6 +43,9 @@ importers:
       "@docen/core":
         specifier: workspace:*
         version: link:../core
+      y-protocols:
+        specifier: 1.0.6
+        version: 1.0.6(yjs@13.6.24)
       yjs:
         specifier: 13.6.24
         version: 13.6.24
@@ -2545,6 +2548,15 @@ packages:
         integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==,
       }
 
+  y-protocols@1.0.6:
+    resolution:
+      {
+        integrity: sha512-vHRF2L6iT3rwj1jub/K5tYcTT/mEYDUppgNPXwp8fmLpui9f7Yeq3OEtTLVF012j39QnV+KEQpNqoN7CWU7Y9Q==,
+      }
+    engines: { node: ">=16.0.0", npm: ">=8.0.0" }
+    peerDependencies:
+      yjs: ^13.0.0
+
   yallist@4.0.0:
     resolution:
       {
@@ -3989,6 +4001,11 @@ snapshots:
 
   wrappy@1.0.2:
     optional: true
+
+  y-protocols@1.0.6(yjs@13.6.24):
+    dependencies:
+      lib0: 0.2.101
+      yjs: 13.6.24
 
   yallist@4.0.0: {}
 

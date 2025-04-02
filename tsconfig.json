@@ -9,6 +9,8 @@
     "target": "ES2022",
     "paths": {
       "docen": ["./packages/docen/src/index.ts"],
+      "@docen/archive": ["./packages/archive/src/index.ts"],
+      "@docen/collaborative": ["./packages/collaborative/src/index.ts"],
       "@docen/core": ["./packages/core/src/index.ts"],
       "@docen/data": ["./packages/data/src/index.ts"],
       "@docen/document": ["./packages/document/src/index.ts"]

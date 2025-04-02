@@ -38,6 +38,7 @@
   "license": "MIT",
   "dependencies": {
     "@docen/core": "workspace:*",
-    "yjs": "13.6.24"
+    "yjs": "13.6.24",
+    "y-protocols": "1.0.6"
   }
 }

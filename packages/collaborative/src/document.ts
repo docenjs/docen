@@ -1,6 +1,7 @@
 import type { Document, Root, Text } from "@docen/core";
 import * as Y from "yjs";
 import { TextAdapter } from "./adapters/base";
+import { createAwareness } from "./awareness";
 import type { CollaborativeDocument, CollaborativeOptions } from "./types";
 
 /**
@@ -31,12 +32,22 @@ export function createCollaborativeDocument(
     undoManager = new Y.UndoManager([ytext]);
   }
 
+  // Setup awareness if enabled
+  let awareness = undefined;
+  if (options.enableAwareness) {
+    awareness = createAwareness(ydoc, options.initialAwareness);
+  }
+
   // Create collaborative document
   const collaborativeDoc: CollaborativeDocument = {
     ...document,
     ydoc,
     undoManager,
+    awareness,
     disconnect: () => {
+      if (awareness) {
+        awareness.destroy();
+      }
       ydoc.destroy();
     },
   };
