@@ -22,13 +22,15 @@
     "prepack": "pnpm build"
   },
   "keywords": [
+    "collaborative",
+    "realtime",
+    "crdt",
+    "yjs",
     "document",
-    "conversion",
-    "processing",
-    "archive",
-    "ooxml",
-    "zip",
-    "epub"
+    "sync",
+    "collaboration",
+    "shared-editing",
+    "typescript"
   ],
   "author": {
     "name": "Demo Macro",

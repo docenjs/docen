@@ -23,10 +23,14 @@
   },
   "keywords": [
     "document",
-    "conversion",
-    "processing",
+    "core",
     "ast",
-    "processor"
+    "processor",
+    "unified",
+    "typescript",
+    "framework",
+    "conversion",
+    "processing"
   ],
   "author": "Demo Macro",
   "license": "MIT",

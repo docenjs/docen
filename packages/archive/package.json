@@ -23,12 +23,15 @@
   },
   "keywords": [
     "document",
-    "conversion",
-    "processing",
     "archive",
+    "container",
     "ooxml",
     "zip",
-    "epub"
+    "epub",
+    "conversion",
+    "processing",
+    "typescript",
+    "compression"
   ],
   "author": {
     "name": "Demo Macro",

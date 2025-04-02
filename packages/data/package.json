@@ -23,14 +23,16 @@
   },
   "keywords": [
     "document",
-    "conversion",
-    "processing",
     "data",
     "json",
     "csv",
     "xlsx",
     "yaml",
-    "xml"
+    "xml",
+    "conversion",
+    "processing",
+    "typescript",
+    "parser"
   ],
   "author": "Demo Macro",
   "license": "MIT",

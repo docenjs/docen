@@ -34,32 +34,32 @@ $ pnpm add @docen/collaborative
 
 ## Usage
 
-### Creating a Collaborative Document
+### Basic Document Collaboration
 
 ```ts
 import { createCollaborativeDocument } from "@docen/collaborative";
 import { Document } from "@docen/core";
 
-// Start with a Document instance
-const document: Document = {
-  id: "example-doc",
-  title: "Example Document",
-  content: {
-    type: "root",
-    children: [
-      {
-        type: "text",
-        value: "Hello, collaborative world!",
-      },
-    ],
+// Create a collaborative document
+const collabDoc = createCollaborativeDocument(
+  {
+    id: "example-doc",
+    title: "Example Document",
+    content: {
+      type: "root",
+      children: [
+        {
+          type: "text",
+          value: "Hello, collaborative world!",
+        },
+      ],
+    },
   },
-};
-
-// Create a collaborative version of the document
-const collabDoc = createCollaborativeDocument(document, {
-  documentId: "unique-doc-id",
-  enableUndo: true,
-});
+  {
+    documentId: "unique-doc-id",
+    enableUndo: true,
+  },
+);
 
 // Access the underlying Yjs document
 const ydoc = collabDoc.ydoc;
@@ -68,12 +68,46 @@ const ydoc = collabDoc.ydoc;
 collabDoc.disconnect();
 ```
 
-### Implementing Network Synchronization
+### Working with Arrays
+
+The `ArrayAdapter` provides type-safe array operations for collaborative data structures:
+
+```ts
+import * as Y from "yjs";
+import { ArrayAdapter } from "@docen/collaborative";
+
+// Create a Yjs document
+const ydoc = new Y.Doc();
+
+// Create a shared array for tags
+const ytags = ydoc.getArray<string>("tags");
+
+// Create an array adapter
+const tagAdapter = new ArrayAdapter<string>();
+
+// Initialize with data
+const initialTags = ["docen", "collaborative", "typescript"];
+ytags.insert(0, initialTags);
+
+// Observe changes
+const cleanup = tagAdapter.observeChanges(ytags, (node) => {
+  console.log("Tags updated:", node.data?.items);
+});
+
+// Collaborative operations
+ytags.insert(ytags.length, ["javascript"]);
+ytags.insert(ytags.length, ["react"]);
+ytags.delete(0, 1);
+
+// Clean up
+cleanup();
+```
+
+### Network Synchronization
 
 ```ts
 import { createCollaborativeDocument } from "@docen/collaborative";
 import { WebsocketProvider } from "y-websocket";
-import * as Y from "yjs";
 
 // Create collaborative document
 const collabDoc = createCollaborativeDocument(document, {
@@ -81,7 +115,7 @@ const collabDoc = createCollaborativeDocument(document, {
   enableUndo: true,
 });
 
-// Connect to a WebSocket provider (example)
+// Connect to WebSocket provider
 const wsProvider = new WebsocketProvider(
   "wss://your-server.com",
   collabDoc.documentId,
@@ -93,7 +127,7 @@ wsProvider.on("status", (event: { status: string }) => {
   console.log("Connection status:", event.status);
 });
 
-// Disconnect when done
+// Cleanup
 function cleanup() {
   wsProvider.disconnect();
   collabDoc.disconnect();
@@ -102,42 +136,131 @@ function cleanup() {
 
 ## API Reference
 
-### Main Functions
+### Core Functions
 
-- `createCollaborativeDocument(document, options)` - Creates a collaborative document from a regular Docen document
+#### `createCollaborativeDocument(document, options)`
+
+Creates a collaborative document from a regular Docen document.
+
+```ts
+function createCollaborativeDocument(
+  document: Document,
+  options: CollaborativeOptions,
+): CollaborativeDocument;
+```
 
 ### Interfaces
 
-#### CollaborativeOptions
+#### `CollaborativeOptions`
 
-Configuration options for collaborative documents:
+Configuration options for collaborative documents.
 
-- `documentId` - Unique identifier for the document
-- `enableUndo` - Whether to enable undo/redo functionality (default: false)
+```ts
+interface CollaborativeOptions {
+  documentId: string;
+  enableUndo?: boolean;
+}
+```
 
-#### CollaborativeDocument
+#### `CollaborativeDocument`
 
-Interface extending the standard Document interface with collaboration features:
+Interface extending the standard Document interface with collaboration features.
 
-- `ydoc` - The underlying Yjs document instance
-- `undoManager` - Yjs UndoManager instance (if enabled)
-- `disconnect()` - Method to clean up resources and disconnect
-
-#### YjsASTAdapter
-
-Interface for adapters that convert between Docen AST nodes and Yjs shared types:
-
-- `fromAST(node)` - Converts a Docen AST node to a Yjs shared type
-- `toAST(yType)` - Converts a Yjs shared type to a Docen AST node
-- `observeChanges(yType, callback)` - Sets up change observation on a Yjs type
+```ts
+interface CollaborativeDocument extends Document {
+  ydoc: Y.Doc;
+  undoManager?: Y.UndoManager;
+  disconnect(): void;
+}
+```
 
 ### Adapters
 
-- `TextAdapter` - Adapter for converting between Text nodes and Yjs Text type
+#### `TextAdapter`
+
+Handles conversion between Text nodes and Yjs Text type.
+
+```ts
+class TextAdapter implements YjsASTAdapter<TextNode, string> {
+  fromAST(node: TextNode): Y.Text;
+  toAST(yType: Y.Text): TextNode;
+  observeChanges(yType: Y.Text, callback: (node: TextNode) => void): () => void;
+}
+```
+
+#### `ArrayAdapter<T>`
+
+Handles array data with type-safe operations.
+
+```ts
+class ArrayAdapter<T> implements YjsASTAdapter<Node, T> {
+  fromAST(node: Node): Y.Array<T>;
+  toAST(yType: Y.Array<T>): Node;
+  observeChanges(yType: Y.Array<T>, callback: (node: Node) => void): () => void;
+}
+```
+
+Features:
+
+- Generic type support for type-safe operations
+- Automatic synchronization of changes
+- Support for nested structures
+- CRDT-based conflict resolution
+
+#### `ParentAdapter`
+
+Handles nodes with children, providing a flexible way to manage complex document structures.
+
+```ts
+class ParentAdapter implements YjsASTAdapter<Parent> {
+  constructor(childAdapters: Map<NodeType, YjsASTAdapter<Node>>);
+  fromAST(node: Parent): YjsSharedType;
+  toAST(yType: YjsSharedType): Parent;
+  observeChanges(
+    yType: YjsSharedType,
+    callback: (node: Parent) => void,
+  ): () => void;
+}
+```
+
+Features:
+
+- Recursive child node handling
+- Type-safe child adapter mapping
+- Automatic child node synchronization
+- Support for nested document structures
+
+#### `RootAdapter`
+
+Specialized adapter for handling document root nodes, extending ParentAdapter functionality.
+
+```ts
+class RootAdapter implements YjsASTAdapter<Parent> {
+  constructor(childAdapters: Map<NodeType, YjsASTAdapter<Node>>);
+  fromAST(node: Parent): YjsSharedType;
+  toAST(yType: YjsSharedType): Parent;
+  observeChanges(
+    yType: YjsSharedType,
+    callback: (node: Parent) => void,
+  ): () => void;
+}
+```
+
+Features:
+
+- Document root-specific handling
+- Inherits all ParentAdapter capabilities
+- Optimized for root-level operations
+- Seamless integration with child adapters
 
 ## Integration with Unifiedjs
 
-The collaborative module is designed to work with the Docen document model, which is Unifiedjs-compatible. This allows for seamless integration with Unifiedjs processing pipelines while adding real-time collaboration capabilities.
+The collaborative module integrates seamlessly with Docen's document model, which is Unifiedjs-compatible. This allows for:
+
+- Real-time collaboration in Unifiedjs processing pipelines
+- Type-safe node transformations
+- Efficient CRDT-based synchronization
+- Flexible adapter system for different node types
 
 ## License
 

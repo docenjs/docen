@@ -23,12 +23,15 @@
   },
   "keywords": [
     "document",
-    "conversion",
-    "processing",
+    "text",
     "pdf",
     "docx",
     "markdown",
-    "html"
+    "html",
+    "conversion",
+    "processing",
+    "typescript",
+    "unified"
   ],
   "author": "Demo Macro",
   "license": "MIT",

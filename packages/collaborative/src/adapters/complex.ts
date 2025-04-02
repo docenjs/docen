@@ -1,4 +1,4 @@
-import type { Node, NodeType, Parent, Root, Text } from "@docen/core";
+import type { Node, NodeType, Parent } from "@docen/core";
 import * as Y from "yjs";
 import type { YjsASTAdapter, YjsSharedType } from "../types";
 
