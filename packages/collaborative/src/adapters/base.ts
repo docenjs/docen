@@ -24,7 +24,7 @@ export class TextAdapter implements YjsASTAdapter<Text> {
 
   observeChanges(
     yType: YjsSharedType,
-    callback: (node: Text) => void,
+    callback: (node: Text) => void
   ): () => void {
     if (!(yType instanceof Y.Text)) {
       throw new Error("Expected Y.Text type");

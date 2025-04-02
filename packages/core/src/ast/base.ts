@@ -208,7 +208,6 @@ export interface Metadata {
   /** Additional metadata fields */
   [key: string]: unknown;
 }
-
 /**
  * Document interface representing a complete document
  */

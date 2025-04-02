@@ -55,7 +55,7 @@ export class PDFGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult> {
     // Create a new PDF document
     const pdfDoc = await PDFDocument.create();
@@ -123,7 +123,7 @@ export class PDFGenerator implements Generator {
    */
   async generateFromNode(
     node: Content,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult | null> {
     try {
       // Create a new PDF document
@@ -177,7 +177,7 @@ export class PDFGenerator implements Generator {
    */
   private async processRootNode(
     root: Root,
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Process children of the root node
     if (root.children && Array.isArray(root.children)) {
@@ -202,7 +202,7 @@ export class PDFGenerator implements Generator {
    */
   private async processNode(
     node: Node,
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     if (!node || typeof node !== "object" || !("type" in node)) return;
 
@@ -213,26 +213,26 @@ export class PDFGenerator implements Generator {
       case "paragraph":
         await this.generateFromParagraph(
           node as Node & { children: Node[] },
-          context,
+          context
         );
         break;
       case "heading":
         await this.generateFromHeading(
           node as Node & { depth: number; children: Node[] },
-          context,
+          context
         );
         break;
       case "image":
       case "inlineImage":
         await this.generateFromImage(
           node as Node & { url: string; alt?: string },
-          context,
+          context
         );
         break;
       case "list":
         await this.generateFromList(
           node as Node & { children: Node[]; ordered?: boolean },
-          context,
+          context
         );
         break;
       case "text":
@@ -241,13 +241,13 @@ export class PDFGenerator implements Generator {
       case "strong":
         await this.generateFromStrong(
           node as Node & { children: Node[] },
-          context,
+          context
         );
         break;
       case "emphasis":
         await this.generateFromEmphasis(
           node as Node & { children: Node[] },
-          context,
+          context
         );
         break;
       case "inlineCode":
@@ -256,13 +256,13 @@ export class PDFGenerator implements Generator {
       case "code":
         await this.generateFromCode(
           node as Node & { value: string; lang?: string },
-          context,
+          context
         );
         break;
       case "blockquote":
         await this.generateFromBlockQuote(
           node as Node & { children: Node[] },
-          context,
+          context
         );
         break;
       case "thematicBreak":
@@ -274,7 +274,7 @@ export class PDFGenerator implements Generator {
       case "link":
         await this.generateFromLink(
           node as Node & { children: Node[]; url: string },
-          context,
+          context
         );
         break;
       default:
@@ -291,7 +291,7 @@ export class PDFGenerator implements Generator {
    */
   private async handleSpecialNodeTypes(
     node: Node,
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Handle table nodes
     if (node.type === "table" && "children" in node) {
@@ -376,7 +376,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromParagraph(
     paragraph: Node & { children: Node[] },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Save original font and size for restoring later
     const originalFont = context.fonts.regular;
@@ -393,7 +393,7 @@ export class PDFGenerator implements Generator {
       const testLine = line + (line ? " " : "") + word;
       const testWidth = context.fonts.regular.widthOfTextAtSize(
         testLine,
-        context.fontSize,
+        context.fontSize
       );
 
       if (testWidth > maxWidth) {
@@ -451,7 +451,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromHeading(
     heading: Node & { depth: number; children: Node[] },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     const depth = heading.depth || 1;
     const headingFontSize = context.fontSize + (6 - depth) * 4;
@@ -476,7 +476,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromImage(
     image: Node & { url: string; alt?: string },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Handle data URIs
     if (image.url.startsWith("data:image/")) {
@@ -571,7 +571,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromTable(
     table: { type: "table"; children: Node[]; header?: { rows: Node[] } },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Table padding and cell dimensions
     const cellPadding = 5;
@@ -729,7 +729,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromList(
     list: Node & { children: Node[]; ordered?: boolean },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     const isOrdered = list.ordered === true;
 
@@ -775,7 +775,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromListItem(
     listItem: { type: "listItem"; children: Node[] },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     if (Array.isArray(listItem.children)) {
       for (const child of listItem.children) {
@@ -792,7 +792,7 @@ export class PDFGenerator implements Generator {
    */
   private generateFromText(
     text: Node & { value: string },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): void {
     context.page.drawText(text.value, {
       x: context.x,
@@ -805,7 +805,7 @@ export class PDFGenerator implements Generator {
     // Move x position for inline elements
     context.x += context.fonts.regular.widthOfTextAtSize(
       text.value,
-      context.fontSize,
+      context.fontSize
     );
   }
 
@@ -817,7 +817,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromStrong(
     strong: Node & { children: Node[] },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Save original font
     const originalFont = context.fonts.regular;
@@ -842,7 +842,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromEmphasis(
     emphasis: Node & { children: Node[] },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Save original font
     const originalFont = context.fonts.regular;
@@ -867,7 +867,7 @@ export class PDFGenerator implements Generator {
    */
   private generateFromInlineCode(
     inlineCode: Node & { value: string },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): void {
     // Draw with monospace appearance
     const text = inlineCode.value;
@@ -875,7 +875,7 @@ export class PDFGenerator implements Generator {
     // Draw background rectangle
     const textWidth = context.fonts.regular.widthOfTextAtSize(
       text,
-      context.fontSize,
+      context.fontSize
     );
     context.page.drawRectangle({
       x: context.x,
@@ -907,7 +907,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromCode(
     code: Node & { value: string; lang?: string },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     const language = code.lang || "";
     const codeText = code.value;
@@ -970,7 +970,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromBlockQuote(
     blockquote: Node & { children: Node[] },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Save the current position and font
     const originalX = context.x;
@@ -1015,7 +1015,7 @@ export class PDFGenerator implements Generator {
    */
   private generateFromThematicBreak(
     thematicBreak: Node,
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): void {
     // Draw a horizontal line
     context.page.drawLine({
@@ -1037,7 +1037,7 @@ export class PDFGenerator implements Generator {
    */
   private generateFromLineBreak(
     lineBreak: Node,
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): void {
     // Move to the next line
     context.y -= context.lineHeight;
@@ -1052,7 +1052,7 @@ export class PDFGenerator implements Generator {
    */
   private async generateFromLink(
     link: Node & { children: Node[]; url: string },
-    context: PDFGenerationContext,
+    context: PDFGenerationContext
   ): Promise<void> {
     // Save original font and color
     const originalFont = context.fonts.regular;
@@ -1076,7 +1076,7 @@ export class PDFGenerator implements Generator {
     // Draw underline
     const textWidth = context.fonts.regular.widthOfTextAtSize(
       linkText,
-      context.fontSize,
+      context.fontSize
     );
     context.page.drawLine({
       start: { x: context.x, y: context.y - 2 },

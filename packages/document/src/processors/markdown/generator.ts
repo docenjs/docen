@@ -73,7 +73,7 @@ export class MarkdownGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult> {
     try {
       let markdown = "";
@@ -123,7 +123,7 @@ export class MarkdownGenerator implements Generator {
         "Failed to generate Markdown document",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -137,7 +137,7 @@ export class MarkdownGenerator implements Generator {
    */
   async generateFromNode(
     node: DocumentContent,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult | null> {
     try {
       // Check if this is a node type we can handle
@@ -423,8 +423,8 @@ export class MarkdownGenerator implements Generator {
     // Get the maximum number of columns based on all rows
     const maxColumns = Math.max(
       ...rows.map((row) =>
-        row.type === "tableRow" ? row.children?.length || 0 : 0,
-      ),
+        row.type === "tableRow" ? row.children?.length || 0 : 0
+      )
     );
 
     // Generate header row
@@ -592,8 +592,8 @@ export class MarkdownGenerator implements Generator {
     // Get the maximum number of columns based on all rows
     const maxColumns = Math.max(
       ...allRows.map((row) =>
-        row.type === "tableRow" ? row.children?.length || 0 : 0,
-      ),
+        row.type === "tableRow" ? row.children?.length || 0 : 0
+      )
     );
 
     // Generate header row (first row)

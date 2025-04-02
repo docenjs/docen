@@ -70,7 +70,7 @@ export class XMLParser extends AbstractParser {
         "Failed to parse XML content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -146,7 +146,7 @@ export class XMLParser extends AbstractParser {
       preserveComments: boolean;
       preserveAttributes: boolean;
       convertPrimitives: boolean;
-    },
+    }
   ): unknown {
     const { preserveComments, preserveAttributes, convertPrimitives } = options;
 
@@ -181,7 +181,7 @@ export class XMLParser extends AbstractParser {
       preserveComments: boolean;
       preserveAttributes: boolean;
       convertPrimitives: boolean;
-    },
+    }
   ): unknown {
     const { preserveAttributes, convertPrimitives } = options;
 

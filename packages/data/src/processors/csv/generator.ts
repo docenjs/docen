@@ -65,7 +65,7 @@ export class CSVGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: CSVGeneratorOptions,
+    options?: CSVGeneratorOptions
   ): Promise<ConversionResult> {
     // Generate CSV content from the document AST
     const csvContent = this.generateCSVContent(document, options);
@@ -90,7 +90,7 @@ export class CSVGenerator implements Generator {
    */
   private generateCSVContent(
     document: Document,
-    options?: CSVGeneratorOptions,
+    options?: CSVGeneratorOptions
   ): string {
     let csvContent = "";
 

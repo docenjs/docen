@@ -26,7 +26,7 @@ export class ParentAdapter implements YjsASTAdapter<Parent> {
 
     const type = yType.get("type") as NodeType;
     const children = this.convertYjsToChildren(
-      yType.get("children") as Y.Array<unknown>,
+      yType.get("children") as Y.Array<unknown>
     );
 
     return {
@@ -37,7 +37,7 @@ export class ParentAdapter implements YjsASTAdapter<Parent> {
 
   observeChanges(
     yType: YjsSharedType,
-    callback: (node: Parent) => void,
+    callback: (node: Parent) => void
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map type");
@@ -98,7 +98,7 @@ export class RootAdapter implements YjsASTAdapter<Parent> {
 
   observeChanges(
     yType: YjsSharedType,
-    callback: (node: Parent) => void,
+    callback: (node: Parent) => void
   ): () => void {
     return this.parentAdapter.observeChanges(yType, callback);
   }

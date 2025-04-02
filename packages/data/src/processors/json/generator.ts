@@ -47,7 +47,7 @@ export class JSONGenerator extends AbstractGenerator {
    */
   async generate(
     document: Document,
-    options?: JSONGeneratorOptions,
+    options?: JSONGeneratorOptions
   ): Promise<ConversionResult> {
     try {
       // Get options with defaults
@@ -79,7 +79,7 @@ export class JSONGenerator extends AbstractGenerator {
         "Failed to generate JSON content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -208,7 +208,7 @@ export class JSONGenerator extends AbstractGenerator {
 
     return (cell as Parent).children
       .map((child: Node) =>
-        "value" in child ? (child as { value: string }).value : "",
+        "value" in child ? (child as { value: string }).value : ""
       )
       .join("")
       .trim();

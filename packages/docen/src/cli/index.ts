@@ -74,7 +74,7 @@ const convertCommand = defineCommand({
           preserveFormatting,
           extractImages,
           extractMetadata,
-        },
+        }
       );
 
       // Write output file
@@ -84,7 +84,7 @@ const convertCommand = defineCommand({
     } catch (error) {
       console.error(
         "Error converting document:",
-        error instanceof Error ? error.message : String(error),
+        error instanceof Error ? error.message : String(error)
       );
       process.exit(1);
     }
@@ -147,7 +147,7 @@ const extractCommand = defineCommand({
     } catch (error) {
       console.error(
         "Error extracting text:",
-        error instanceof Error ? error.message : String(error),
+        error instanceof Error ? error.message : String(error)
       );
       process.exit(1);
     }
@@ -197,7 +197,7 @@ const metadataCommand = defineCommand({
     } catch (error) {
       console.error(
         "Error extracting metadata:",
-        error instanceof Error ? error.message : String(error),
+        error instanceof Error ? error.message : String(error)
       );
       process.exit(1);
     }

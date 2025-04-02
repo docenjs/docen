@@ -52,7 +52,7 @@ export class OOXMLParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check if the MIME type or extension is supported
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -175,7 +175,7 @@ export class OOXMLParser implements Parser {
    * @returns Container entries
    */
   private createContainerEntries(
-    files: Record<string, Uint8Array>,
+    files: Record<string, Uint8Array>
   ): ContainerEntry[] {
     const entries: ContainerEntry[] = [];
     const directories = new Set<string>();
@@ -245,7 +245,7 @@ export class OOXMLParser implements Parser {
    */
   private parseContentTypes(
     files: Record<string, Uint8Array>,
-    container: OOXMLContainer,
+    container: OOXMLContainer
   ): void {
     const contentTypesFile = files["[Content_Types].xml"];
     if (!contentTypesFile) return;
@@ -284,7 +284,7 @@ export class OOXMLParser implements Parser {
    */
   private parseRelationships(
     files: Record<string, Uint8Array>,
-    container: OOXMLContainer,
+    container: OOXMLContainer
   ): void {
     for (const path in files) {
       if (path.endsWith(".rels")) {
@@ -315,7 +315,7 @@ export class OOXMLParser implements Parser {
    * @returns Core properties
    */
   private async extractCoreProperties(
-    files: Record<string, Uint8Array>,
+    files: Record<string, Uint8Array>
   ): Promise<OOXMLCoreProperties> {
     const coreProperties: OOXMLCoreProperties = {};
 
@@ -331,28 +331,28 @@ export class OOXMLParser implements Parser {
         coreProperties.creator = this.extractXmlValue(xmlString, "dc:creator");
         coreProperties.description = this.extractXmlValue(
           xmlString,
-          "dc:description",
+          "dc:description"
         );
         coreProperties.subject = this.extractXmlValue(xmlString, "dc:subject");
         coreProperties.keywords = this.extractXmlValue(
           xmlString,
-          "cp:keywords",
+          "cp:keywords"
         );
         coreProperties.lastModifiedBy = this.extractXmlValue(
           xmlString,
-          "cp:lastModifiedBy",
+          "cp:lastModifiedBy"
         );
         coreProperties.revision = this.extractXmlValue(
           xmlString,
-          "cp:revision",
+          "cp:revision"
         );
         coreProperties.category = this.extractXmlValue(
           xmlString,
-          "cp:category",
+          "cp:category"
         );
         coreProperties.contentStatus = this.extractXmlValue(
           xmlString,
-          "cp:contentStatus",
+          "cp:contentStatus"
         );
 
         const createdDate = this.extractXmlValue(xmlString, "dcterms:created");
@@ -362,7 +362,7 @@ export class OOXMLParser implements Parser {
 
         const modifiedDate = this.extractXmlValue(
           xmlString,
-          "dcterms:modified",
+          "dcterms:modified"
         );
         if (modifiedDate) {
           coreProperties.modified = new Date(modifiedDate);
@@ -379,7 +379,7 @@ export class OOXMLParser implements Parser {
    * Map OOXMLCoreProperties to generic Metadata
    */
   private mapCorePropertiesToMetadata(
-    coreProperties: OOXMLCoreProperties,
+    coreProperties: OOXMLCoreProperties
   ): Metadata {
     return {
       title: coreProperties.title,
@@ -427,7 +427,7 @@ export class OOXMLParser implements Parser {
   private async parseDocx(
     files: Record<string, Uint8Array>,
     container: OOXMLContainer,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // Get the main document.xml file
     const documentXml = files["word/document.xml"];
@@ -467,7 +467,7 @@ export class OOXMLParser implements Parser {
   private async parseXlsx(
     files: Record<string, Uint8Array>,
     container: OOXMLContainer,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // Get the workbook.xml file
     const workbookXml = files["xl/workbook.xml"];
@@ -498,7 +498,7 @@ export class OOXMLParser implements Parser {
   private async parsePptx(
     files: Record<string, Uint8Array>,
     container: OOXMLContainer,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // Get the presentation.xml file
     const presentationXml = files["ppt/presentation.xml"];
@@ -572,7 +572,7 @@ export class OOXMLParser implements Parser {
   private extractXmlValue(xml: string, tagName: string): string {
     const tagRegex = new RegExp(
       `<${tagName}(?:\\s[^>]*)?>([\s\S]+?)<\/${tagName}>`,
-      "i",
+      "i"
     );
     const match = xml.match(tagRegex);
     return match ? match[1].trim() : "";

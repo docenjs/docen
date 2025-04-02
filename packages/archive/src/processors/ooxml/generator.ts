@@ -66,7 +66,7 @@ export class OOXMLGenerator implements Generator {
    */
   async generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult> {
     // Determine the target format
     const targetFormat = this.determineTargetFormat(options);
@@ -79,7 +79,7 @@ export class OOXMLGenerator implements Generator {
       document,
       targetFormat,
       existingContainer,
-      options,
+      options
     );
 
     // Compress the files into an OOXML package
@@ -128,7 +128,7 @@ export class OOXMLGenerator implements Generator {
 
       // Check if it's a MIME type
       const mimeTypeIndex = this.supportedOutputTypes.findIndex(
-        (mimeType) => mimeType.toLowerCase() === format,
+        (mimeType) => mimeType.toLowerCase() === format
       );
       if (mimeTypeIndex >= 0) {
         return this.supportedOutputExtensions[mimeTypeIndex];
@@ -168,7 +168,7 @@ export class OOXMLGenerator implements Generator {
     document: Document,
     targetFormat: string,
     existingContainer?: OOXMLContainer,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Record<string, Uint8Array>> {
     // If we have an existing container with the same format, reuse its structure
     if (
@@ -204,7 +204,7 @@ export class OOXMLGenerator implements Generator {
    */
   private isFormatMatchingContainer(
     format: string,
-    container: OOXMLContainer,
+    container: OOXMLContainer
   ): boolean {
     const formatToOoxmlType: Record<string, string> = {
       docx: "wordprocessingml",
@@ -221,7 +221,7 @@ export class OOXMLGenerator implements Generator {
   private async regenerateFromContainer(
     container: OOXMLContainer,
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Record<string, Uint8Array>> {
     const files: Record<string, Uint8Array> = {};
 
@@ -262,7 +262,7 @@ export class OOXMLGenerator implements Generator {
   private async createDocxFiles(
     document: Document,
     files: Record<string, Uint8Array>,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // This is a simplified implementation
     // A real implementation would create all the necessary XML files for a DOCX document
@@ -276,7 +276,7 @@ export class OOXMLGenerator implements Generator {
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-</Types>`,
+</Types>`
     );
 
     // Create _rels/.rels
@@ -285,7 +285,7 @@ export class OOXMLGenerator implements Generator {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-</Relationships>`,
+</Relationships>`
     );
 
     // Create word/_rels/document.xml.rels
@@ -293,7 +293,7 @@ export class OOXMLGenerator implements Generator {
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`,
+</Relationships>`
     );
 
     // Create word/styles.xml
@@ -305,7 +305,7 @@ export class OOXMLGenerator implements Generator {
     <w:pPr/>
     <w:rPr/>
   </w:style>
-</w:styles>`,
+</w:styles>`
     );
 
     // Create docProps/core.xml with metadata
@@ -415,7 +415,7 @@ export class OOXMLGenerator implements Generator {
   private async createXlsxFiles(
     document: Document,
     files: Record<string, Uint8Array>,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // This is a placeholder implementation
     // A real implementation would create all the necessary XML files for an XLSX document
@@ -428,7 +428,7 @@ export class OOXMLGenerator implements Generator {
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-</Types>`,
+</Types>`
     );
 
     // Create a simple workbook.xml
@@ -438,7 +438,7 @@ export class OOXMLGenerator implements Generator {
   <sheets>
     <sheet name="Sheet1" sheetId="1" r:id="rId1"/>
   </sheets>
-</workbook>`,
+</workbook>`
     );
 
     // Create _rels/.rels
@@ -447,7 +447,7 @@ export class OOXMLGenerator implements Generator {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-</Relationships>`,
+</Relationships>`
     );
 
     // Create docProps/core.xml with metadata
@@ -465,7 +465,7 @@ export class OOXMLGenerator implements Generator {
   private async createPptxFiles(
     document: Document,
     files: Record<string, Uint8Array>,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<void> {
     // This is a placeholder implementation
     // A real implementation would create all the necessary XML files for a PPTX document
@@ -478,7 +478,7 @@ export class OOXMLGenerator implements Generator {
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-</Types>`,
+</Types>`
     );
 
     // Create a simple presentation.xml
@@ -488,7 +488,7 @@ export class OOXMLGenerator implements Generator {
   <p:sldIdLst>
     <p:sldId id="256" r:id="rId1"/>
   </p:sldIdLst>
-</p:presentation>`,
+</p:presentation>`
     );
 
     // Create _rels/.rels
@@ -497,7 +497,7 @@ export class OOXMLGenerator implements Generator {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-</Relationships>`,
+</Relationships>`
     );
 
     // Create docProps/core.xml with metadata
@@ -596,7 +596,7 @@ ${paragraphs}  </w:body>
    * @returns Compressed OOXML package
    */
   private createOOXMLPackage(
-    files: Record<string, Uint8Array>,
+    files: Record<string, Uint8Array>
   ): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
       try {

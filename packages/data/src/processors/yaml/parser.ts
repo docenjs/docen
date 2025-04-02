@@ -70,7 +70,7 @@ export class YAMLParser extends AbstractParser {
         "Failed to parse YAML content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -112,7 +112,7 @@ export class YAMLParser extends AbstractParser {
    */
   private async parseYAML(
     text: string,
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -371,7 +371,7 @@ export class YAMLParser extends AbstractParser {
    */
   private yamlToTable(
     data: unknown,
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table | undefined {
     // Create table node
     const table: Table = {
@@ -426,7 +426,7 @@ export class YAMLParser extends AbstractParser {
    */
   private objectArrayToTable(
     data: Record<string, unknown>[],
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table {
     const table: Table = {
       type: "table",
@@ -492,7 +492,7 @@ export class YAMLParser extends AbstractParser {
    */
   private primitiveArrayToTable(
     data: (string | number | boolean | null)[],
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table {
     const table: Table = {
       type: "table",
@@ -552,7 +552,7 @@ export class YAMLParser extends AbstractParser {
    */
   private objectToTable(
     data: Record<string, unknown>,
-    options?: YAMLParserOptions,
+    options?: YAMLParserOptions
   ): Table {
     const table: Table = {
       type: "table",

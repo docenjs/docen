@@ -32,7 +32,7 @@ export class ArrayAdapter<T = unknown> implements YjsASTAdapter<Node, T> {
 
   observeChanges(
     yType: YjsSharedType<T>,
-    callback: (node: Node) => void,
+    callback: (node: Node) => void
   ): () => void {
     if (!(yType instanceof Y.Array)) {
       throw new Error("Expected Y.Array type");

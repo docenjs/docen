@@ -58,10 +58,10 @@ export function createProcessorError(
   processorId: string,
   node?: Node,
   cause?: Error,
-  context?: Record<string, unknown>,
+  context?: Record<string, unknown>
 ): ProcessorError {
   const error = new Error(
-    `Processor error [${processorId}]: ${message}${node ? ` (node type: ${node.type})` : ""}`,
+    `Processor error [${processorId}]: ${message}${node ? ` (node type: ${node.type})` : ""}`
   ) as ProcessorError;
 
   error.processorId = processorId;
@@ -115,7 +115,7 @@ export abstract class AbstractParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check MIME type if provided
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -140,7 +140,7 @@ export abstract class AbstractParser implements Parser {
    */
   handleUnsupportedNode(
     node: Node,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ): UnsupportedNodeHandling {
     // Default implementation: try to convert unsupported nodes
     return UnsupportedNodeHandling.CONVERT;
@@ -159,7 +159,7 @@ export abstract class AbstractParser implements Parser {
   async parseNodeType(
     source: Source,
     nodeType: string,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Content | null> {
     // Default implementation: parse the whole document and extract the requested node type
     const document = await this.parse(source, options);
@@ -208,7 +208,7 @@ export abstract class AbstractParser implements Parser {
    * @returns Progress callback function
    */
   protected getProgressCallback(
-    options?: CommonProcessorOptions,
+    options?: CommonProcessorOptions
   ): ProgressCallback {
     return options?.onProgress || this.defaultProgressCallback;
   }
@@ -225,7 +225,7 @@ export abstract class AbstractParser implements Parser {
     progress: number,
     callback: ProgressCallback,
     status?: string,
-    operation?: string,
+    operation?: string
   ): void {
     callback({
       progress,
@@ -267,7 +267,7 @@ export abstract class AbstractGenerator implements Generator {
    */
   abstract generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult>;
 
   /**
@@ -298,7 +298,7 @@ export abstract class AbstractGenerator implements Generator {
    */
   handleUnsupportedNode(
     node: Node,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ): UnsupportedNodeHandling {
     // Default implementation: keep unsupported nodes as is
     return UnsupportedNodeHandling.KEEP_AS_IS;
@@ -313,7 +313,7 @@ export abstract class AbstractGenerator implements Generator {
    */
   async generateFromNode(
     node: Content,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult | null> {
     // Create a minimal document containing just this node
     const document: Document = {
@@ -346,7 +346,7 @@ export abstract class AbstractGenerator implements Generator {
   protected convertNode(
     node: Node,
     targetType: string,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ): Node | null {
     // Default implementation: conversion not supported
     return null;
@@ -359,7 +359,7 @@ export abstract class AbstractGenerator implements Generator {
    * @returns Progress callback function
    */
   protected getProgressCallback(
-    options?: CommonProcessorOptions,
+    options?: CommonProcessorOptions
   ): ProgressCallback {
     return options?.onProgress || this.defaultProgressCallback;
   }
@@ -376,7 +376,7 @@ export abstract class AbstractGenerator implements Generator {
     progress: number,
     callback: ProgressCallback,
     status?: string,
-    operation?: string,
+    operation?: string
   ): void {
     callback({
       progress,

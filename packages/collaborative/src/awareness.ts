@@ -11,7 +11,7 @@ import type { AwarenessState } from "./types";
  */
 export function createAwareness(
   ydoc: Y.Doc,
-  initialState?: Partial<AwarenessState>,
+  initialState?: Partial<AwarenessState>
 ) {
   // Create awareness instance
   const awareness = new Awareness(ydoc);
@@ -76,7 +76,7 @@ export function createAwareness(
         added: number[];
         updated: number[];
         removed: number[];
-      }) => void,
+      }) => void
     ) => {
       awareness.on("change", callback);
       return () => {

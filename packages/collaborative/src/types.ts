@@ -33,7 +33,7 @@ export interface YjsASTAdapter<T extends Node, YT = unknown> {
    */
   observeChanges(
     yType: YjsSharedType<YT>,
-    callback: (node: T) => void,
+    callback: (node: T) => void
   ): () => void;
 }
 
@@ -139,7 +139,7 @@ export interface CollaborativeDocument extends Document {
         added: number[];
         updated: number[];
         removed: number[];
-      }) => void,
+      }) => void
     ) => () => void;
   };
 

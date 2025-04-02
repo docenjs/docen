@@ -68,7 +68,7 @@ export interface ProcessorRegistry extends Registry<Parser | Generator> {
   findParser(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<Parser | undefined>;
 
   /**
@@ -95,7 +95,7 @@ export interface ProcessorRegistry extends Registry<Parser | Generator> {
     sourceMimeType?: string,
     sourceExtension?: string,
     targetMimeType?: string,
-    targetExtension?: string,
+    targetExtension?: string
   ): Promise<FullProcessor | undefined>;
 
   /**

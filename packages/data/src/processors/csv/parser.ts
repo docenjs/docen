@@ -71,7 +71,7 @@ export class CSVParser extends AbstractParser {
         "Failed to parse CSV content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -96,13 +96,13 @@ export class CSVParser extends AbstractParser {
       if (lines.length > 0) {
         // Check if most lines have the same number of commas
         const commasPerLine = lines.map(
-          (line) => (line.match(/,/g) || []).length,
+          (line) => (line.match(/,/g) || []).length
         );
         const mostCommonCount = this.getMostCommonValue(commasPerLine);
 
         // If most lines have the same number of commas and it's at least 1, it's likely CSV
         const matchingLines = commasPerLine.filter(
-          (count) => count === mostCommonCount,
+          (count) => count === mostCommonCount
         ).length;
         if (mostCommonCount >= 1 && matchingLines / lines.length > 0.7) {
           return true;
@@ -124,7 +124,7 @@ export class CSVParser extends AbstractParser {
    */
   private async parseCSV(
     text: string,
-    options?: CSVParserOptions,
+    options?: CSVParserOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -165,7 +165,7 @@ export class CSVParser extends AbstractParser {
 
       // Parse CSV into rows and cells
       const rows = filteredLines.map((line) =>
-        this.parseCSVLine(line, delimiter, quote, escapeChar, trimValues),
+        this.parseCSVLine(line, delimiter, quote, escapeChar, trimValues)
       );
 
       // Create table node
@@ -218,7 +218,7 @@ export class CSVParser extends AbstractParser {
         "Failed to parse CSV content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
 
@@ -236,7 +236,7 @@ export class CSVParser extends AbstractParser {
   private splitCSVLines(
     text: string,
     quote: string,
-    escapeChar: string,
+    escapeChar: string
   ): string[] {
     const lines: string[] = [];
     let currentLine = "";
@@ -300,7 +300,7 @@ export class CSVParser extends AbstractParser {
     delimiter: string,
     quote: string,
     escapeChar: string,
-    trimValues: boolean,
+    trimValues: boolean
   ): string[] {
     const cells: string[] = [];
     let currentCell = "";

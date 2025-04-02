@@ -60,7 +60,7 @@ export class MarkdownParser extends AbstractParser {
 
       // If at least two patterns match, assume it's markdown
       const matchCount = markdownPatterns.filter((pattern) =>
-        pattern.test(text),
+        pattern.test(text)
       ).length;
 
       return matchCount >= 2;
@@ -104,7 +104,7 @@ export class MarkdownParser extends AbstractParser {
         "Failed to parse Markdown document",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -387,7 +387,7 @@ export class MarkdownParser extends AbstractParser {
         type: "strong",
         children: [{ type: "text", value: content }],
       }),
-      lastIndex,
+      lastIndex
     );
 
     // Process italic text
@@ -399,7 +399,7 @@ export class MarkdownParser extends AbstractParser {
         type: "emphasis",
         children: [{ type: "text", value: content }],
       }),
-      lastIndex,
+      lastIndex
     );
 
     // Process inline code
@@ -411,7 +411,7 @@ export class MarkdownParser extends AbstractParser {
         type: "inlineCode",
         value: content,
       }),
-      lastIndex,
+      lastIndex
     );
 
     // Process line breaks
@@ -422,7 +422,7 @@ export class MarkdownParser extends AbstractParser {
       () => ({
         type: "break",
       }),
-      lastIndex,
+      lastIndex
     );
 
     // Process links
@@ -436,7 +436,7 @@ export class MarkdownParser extends AbstractParser {
         title,
         children: [{ type: "text", value: content }],
       }),
-      lastIndex,
+      lastIndex
     );
 
     // Process inline images
@@ -450,7 +450,7 @@ export class MarkdownParser extends AbstractParser {
         alt: alt || undefined,
         title,
       }),
-      lastIndex,
+      lastIndex
     );
 
     // If no inline elements were found, add the whole text as a single node
@@ -478,7 +478,7 @@ export class MarkdownParser extends AbstractParser {
     text: string,
     regex: RegExp,
     createNode: (...args: string[]) => Inline,
-    initialLastIndex: number,
+    initialLastIndex: number
   ): void {
     let currentMatch = regex.exec(text);
     let currentLastIndex = initialLastIndex;
@@ -512,8 +512,8 @@ export class MarkdownParser extends AbstractParser {
           createNode(
             currentMatch[1],
             currentMatch[2],
-            currentMatch[3],
-          ) as Paragraph["children"][0],
+            currentMatch[3]
+          ) as Paragraph["children"][0]
         );
       } else if (regex.toString().includes("!\\[")) {
         // Image pattern (3 potential capture groups)
@@ -521,13 +521,13 @@ export class MarkdownParser extends AbstractParser {
           createNode(
             currentMatch[1],
             currentMatch[2],
-            currentMatch[3],
-          ) as Paragraph["children"][0],
+            currentMatch[3]
+          ) as Paragraph["children"][0]
         );
       } else {
         // Other patterns with single capture group (bold, italic, code)
         paragraph.children.push(
-          createNode(currentMatch[1]) as Paragraph["children"][0],
+          createNode(currentMatch[1]) as Paragraph["children"][0]
         );
       }
 
@@ -558,7 +558,7 @@ export class MarkdownParser extends AbstractParser {
    */
   private parseBlockImage(text: string): Image | null {
     const imageMatch = text.match(
-      /^!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]+)")?\)$/,
+      /^!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]+)")?\)$/
     );
     if (!imageMatch) return null;
 
@@ -580,7 +580,7 @@ export class MarkdownParser extends AbstractParser {
    */
   private parseEnhancedTable(
     lines: string[],
-    startIndex: number,
+    startIndex: number
   ): TableEnhanced | null {
     if (startIndex + 2 >= lines.length) return null;
 

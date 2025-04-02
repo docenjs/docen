@@ -117,7 +117,7 @@ export class PDFParser implements Parser {
    */
   private createHeadingNode(
     text: string,
-    level: 1 | 2 | 3 | 4 | 5 | 6,
+    level: 1 | 2 | 3 | 4 | 5 | 6
   ): Heading {
     return {
       type: "heading",
@@ -140,7 +140,7 @@ export class PDFParser implements Parser {
    */
   private async extractImages(
     page: PDFPageProxy,
-    pageNum: number,
+    pageNum: number
   ): Promise<Image[]> {
     const images: Image[] = [];
     try {
@@ -181,7 +181,7 @@ export class PDFParser implements Parser {
   async canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean> {
     // Check if the MIME type or extension is supported
     if (mimeType && this.supportedInputTypes.includes(mimeType)) {
@@ -232,7 +232,7 @@ export class PDFParser implements Parser {
         sourceData = new Uint8Array(
           source.buffer,
           source.byteOffset,
-          source.byteLength,
+          source.byteLength
         );
       } else if (source instanceof ArrayBuffer) {
         // If source is already an ArrayBuffer, create Uint8Array directly
@@ -312,7 +312,7 @@ export class PDFParser implements Parser {
    * @returns Extracted metadata
    */
   private async extractMetadata(
-    pdfDocument: PDFDocumentProxy,
+    pdfDocument: PDFDocumentProxy
   ): Promise<Metadata> {
     try {
       const metaResult = await pdfDocument.getMetadata();
@@ -379,7 +379,7 @@ export class PDFParser implements Parser {
    */
   private async parseContent(
     pdfDocument: PDFDocumentProxy,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -411,7 +411,7 @@ export class PDFParser implements Parser {
   private async parsePage(
     page: PDFPageProxy,
     pageNum: number,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Node[]> {
     const nodes: Node[] = [];
 
@@ -448,7 +448,7 @@ export class PDFParser implements Parser {
   private processTextContent(
     textContent: PDFTextContent,
     viewport: PDFViewport,
-    pageNum: number,
+    pageNum: number
   ): (Paragraph | Heading)[] {
     const content: (Paragraph | Heading)[] = [];
     const items = textContent.items;
@@ -514,7 +514,7 @@ export class PDFParser implements Parser {
         // Empty line - end of paragraph
         if (currentParagraphLines.length > 0) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" ")),
+            this.createParagraphNode(currentParagraphLines.join(" "))
           );
           currentParagraphLines = [];
         }
@@ -526,7 +526,7 @@ export class PDFParser implements Parser {
         line.reduce((sum: number, item) => sum + (item.height ?? 0), 0) /
         line.length;
       const isBold = line.some((item) =>
-        item.fontName?.toLowerCase().includes("bold"),
+        item.fontName?.toLowerCase().includes("bold")
       );
 
       // Detect if this is likely a heading
@@ -540,7 +540,7 @@ export class PDFParser implements Parser {
         // End current paragraph if any
         if (currentParagraphLines.length > 0) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" ")),
+            this.createParagraphNode(currentParagraphLines.join(" "))
           );
           currentParagraphLines = [];
         }
@@ -567,7 +567,7 @@ export class PDFParser implements Parser {
 
         if (isEndOfParagraph) {
           content.push(
-            this.createParagraphNode(currentParagraphLines.join(" ")),
+            this.createParagraphNode(currentParagraphLines.join(" "))
           );
           currentParagraphLines = [];
         }
@@ -593,7 +593,7 @@ export class PDFParser implements Parser {
    */
   private async extractTables(
     textContent: PDFTextContent,
-    viewport: PDFViewport,
+    viewport: PDFViewport
   ): Promise<TableEnhanced[]> {
     const tables: Table[] = [];
     const items = textContent.items;
@@ -737,7 +737,7 @@ export class PDFParser implements Parser {
   private isTableRow(
     row: Array<PDFTextItem>,
     prevRowY: number | null,
-    prevRowHeight: number | null,
+    prevRowHeight: number | null
   ): boolean {
     if (!row.length) return false;
 
@@ -769,7 +769,7 @@ export class PDFParser implements Parser {
    * @returns Array of cell items
    */
   private groupItemsIntoCells(
-    row: Array<PDFTextItem>,
+    row: Array<PDFTextItem>
   ): Array<Array<PDFTextItem>> {
     const cells: Array<Array<PDFTextItem>> = [];
     let currentCell: Array<PDFTextItem> = [];
@@ -893,7 +893,7 @@ export class PDFParser implements Parser {
    */
   handleUnsupportedNode(
     node: Node,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ): UnsupportedNodeHandling {
     // Default to converting the node to something that can be handled
     return UnsupportedNodeHandling.CONVERT;

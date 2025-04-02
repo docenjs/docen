@@ -50,19 +50,3 @@ export type Inline = TextInline | Link | InlineImage;
  * This union type combines all document content types, used for uniform processing in processors
  */
 export type DocumentContent = Block | Inline;
-
-// Override the Inline type from text.ts with our extended version
-declare module "./text" {
-  interface Paragraph {
-    children: Inline[];
-  }
-  interface Heading {
-    children: Inline[];
-  }
-  interface Emphasis {
-    children: Inline[];
-  }
-  interface Strong {
-    children: Inline[];
-  }
-}

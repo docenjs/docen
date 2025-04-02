@@ -70,7 +70,7 @@ export class JSONParser extends AbstractParser {
         "Failed to parse JSON content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
   }
@@ -95,7 +95,7 @@ export class JSONParser extends AbstractParser {
       ) {
         // Try to parse a small sample to confirm it's valid JSON
         JSON.parse(
-          trimmed.length > 100 ? `${trimmed.substring(0, 100)}...` : trimmed,
+          trimmed.length > 100 ? `${trimmed.substring(0, 100)}...` : trimmed
         );
         return true;
       }
@@ -115,7 +115,7 @@ export class JSONParser extends AbstractParser {
    */
   private async parseJSON(
     text: string,
-    options?: JSONParserOptions,
+    options?: JSONParserOptions
   ): Promise<Root> {
     const root: Root = {
       type: "root",
@@ -142,7 +142,7 @@ export class JSONParser extends AbstractParser {
         "Failed to parse JSON content",
         this.id,
         undefined,
-        error instanceof Error ? error : new Error(String(error)),
+        error instanceof Error ? error : new Error(String(error))
       );
     }
 
@@ -158,7 +158,7 @@ export class JSONParser extends AbstractParser {
    */
   private jsonToTable(
     data: unknown,
-    options?: JSONParserOptions,
+    options?: JSONParserOptions
   ): Table | undefined {
     // Create table node
     const table: Table = {
@@ -213,7 +213,7 @@ export class JSONParser extends AbstractParser {
    */
   private objectArrayToTable(
     data: Record<string, unknown>[],
-    options?: JSONParserOptions,
+    options?: JSONParserOptions
   ): Table {
     const table: Table = {
       type: "table",
@@ -279,7 +279,7 @@ export class JSONParser extends AbstractParser {
    */
   private primitiveArrayToTable(
     data: (string | number | boolean | null)[],
-    options?: JSONParserOptions,
+    options?: JSONParserOptions
   ): Table {
     const table: Table = {
       type: "table",
@@ -339,7 +339,7 @@ export class JSONParser extends AbstractParser {
    */
   private objectToTable(
     data: Record<string, unknown>,
-    options?: JSONParserOptions,
+    options?: JSONParserOptions
   ): Table {
     const table: Table = {
       type: "table",

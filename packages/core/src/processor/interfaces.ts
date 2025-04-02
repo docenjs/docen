@@ -113,7 +113,7 @@ export interface Processor {
    */
   handleUnsupportedNode?(
     node: Node,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ): UnsupportedNodeHandling;
 }
 
@@ -141,7 +141,7 @@ export interface Parser extends Processor {
   canParse(
     source: Source,
     mimeType?: string,
-    extension?: string,
+    extension?: string
   ): Promise<boolean>;
 
   /**
@@ -158,7 +158,7 @@ export interface Parser extends Processor {
   parseNodeType?(
     source: Source,
     nodeType: string,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<Content | null>;
 
   /**
@@ -186,7 +186,7 @@ export interface Generator extends Processor {
    */
   generate(
     document: Document,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult>;
 
   /**
@@ -210,7 +210,7 @@ export interface Generator extends Processor {
    */
   generateFromNode?(
     node: Content,
-    options?: ProcessorOptions,
+    options?: ProcessorOptions
   ): Promise<ConversionResult | null>;
 
   /**
