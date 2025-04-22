@@ -18,7 +18,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "bin": {
     "docen": "./dist/cli/index.mjs"
   },
@@ -35,20 +37,34 @@
     "typescript",
     "cli",
     "framework",
-    "text",
+    "markdown",
+    "office",
     "pdf",
     "docx",
-    "xlsx",
-    "csv",
-    "json",
-    "markdown",
-    "html"
+    "media",
+    "data"
   ],
-  "author": "Demo Macro",
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
   "license": "MIT",
   "dependencies": {
     "@docen/core": "workspace:*",
+    "@docen/data": "workspace:*",
     "@docen/document": "workspace:*",
-    "@funish/cli": "0.0.5"
+    "@docen/media": "workspace:*",
+    "@docen/office": "workspace:*",
+    "@docen/providers": "workspace:*",
+    "magic-regexp": "^0.10.0",
+    "pathe": "^2.0.3",
+    "std-env": "^3.9.0",
+    "unenv": "^1.10.0",
+    "unplugin": "^2.3.2"
+  },
+  "devDependencies": {
+    "size-limit": "^11.2.0",
+    "vitest": "^3.1.2"
   }
 }

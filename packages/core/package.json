@@ -1,7 +1,7 @@
 {
   "name": "@docen/core",
   "version": "0.0.0",
-  "description": "Core module for Docen - Universal document conversion and processing library",
+  "description": "Core utilities and shared functionality for Docen modules",
   "type": "module",
   "exports": {
     ".": {
@@ -13,26 +13,55 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
     "prepack": "pnpm build"
   },
   "keywords": [
-    "document",
     "core",
-    "ast",
-    "processor",
     "unified",
-    "typescript",
-    "framework",
-    "conversion",
-    "processing"
+    "ast",
+    "unist",
+    "vfile",
+    "yjs",
+    "utilities",
+    "typescript"
   ],
-  "author": "Demo Macro",
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
   "license": "MIT",
   "dependencies": {
-    "undio": "0.2.0"
+    "consola": "3.4.2",
+    "defu": "6.1.4",
+    "perfect-debounce": "1.0.0",
+    "std-env": "3.9.0",
+    "undici": "7.8.0",
+    "unified": "11.0.5",
+    "unist": "0.0.1",
+    "unist-util-filter": "5.0.1",
+    "unist-util-find": "3.0.0",
+    "unist-util-find-after": "5.0.0",
+    "unist-util-find-all-after": "5.0.0",
+    "unist-util-find-all-before": "5.0.0",
+    "unist-util-find-before": "4.0.1",
+    "unist-util-is": "6.0.0",
+    "unist-util-map": "4.0.0",
+    "unist-util-modify-children": "4.0.0",
+    "unist-util-position": "5.0.0",
+    "unist-util-remove": "4.0.0",
+    "unist-util-select": "5.1.0",
+    "unist-util-source": "5.0.0",
+    "unist-util-stringify-position": "4.0.0",
+    "unist-util-visit": "5.0.0",
+    "unist-util-visit-parents": "6.0.1",
+    "vfile": "6.0.3",
+    "yjs": "13.6.26"
   }
 }

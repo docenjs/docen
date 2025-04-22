@@ -16,7 +16,7 @@ async function main() {
     // Write parsed content to JSON file for inspection
     writeFileSync(
       join(__dirname, "output.draft.json"),
-      JSON.stringify(document, null, 2)
+      JSON.stringify(document, null, 2),
     );
     console.log("Successfully parsed PDF file: output.draft.json");
   } catch (error) {

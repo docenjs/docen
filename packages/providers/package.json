@@ -1,7 +1,7 @@
 {
-  "name": "@docen/data",
+  "name": "@docen/providers",
   "version": "0.0.0",
-  "description": "Data processing utilities for structured data and file formats",
+  "description": "Synchronization and collaboration providers for Docen",
   "type": "module",
   "exports": {
     ".": {
@@ -22,14 +22,17 @@
     "prepack": "pnpm build"
   },
   "keywords": [
-    "data",
-    "csv",
-    "json",
-    "yaml",
-    "xml",
-    "processing",
-    "transformation",
-    "serialization",
+    "collaborative",
+    "realtime",
+    "crdt",
+    "yjs",
+    "document",
+    "sync",
+    "collaboration",
+    "shared-editing",
+    "websocket",
+    "webrtc",
+    "indexeddb",
     "typescript"
   ],
   "author": {
@@ -40,18 +43,16 @@
   "license": "MIT",
   "dependencies": {
     "@docen/core": "workspace:*",
-    "ajv": "8.17.1",
-    "csv-parse": "5.6.0",
-    "csv-stringify": "6.5.2",
-    "dot-prop": "9.0.0",
-    "fast-xml-parser": "5.2.0",
-    "js-yaml": "4.1.0",
-    "json-pointer": "0.6.2",
-    "json-schema": "0.4.0",
-    "jsonpath-plus": "10.3.0",
-    "object-path": "0.11.8",
-    "papaparse": "5.5.2",
-    "xml-js": "1.6.11",
-    "yaml": "2.7.1"
+    "crossws": "^0.3.4",
+    "hookable": "^5.5.3",
+    "lib0": "^0.2.104",
+    "ofetch": "^1.4.1",
+    "std-env": "^3.9.0",
+    "unstorage": "^1.15.0",
+    "y-indexeddb": "^9.0.12",
+    "y-protocols": "^1.0.6",
+    "y-webrtc": "^10.3.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.26"
   }
 }
