@@ -46,7 +46,6 @@ This document outlines the dependencies required for each package in the Docen p
 - `mdast-util-to-markdown`: Create markdown from mdast
 - `hast-util-from-html`: Create hast from HTML
 - `hast-util-to-html`: Create HTML from hast
-- `remark-docx`: ReStructuredText processor
 - `asciidoctor.js`: AsciiDoc processor
 
 ### Custom Implementations
@@ -96,7 +95,6 @@ The following formats will be implemented without external dependencies:
 - `xast-util-from-xml`: Create xast from XML
 - `xast-util-to-xml`: Create XML from xast
 - `unified-engine`: Unified processing engine
-- `jsx-to-hast`: Convert JSX to HTML AST
 - `ofetch`: Better fetch API from UnJS (for data fetching)
 - `papaparse`: Cross-platform CSV parser (works in browser and Node.js)
 - `yaml`: YAML parser and serializer
@@ -136,6 +134,7 @@ The following formats will be implemented without external dependencies:
 ### Production Dependencies
 
 - `@docen/core`: Core Docen functionality
+- `yjs`: Collaborative editing framework
 - `y-websocket`: WebSocket provider for Yjs
 - `y-indexeddb`: IndexedDB provider for Yjs
 - `y-webrtc`: WebRTC provider for Yjs
@@ -146,7 +145,6 @@ The following formats will be implemented without external dependencies:
 - `ofetch`: Better fetch API from UnJS (for HTTP fallback)
 - `unstorage`: Universal storage utilities from UnJS
 - `hookable`: Extends objects with hooks from UnJS
-- `webrtc-peer`: Modern cross-platform WebRTC implementation
 
 ### Development Dependencies
 

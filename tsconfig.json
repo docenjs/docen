@@ -2,18 +2,11 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "ES2022",
+    "module": "ESNext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "strict": true,
-    "target": "ES2022",
-    "paths": {
-      "docen": ["./packages/docen/src/index.ts"],
-      "@docen/archive": ["./packages/archive/src/index.ts"],
-      "@docen/collaborative": ["./packages/collaborative/src/index.ts"],
-      "@docen/core": ["./packages/core/src/index.ts"],
-      "@docen/data": ["./packages/data/src/index.ts"],
-      "@docen/document": ["./packages/document/src/index.ts"]
-    }
+    "target": "ESNext",
+    "paths": {}
   }
 }

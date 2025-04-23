@@ -13,9 +13,7 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
@@ -40,18 +38,14 @@
   "license": "MIT",
   "dependencies": {
     "@docen/core": "workspace:*",
-    "ajv": "8.17.1",
-    "csv-parse": "5.6.0",
-    "csv-stringify": "6.5.2",
-    "dot-prop": "9.0.0",
-    "fast-xml-parser": "5.2.0",
-    "js-yaml": "4.1.0",
-    "json-pointer": "0.6.2",
-    "json-schema": "0.4.0",
-    "jsonpath-plus": "10.3.0",
-    "object-path": "0.11.8",
+    "json5": "2.2.3",
+    "ofetch": "1.4.1",
     "papaparse": "5.5.2",
-    "xml-js": "1.6.11",
+    "sheetjs": "2.0.0",
+    "unified-engine": "11.2.2",
+    "xast": "0.1.217",
+    "xast-util-from-xml": "4.0.0",
+    "xast-util-to-xml": "4.0.0",
     "yaml": "2.7.1"
   }
 }

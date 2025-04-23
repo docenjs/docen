@@ -18,9 +18,7 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "bin": {
     "docen": "./dist/cli/index.mjs"
   },
@@ -57,14 +55,14 @@
     "@docen/media": "workspace:*",
     "@docen/office": "workspace:*",
     "@docen/providers": "workspace:*",
-    "magic-regexp": "^0.10.0",
-    "pathe": "^2.0.3",
-    "std-env": "^3.9.0",
-    "unenv": "^1.10.0",
-    "unplugin": "^2.3.2"
+    "magic-regexp": "0.10.0",
+    "pathe": "2.0.3",
+    "std-env": "3.9.0",
+    "unenv": "1.10.0",
+    "unplugin": "2.3.2"
   },
   "devDependencies": {
-    "size-limit": "^11.2.0",
-    "vitest": "^3.1.2"
+    "size-limit": "11.2.0",
+    "vitest": "3.1.2"
   }
 }

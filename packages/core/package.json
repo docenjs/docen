@@ -13,13 +13,14 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
-    "prepack": "pnpm build"
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "core",
@@ -42,7 +43,6 @@
     "defu": "6.1.4",
     "perfect-debounce": "1.0.0",
     "std-env": "3.9.0",
-    "undici": "7.8.0",
     "unified": "11.0.5",
     "unist": "0.0.1",
     "unist-util-filter": "5.0.1",

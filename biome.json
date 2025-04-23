@@ -1,14 +1,7 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
-    "ignore": [
-      "*/dist/*",
-      "*/.cache/*",
-      "*/src-tauri/target/*",
-      "*/.output/*",
-      "*/.nuxt/*",
-      "*/dependencies/*"
-    ]
+    "ignore": ["*/dist/*", "*/.output/*", "*/.nuxt/*"]
   },
   "formatter": {
     "indentStyle": "space"
@@ -19,6 +12,15 @@
   "javascript": {
     "formatter": {
       "trailingCommas": "es5"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off"
+      }
     }
   }
 }
