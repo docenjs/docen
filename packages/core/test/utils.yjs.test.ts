@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import type { Node, Parent, TextNode } from "../src/ast";
-import { nodeToYjs, yjsToNode } from "../src/utils";
+import type { Node, Parent, TextNode } from "../src/types";
 
 describe("Yjs Utilities", () => {
   let ydoc: Y.Doc;

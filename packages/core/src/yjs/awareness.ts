@@ -1,9 +1,5 @@
-/**
- * Awareness types and utilities for collaborative editing
- * This provides type-safe implementation of Yjs awareness functionality
- */
-import type * as Y from "yjs";
-import type { AwarenessState } from "../types";
+import { Awareness as YAwareness } from "y-protocols/awareness";
+import type { AwarenessState, CursorPosition } from "../types";
 
 /**
  * Type definition for awareness changes
@@ -19,154 +15,144 @@ export interface AwarenessChanges {
  */
 export type AwarenessCallback = (
   changes: AwarenessChanges,
-  origin: unknown
+  origin: unknown,
 ) => void;
 
 /**
- * Extended interface for Y.Awareness to improve type safety
+ * Awareness adapter for collaborative editing
+ * Implementation that meets the requirements of the Docen project
+ * while maintaining API compatibility with YAwareness
  */
-export class Awareness {
-  private yDoc: Y.Doc;
-  private awarenessStates: Map<number, AwarenessState>;
-  private eventHandlers: Map<string, Set<AwarenessCallback>> = new Map();
-
-  constructor(yDoc: Y.Doc) {
-    this.yDoc = yDoc;
-    this.awarenessStates = new Map();
+export class Awareness extends YAwareness {
+  /**
+   * Helper method to get the local state with proper typing
+   */
+  getLocalStateTyped(): AwarenessState | undefined {
+    const state = super.getLocalState();
+    return state as AwarenessState | undefined;
   }
 
   /**
-   * Set local state information
-   * @param state Client state to set
-   * @param origin Source of the change (defaults to null)
+   * Set the local state with validation
    */
-  setLocalState(state: AwarenessState, origin: unknown = null): void {
-    const clientID = this.yDoc.clientID;
-    const prevState = this.awarenessStates.get(clientID);
-
-    if (JSON.stringify(prevState) === JSON.stringify(state)) {
-      return; // No change, skip update
+  setLocalState(state: Partial<AwarenessState> | null): void {
+    if (state === null) {
+      super.setLocalState(null);
+      return;
     }
 
-    this.awarenessStates.set(clientID, state);
-
-    const changes: AwarenessChanges = {
-      added: [],
-      updated: [clientID],
-      removed: [],
+    // Ensure we always have a properly structured state
+    const currentState = this.getLocalStateTyped() || {
+      user: { id: "anonymous", name: "Anonymous" },
+      cursor: null,
     };
 
-    if (!prevState) {
-      changes.updated = [];
-      changes.added = [clientID];
-    }
+    // Merge the new state with the current state
+    const mergedState: AwarenessState = {
+      ...currentState,
+      ...state,
+      // Make sure user is always defined
+      user: {
+        ...currentState.user,
+        ...(state.user || {}),
+      },
+    };
 
-    this.emit("change", changes, origin);
+    super.setLocalState(mergedState as any);
   }
 
   /**
-   * Get local state information
-   * @returns Local client state or null if not set
+   * Set local cursor position
+   */
+  setLocalCursor(position: CursorPosition | null): void {
+    const state = this.getLocalStateTyped() || {
+      user: { id: "anonymous", name: "Anonymous" },
+      cursor: null,
+    };
+
+    this.setLocalState({
+      ...state,
+      cursor: position,
+    });
+  }
+
+  /**
+   * Set local user information
+   */
+  setLocalUser(user: AwarenessState["user"]): void {
+    const state = this.getLocalStateTyped() || {
+      user: { id: "anonymous", name: "Anonymous" },
+      cursor: null,
+    };
+
+    this.setLocalState({
+      ...state,
+      user,
+    });
+  }
+
+  /**
+   * Register a change listener
+   */
+  on(
+    event: string,
+    callback: (
+      changes: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown,
+    ) => void,
+  ): void {
+    // Cast to any for compatibility with super.on which might expect a generic Function type internally
+    super.on(event, callback as any);
+  }
+
+  /**
+   * Remove a change listener
+   */
+  off(
+    event: string,
+    callback: (
+      changes: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown,
+    ) => void,
+  ): void {
+    // Cast to any for compatibility with super.off
+    super.off(event, callback as any);
+  }
+
+  /**
+   * Get the local state with proper typing.
+   * Overrides the base class method.
    */
   getLocalState(): AwarenessState | null {
-    const clientID = this.yDoc.clientID;
-    return this.awarenessStates.get(clientID) || null;
+    const state = super.getLocalState();
+    // Return null if state is null/undefined, otherwise cast
+    return state ? (state as AwarenessState) : null;
   }
 
   /**
-   * Get all connected client states
-   * @returns Map of client IDs to their states
+   * Get all states as a new Map instance.
+   * Overrides the base class method to ensure a copy is returned.
    */
   getStates(): Map<number, AwarenessState> {
-    return new Map(this.awarenessStates);
+    // Return a new Map instance (copy) with correctly typed values
+    const states = super.getStates();
+    const typedStates = new Map<number, AwarenessState>();
+    states.forEach((state, clientId) => {
+      typedStates.set(clientId, state as AwarenessState);
+    });
+    return typedStates;
   }
 
   /**
-   * Remove client state
-   * @param clientID Client ID to remove
-   * @param origin Source of the change (defaults to null)
-   */
-  removeState(clientID: number, origin: unknown = null): void {
-    if (this.awarenessStates.has(clientID)) {
-      this.awarenessStates.delete(clientID);
-
-      const changes: AwarenessChanges = {
-        added: [],
-        updated: [],
-        removed: [clientID],
-      };
-
-      this.emit("change", changes, origin);
-    }
-  }
-
-  /**
-   * Remove all client states
-   * @param origin Source of the change
-   */
-  removeAllStates(origin: unknown = null): void {
-    const clientIDs = Array.from(this.awarenessStates.keys());
-    if (clientIDs.length > 0) {
-      for (const clientID of clientIDs) {
-        this.awarenessStates.delete(clientID);
-      }
-
-      const changes: AwarenessChanges = {
-        added: [],
-        updated: [],
-        removed: clientIDs,
-      };
-
-      this.emit("change", changes, origin);
-    }
-  }
-
-  /**
-   * Subscribe to awareness events
-   * @param event Event name ('change', 'update', etc.)
-   * @param callback Event handler function
-   */
-  on(event: string, callback: AwarenessCallback): void {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, new Set());
-    }
-    this.eventHandlers.get(event)?.add(callback);
-  }
-
-  /**
-   * Unsubscribe from awareness events
-   * @param event Event name
-   * @param callback Event handler function to remove
-   */
-  off(event: string, callback: AwarenessCallback): void {
-    if (this.eventHandlers.has(event)) {
-      this.eventHandlers.get(event)?.delete(callback);
-    }
-  }
-
-  /**
-   * Emit an awareness event
-   * @param event Event name
-   * @param changes Awareness changes object
-   * @param origin Source of the change
-   * @internal
-   */
-  emit(event: string, changes: AwarenessChanges, origin: unknown): void {
-    if (this.eventHandlers.has(event)) {
-      const handlers = this.eventHandlers.get(event);
-      if (handlers) {
-        for (const callback of handlers) {
-          callback(changes, origin);
-        }
-      }
-    }
-  }
-
-  /**
-   * Clean up resources
+   * Destroy the Awareness instance and clean up listeners.
+   * Overrides the base class method.
    */
   destroy(): void {
-    this.awarenessStates.clear();
-    this.eventHandlers.clear();
+    super.destroy();
   }
+
+  /**
+   * Forward all other method calls to the underlying YAwareness instance
+   */
+  [key: string]: any;
 }

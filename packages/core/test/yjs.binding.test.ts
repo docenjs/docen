@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
-import type { Node, TextNode } from "../src/ast";
-import {
-  ArrayNodeBindingStrategy,
-  MapNodeBindingStrategy,
-  type NodeBindingStrategy,
-  type TextNodeBindingStrategy,
-  createYjsAdapter,
-} from "../src/yjs";
+import type {
+  Node,
+  NodeBindingStrategy,
+  TextNode,
+  YjsAdapterOptions,
+} from "../src/types";
+import { createYjsAdapter } from "../src/yjs/index";
 
 describe("Yjs Binding Strategies", () => {
   let doc: Y.Doc;
@@ -31,7 +30,7 @@ describe("Yjs Binding Strategies", () => {
     });
 
     it("should merge custom binding strategies with defaults", () => {
-      const customTextStrategy: TextNodeBindingStrategy = {
+      const customTextStrategy: NodeBindingStrategy = {
         toYjs: vi.fn().mockReturnValue(new Y.Text()),
         fromYjs: vi
           .fn()
@@ -39,11 +38,12 @@ describe("Yjs Binding Strategies", () => {
         observe: vi.fn().mockReturnValue(() => {}),
       };
 
-      const adapter = createYjsAdapter(doc, {
+      const adapterOptions: YjsAdapterOptions = {
         bindingStrategies: {
           text: customTextStrategy,
         },
-      });
+      };
+      const adapter = createYjsAdapter(doc, adapterOptions);
 
       // Custom strategy should be used
       expect(adapter.bindingStrategies.text).toBe(customTextStrategy);
@@ -86,11 +86,19 @@ describe("Yjs Binding Strategies", () => {
   describe("NodeTypeMappings Configuration", () => {
     it("should respect node type mappings", () => {
       const adapter = createYjsAdapter(doc, {
-        nodeTypeMappings: {
-          text: "text",
-          paragraph: "map",
-          list: "array",
-          customType: "map",
+        bindingStrategies: {
+          text: {
+            toYjs: vi.fn().mockReturnValue(new Y.Text()),
+            fromYjs: vi
+              .fn()
+              .mockReturnValue({ type: "text", value: "" } as TextNode),
+            observe: vi.fn().mockReturnValue(() => {}),
+          },
+          paragraph: {
+            toYjs: vi.fn().mockReturnValue(new Y.Map()),
+            fromYjs: vi.fn().mockReturnValue({ type: "paragraph" } as Node),
+            observe: vi.fn().mockReturnValue(() => {}),
+          },
         },
       });
 
@@ -122,7 +130,7 @@ describe("Yjs Binding Strategies", () => {
       const originalAdapter = createYjsAdapter(doc);
       const originalTextStrategy = originalAdapter.bindingStrategies.text;
 
-      const customTextStrategy: TextNodeBindingStrategy = {
+      const customTextStrategy: NodeBindingStrategy = {
         toYjs: vi.fn().mockReturnValue(new Y.Text("custom")),
         fromYjs: vi
           .fn()

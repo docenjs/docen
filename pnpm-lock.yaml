@@ -37,78 +37,25 @@ importers:
 
   packages/core:
     dependencies:
-      consola:
-        specifier: 3.4.2
-        version: 3.4.2
-      defu:
-        specifier: 6.1.4
-        version: 6.1.4
-      perfect-debounce:
-        specifier: 1.0.0
-        version: 1.0.0
-      std-env:
-        specifier: 3.9.0
-        version: 3.9.0
       unified:
         specifier: 11.0.5
         version: 11.0.5
       unist:
         specifier: 0.0.1
         version: 0.0.1
-      unist-util-filter:
-        specifier: 5.0.1
-        version: 5.0.1
-      unist-util-find:
-        specifier: 3.0.0
-        version: 3.0.0
-      unist-util-find-after:
-        specifier: 5.0.0
-        version: 5.0.0
-      unist-util-find-all-after:
-        specifier: 5.0.0
-        version: 5.0.0
-      unist-util-find-all-before:
-        specifier: 5.0.0
-        version: 5.0.0
-      unist-util-find-before:
-        specifier: 4.0.1
-        version: 4.0.1
-      unist-util-is:
-        specifier: 6.0.0
-        version: 6.0.0
-      unist-util-map:
-        specifier: 4.0.0
-        version: 4.0.0
-      unist-util-modify-children:
-        specifier: 4.0.0
-        version: 4.0.0
-      unist-util-position:
-        specifier: 5.0.0
-        version: 5.0.0
-      unist-util-remove:
-        specifier: 4.0.0
-        version: 4.0.0
-      unist-util-select:
-        specifier: 5.1.0
-        version: 5.1.0
-      unist-util-source:
-        specifier: 5.0.0
-        version: 5.0.0
-      unist-util-stringify-position:
-        specifier: 4.0.0
-        version: 4.0.0
       unist-util-visit:
         specifier: 5.0.0
         version: 5.0.0
-      unist-util-visit-parents:
-        specifier: 6.0.1
-        version: 6.0.1
       vfile:
         specifier: 6.0.3
         version: 6.0.3
       yjs:
         specifier: 13.6.26
         version: 13.6.26
+    devDependencies:
+      "@types/unist":
+        specifier: 3.0.3
+        version: 3.0.3
 
   packages/data:
     dependencies:
@@ -1813,12 +1760,6 @@ packages:
     engines: { node: ">=10" }
     deprecated: This package is no longer supported.
 
-  array-iterate@2.0.1:
-    resolution:
-      {
-        integrity: sha512-I1jXZMjAgCMmxT4qxXfPXa6SthSoE8h6gkSI9BGGNv8mP8G/v0blc+qFnZu6K42vTOiuME596QaLO0TP3Lk0xg==,
-      }
-
   assertion-error@2.0.1:
     resolution:
       {
@@ -2216,12 +2157,6 @@ packages:
     resolution:
       {
         integrity: sha512-nwoRF1rvRRnnCqqY7updORDsuqKzqYJ28+oSMaJMMgOauh3fvwHqMS7EZpIPqK8GL+g9mKxF1vP/ZjSeNjEVHg==,
-      }
-
-  css-selector-parser@3.1.2:
-    resolution:
-      {
-        integrity: sha512-WfUcL99xWDs7b3eZPoRszWVfbNo8ErCF15PTvVROjkShGlAfjIkG6hlfj/sl6/rfo5Q9x9ryJ3VqVnAZDA+gcw==,
       }
 
   css-tree@2.2.1:
@@ -3307,12 +3242,6 @@ packages:
     resolution:
       {
         integrity: sha512-kc0X2FEUZr145odl68frm+lMJuQ23+rTXYmR6TImqPtbpmXC4vVXbWKDQ9IzndA0HfyQamWfKLhzsqGSTxE63w==,
-      }
-
-  lodash.iteratee@4.7.0:
-    resolution:
-      {
-        integrity: sha512-yv3cSQZmfpbIKo4Yo45B1taEvxjNvcpF1CEOc0Y6dEyvhPIfEJE3twDwPgWTPQubcSgXyBwBKG6wpQvWMDOf6Q==,
       }
 
   lodash.memoize@4.1.2:
@@ -5386,40 +5315,10 @@ packages:
         integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==,
       }
 
-  unist-util-filter@5.0.1:
-    resolution:
-      {
-        integrity: sha512-pHx7D4Zt6+TsfwylH9+lYhBhzyhEnCXs/lbq/Hstxno5z4gVdyc2WEW0asfjGKPyG4pEKrnBv5hdkO6+aRnQJw==,
-      }
-
   unist-util-find-after@5.0.0:
     resolution:
       {
         integrity: sha512-amQa0Ep2m6hE2g72AugUItjbuM8X8cGQnFoHk0pGfrFeT9GZhzN5SW8nRsiGKK7Aif4CrACPENkA6P/Lw6fHGQ==,
-      }
-
-  unist-util-find-all-after@5.0.0:
-    resolution:
-      {
-        integrity: sha512-nGmOYvTSdGcI4RvrUNfe0mOsqqbbJOtqCQsppsY9KZjmv3nwM3YRgNBwFPdZ8Y+iv9Z/2PDjR9u6u+uK62XTTg==,
-      }
-
-  unist-util-find-all-before@5.0.0:
-    resolution:
-      {
-        integrity: sha512-zir6a7GsXfdn4YAWR4F3hLNKZjTjLBJurdyquysvmX38xbftS1+qwvEhutxxHLq0Pp1tW5V1TDiuj+qluuOnKw==,
-      }
-
-  unist-util-find-before@4.0.1:
-    resolution:
-      {
-        integrity: sha512-hfpCNqPbCOseOjHU8oBkRXM8gDQ++Ua3dN7sDYz7VJ+1alt+yd/I+ECZDhv1aqpJ1x47AHbzP/xA0jWf4omAIw==,
-      }
-
-  unist-util-find@3.0.0:
-    resolution:
-      {
-        integrity: sha512-T7ZqS7immLjYyC4FCp2hDo3ksZ1v+qcbb+e5+iWxc2jONgHOLXPCpms1L8VV4hVxCXgWTxmBHDztuEZFVwC+Gg==,
       }
 
   unist-util-inspect@8.1.0:
@@ -5434,18 +5333,6 @@ packages:
         integrity: sha512-2qCTHimwdxLfz+YzdGfkqNlH0tLi9xjTnHddPmJwtIG9MGsdbutfTc4P+haPD7l7Cjxf/WZj+we5qfVPvvxfYw==,
       }
 
-  unist-util-map@4.0.0:
-    resolution:
-      {
-        integrity: sha512-HJs1tpkSmRJUzj6fskQrS5oYhBYlmtcvy4SepdDEEsL04FjBrgF0Mgggvxc1/qGBGgW7hRh9+UBK1aqTEnBpIA==,
-      }
-
-  unist-util-modify-children@4.0.0:
-    resolution:
-      {
-        integrity: sha512-+tdN5fGNddvsQdIzUF3Xx82CU9sMM+fA0dLgR9vOmT0oPT2jH+P1nd5lSqfCfXAw+93NhcXNY2qqvTUtE4cQkw==,
-      }
-
   unist-util-position-from-estree@2.0.0:
     resolution:
       {
@@ -5456,24 +5343,6 @@ packages:
     resolution:
       {
         integrity: sha512-fucsC7HjXvkB5R3kTCO7kUjRdrS0BJt3M/FPxmHMBOm8JQi2BsHAHFsy27E0EolP8rp0NzXsJ+jNPyDWvOJZPA==,
-      }
-
-  unist-util-remove@4.0.0:
-    resolution:
-      {
-        integrity: sha512-b4gokeGId57UVRX/eVKej5gXqGlc9+trkORhFJpu9raqZkZhU0zm8Doi05+HaiBsMEIJowL+2WtQ5ItjsngPXg==,
-      }
-
-  unist-util-select@5.1.0:
-    resolution:
-      {
-        integrity: sha512-4A5mfokSHG/rNQ4g7gSbdEs+H586xyd24sdJqF1IWamqrLHvYb+DH48fzxowyOhOfK7YSqX+XlCojAyuuyyT2A==,
-      }
-
-  unist-util-source@5.0.0:
-    resolution:
-      {
-        integrity: sha512-2oOpUg/3Mf2qfUaMHLjYm3HODiEyGAB7eFPyRO+Ep/G5s015FReG79u1WMsGV4b+qHT3xY0LiqyMCkOaobfY4Q==,
       }
 
   unist-util-stringify-position@4.0.0:
@@ -6838,8 +6707,6 @@ snapshots:
       readable-stream: 3.6.2
     optional: true
 
-  array-iterate@2.0.1: {}
-
   assertion-error@2.0.1: {}
 
   astring@1.9.0: {}
@@ -7061,8 +6928,6 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.2.2
       nth-check: 2.1.1
-
-  css-selector-parser@3.1.2: {}
 
   css-tree@2.2.1:
     dependencies:
@@ -7826,8 +7691,6 @@ snapshots:
       import-meta-resolve: 4.1.0
     transitivePeerDependencies:
       - bluebird
-
-  lodash.iteratee@4.7.0: {}
 
   lodash.memoize@4.1.2: {}
 
@@ -9488,37 +9351,10 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
-  unist-util-filter@5.0.1:
-    dependencies:
-      "@types/unist": 3.0.3
-      unist-util-is: 6.0.0
-      unist-util-visit-parents: 6.0.1
-
   unist-util-find-after@5.0.0:
     dependencies:
       "@types/unist": 3.0.3
       unist-util-is: 6.0.0
-
-  unist-util-find-all-after@5.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      unist-util-is: 6.0.0
-
-  unist-util-find-all-before@5.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      unist-util-is: 6.0.0
-
-  unist-util-find-before@4.0.1:
-    dependencies:
-      "@types/unist": 3.0.3
-      unist-util-is: 6.0.0
-
-  unist-util-find@3.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      lodash.iteratee: 4.7.0
-      unist-util-visit: 5.0.0
 
   unist-util-inspect@8.1.0:
     dependencies:
@@ -9528,15 +9364,6 @@ snapshots:
     dependencies:
       "@types/unist": 3.0.3
 
-  unist-util-map@4.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-
-  unist-util-modify-children@4.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      array-iterate: 2.0.1
-
   unist-util-position-from-estree@2.0.0:
     dependencies:
       "@types/unist": 3.0.3
@@ -9544,26 +9371,6 @@ snapshots:
   unist-util-position@5.0.0:
     dependencies:
       "@types/unist": 3.0.3
-
-  unist-util-remove@4.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      unist-util-is: 6.0.0
-      unist-util-visit-parents: 6.0.1
-
-  unist-util-select@5.1.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      css-selector-parser: 3.1.2
-      devlop: 1.1.0
-      nth-check: 2.1.1
-      zwitch: 2.0.4
-
-  unist-util-source@5.0.0:
-    dependencies:
-      "@types/unist": 3.0.3
-      vfile: 6.0.3
-      vfile-location: 5.0.3
 
   unist-util-stringify-position@4.0.0:
     dependencies:

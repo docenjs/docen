@@ -44,6 +44,7 @@ The project follows a modular design that maintains strict compatibility with un
    - Maintains compatibility with existing unified.js plugins
    - Implements specialized processors for different formats
    - Preserves document structure during collaboration
+   - _Note: The core `DocenDocument` class and related logic reside within this package._
 
 3. **Data Processing (@docen/data)**
 
@@ -105,7 +106,7 @@ packages/[package-name]/
 │   │   ├── [format].ts  # Format-specific processor
 │   │   └── index.ts
 │   ├── plugins/         # unified-compatible plugins
-│   │   ├── [plugin].ts
+│   │   ├── [plugin].ts  # Collaboration implemented as plugins
 │   │   └── index.ts
 │   ├── yjs/             # Yjs integration adapters
 │   │   ├── binding.ts   # AST-Yjs binding strategies
@@ -120,9 +121,53 @@ packages/[package-name]/
 
 ## Core Types and Interfaces
 
-### Processor Interface
+### Integration with unified.js Flow
+
+Docen integrates collaborative features into the unified.js flow through a combination of processor extensions and plugins. Following the unified.js pattern, collaboration capabilities are primarily exposed through plugins and VFile extensions.
 
 ```typescript
+import { unified } from "unified";
+import { docenCollaboration } from "@docen/core/plugins";
+
+// Create a unified processor with collaborative capabilities
+const processor = unified()
+  .use(remarkParse)
+  .use(docenCollaboration, {
+    // Collaboration options
+  })
+  .use(remarkRehype)
+  .use(rehypeStringify);
+
+// The processor now has collaboration capabilities
+// with minimal changes to the unified.js API
+```
+
+### VFile Extensions
+
+Following unified.js patterns, Docen extends VFile to carry collaboration data through the pipeline:
+
+```typescript
+import { VFile } from "vfile";
+import * as Y from "yjs";
+
+// Extend VFile with collaboration capabilities
+declare module "vfile" {
+  interface VFile {
+    // Attached Yjs document
+    ydoc?: Y.Doc;
+
+    // Collaborative document adapter
+    collaborativeDocument?: CollaborativeDocument;
+
+    // Awareness for user presence
+    awareness?: Awareness;
+  }
+}
+```
+
+### Processor Interface
+
+````typescript
 import { Processor as UnifiedProcessor, Plugin } from "unified";
 import { VFile } from "vfile";
 import * as Y from "yjs";
@@ -136,7 +181,7 @@ export interface DocenProcessor extends UnifiedProcessor {
     done?: ProcessCallback,
   ): Promise<VFile & { collaborativeDocument?: CollaborativeDocument }>;
 
-  // Yjs integration
+  // Yjs integration - leveraging unified's data() for storing state
   useCollaboration(options?: CollaborationOptions): this;
   observeChanges(callback: (changes: Change[]) => void): () => void;
 }
@@ -152,7 +197,7 @@ export interface CollaborationOptions {
     maxFragments?: number;
   };
   // Custom sync strategy implementation
-  customSyncHandler?: (conflict: SyncConflict) => ResolvedNode;
+  customSyncHandler?: SyncHandler;
 }
 
 // Conflict definition for sync strategies
@@ -172,11 +217,93 @@ export function createProcessor(options?: {
   adapter?: "remark" | "rehype" | "retext" | "recma";
   collaborative?: boolean;
   syncStrategy?: "timestamp" | "intent-based" | "custom";
-  customSyncHandler?: (conflict: SyncConflict) => ResolvedNode;
+  customSyncHandler?: SyncHandler;
 }): DocenProcessor {
-  // Implementation...
+  // Implementation creates a unified processor with collaboration
+  // capabilities, following unified.js patterns
+  const processor = unified();
+
+  // Attach collaborative functionality via processor.data()
+  // to maintain unified.js patterns
+  if (options?.collaborative) {
+    processor.data('ydoc', options.ydoc || new Y.Doc());
+    processor.data('collaborationEnabled', true);
+    processor.data('syncStrategy', options.syncStrategy || 'timestamp');
+
+    if (options.customSyncHandler) {
+      processor.data('customSyncHandler', options.customSyncHandler);
+    }
+  }
+
+  return processor as DocenProcessor;
 }
-```
+
+// Collaboration plugin follows unified.js plugin pattern
+export function docenCollaboration(options?: CollaborationOptions): Plugin {
+  return (tree: Node, file: VFile) => {
+    // Access processor from transformer context
+    const processor = this;
+    const ydoc = processor.data('ydoc') || options?.ydoc || new Y.Doc();
+
+    // Create and attach collaborative adapter to the file
+    file.collaborativeDocument = createYjsAdapter(ydoc, {
+      syncStrategy: processor.data('syncStrategy') || options?.syncStrategy,
+      customSyncHandler: processor.data('customSyncHandler') || options?.customSyncHandler,
+      // Other options
+    });
+
+    // Return the tree (following unified.js transformer pattern)
+    return tree;
+  };
+}
+
+### CollaborativeDocument Interface
+
+This interface defines the structure for managing a document with collaborative features, typically implemented alongside the YjsAdapter.
+
+```typescript
+import * as Y from 'yjs';
+import { Node } from 'unist';
+import { Awareness } from 'y-protocols/awareness'; // Assuming Awareness type is defined elsewhere or imported
+
+/**
+ * Represents a document instance with collaborative capabilities.
+ */
+export interface CollaborativeDocument {
+  /** Unique identifier for the document */
+  id: string;
+
+  /** The underlying Yjs document */
+  ydoc: Y.Doc;
+
+  /** The Yjs awareness protocol instance */
+  awareness: Awareness;
+
+  /** The root node of the document's AST */
+  tree: Node; // This might be more specific, e.g., DocenRoot
+
+  /** Binds an AST node to its Yjs representation */
+  bindNode(node: Node): void;
+
+  /** Unbinds an AST node from its Yjs representation */
+  unbindNode(node: Node): void;
+
+  /** Executes a function within a Yjs transaction */
+  transact<T>(fn: () => T, origin?: string): T;
+
+  /** Observe changes to the document */
+  onChange(callback: (changes: any, origin: string) => void): void;
+
+  /** Stop observing changes */
+  offChange(callback: (changes: any, origin: string) => void): void;
+
+  /** Observe changes to a specific node */
+  observeNode(node: Node, callback: (event: any) => void): () => void;
+
+  /** Destroy the collaborative document and clean up resources */
+  destroy(): void;
+}
+````
 
 ### AST Structure
 
@@ -212,2152 +339,544 @@ export interface DocenRoot extends Parent {
 }
 ```
 
-### Yjs Integration
+## Yjs Integration
 
-The Yjs integration will use a simplified adapter pattern with timestamp-based synchronization strategy by default:
-
-```typescript
-import * as Y from "yjs";
-import { visit } from "unist-util-visit";
-import { map } from "unist-util-map";
-import { filter } from "unist-util-filter";
-import { findAndReplace } from "mdast-util-find-and-replace";
-
-// Define node binding strategy interface for optimized bindings
-export interface NodeBindingStrategy {
-  toYjs: (node: Node) => Y.AbstractType<any>;
-  fromYjs: (yType: Y.AbstractType<any>) => Node;
-  observe: (
-    node: Node,
-    yType: Y.AbstractType<any>,
-    callback: (event: any) => void,
-  ) => () => void;
-}
-
-// Create adapter with granular binding strategies and sync options
-export function createYjsAdapter(
-  doc: Y.Doc,
-  options?: {
-    // Mapping configurations
-    nodeTypeMappings?: Record<string, "map" | "array" | "text">;
-    bindingStrategies?: Record<string, NodeBindingStrategy>;
-
-    // Sync strategy options
-    syncStrategy?: "timestamp" | "intent-based" | "custom";
-    customSyncHandler?: (conflict: SyncConflict) => ResolvedNode;
-
-    // Undo support
-    undoEnabled?: boolean;
-    undoTrackOrigin?: string[];
-  },
-) {
-  const rootMap = doc.getMap("root");
-
-  // Setup timestamp-based synchronization by default
-  const resolveConflict = (conflict: SyncConflict): ResolvedNode => {
-    if (options?.syncStrategy === "custom" && options.customSyncHandler) {
-      return options.customSyncHandler(conflict);
-    }
-
-    // Default timestamp-based resolution
-    if (conflict.localTimestamp >= conflict.remoteTimestamp) {
-      return { node: conflict.localNode, origin: "local" };
-    } else {
-      return { node: conflict.remoteNode, origin: "remote" };
-    }
-  };
-
-  // Setup UndoManager if enabled
-  const undoManager = options?.undoEnabled
-    ? new Y.UndoManager(rootMap, {
-        trackedOrigins: new Set(options.undoTrackOrigin || ["user"]),
-      })
-    : null;
-
-  // Use observeDeep for more efficient change observation
-  const observeChanges = (callback) => {
-    const observer = (events, transaction) => {
-      callback(events, transaction);
-    };
-
-    rootMap.observeDeep(observer);
-    return () => rootMap.unobserveDeep(observer);
-  };
-
-  // Binding implementation
-  // ...
-
-  return {
-    undoManager,
-    observeChanges,
-    resolveConflict,
-    // Other adapter methods...
-  };
-}
-
-// Example usage with unified tools
-export function transformAst(ast: Node) {
-  // Use syntax-tree utilities for AST transformations
-
-  // Visit and modify nodes efficiently
-  visit(ast, "paragraph", (node) => {
-    // Update node properties
-    node.data = node.data || {};
-    node.data.modified = true;
-
-    // Update collaboration metadata with timestamp
-    node.collaborationMetadata = node.collaborationMetadata || {};
-    node.collaborationMetadata.modifiedAt = Date.now();
-    node.collaborationMetadata.lastModifiedTimestamp = Date.now();
-  });
-
-  // Filter nodes
-  const filteredAst = filter(ast, (node) => node.type !== "comment");
-
-  // Find and replace content
-  if (ast.type === "root") {
-    findAndReplace(ast, [[/pattern/, "replacement"]]);
-  }
-
-  return filteredAst;
-}
-```
-
-### Collaborative Document
-
-```typescript
-// Core collaborative document interface aligned with unified terminology
-export interface CollaborativeDocument {
-  // Underlying Yjs document
-  ydoc: Y.Doc;
-
-  // Document identity
-  id: string;
-
-  // Convert to/from AST (aligned with unified.js terminology)
-  parse(input: string): Promise<Node>;
-  stringify(tree: Node): Promise<string>;
-  run(tree: Node): Promise<Node>;
-
-  // Unified-style process method
-  process(input: string | Node): Promise<{ tree: Node; value: string }>;
-
-  // Transaction handling
-  transact<T>(fn: () => T, origin?: string): T;
-
-  // Enhanced undo/redo capability with origin tracking
-  undoManager: {
-    undo(): void;
-    redo(): void;
-    canUndo(): boolean;
-    canRedo(): boolean;
-    // Track and group operations
-    stopCapturing(): void;
-    startCapturing(options?: { captureTimeout?: number }): void;
-    // Event handling
-    on(
-      event: "stack-item-added" | "stack-item-popped",
-      callback: Function,
-    ): () => void;
-  };
-
-  // Synchronization strategy configuration
-  setSyncStrategy(
-    strategy: "timestamp" | "intent-based" | "custom",
-    handler?: (conflict: SyncConflict) => ResolvedNode,
-  ): void;
-
-  // Advanced change observation
-  observeChanges(
-    path: string[] | ((event: Y.YEvent, transaction: Y.Transaction) => boolean),
-    callback: (event: Y.YEvent, transaction: Y.Transaction) => void,
-  ): () => void;
-
-  // Enhanced version control
-  getStateVector(): Uint8Array;
-  encodeStateAsUpdate(): Uint8Array;
-  applyUpdate(update: Uint8Array): void;
-
-  // Synchronization
-  sync(provider: SyncProvider): () => void;
-
-  // User awareness
-  awareness: Awareness;
-
-  // Document fragment management
-  fragmentManager: FragmentManager;
-
-  // Subdocument management for large documents
-  getSubdocument(path: string[]): CollaborativeDocument;
-  releaseSubdocument(path: string[]): void;
-
-  // Collaborative node creation
-  createCollaborativeNode(
-    nodeType: string,
-    initialData?: Record<string, any>,
-  ): Node & CollaborativeNode;
-
-  // Clean up resources
-  destroy(): void;
-}
-
-// Synchronization conflict resolution type
-export interface ResolvedNode {
-  node: Node;
-  origin: "local" | "remote" | "merged";
-}
-
-// Extended node interface with collaboration capabilities
-export interface CollaborativeNode extends Node {
-  // Collaboration metadata with timestamp
-  collaborationMetadata: {
-    createdBy?: string;
-    createdAt?: number;
-    modifiedBy?: string;
-    modifiedAt?: number;
-    lastModifiedTimestamp: number; // Used for timestamp-based synchronization
-    version?: number;
-    origin?: string;
-  };
-
-  // Yjs binding information
-  binding?: {
-    type: Y.AbstractType<any>;
-    path: (string | number)[];
-    observe(callback: (event: Y.YEvent) => void): () => void;
-    update(newValue: any): void;
-  };
-}
-
-// Factory function for document creation with sync strategy options
-export function createDocument(
-  content?: string | Node | Uint8Array,
-  options?: {
-    id?: string;
-    type?: string;
-    collaborative?: boolean;
-    // Synchronization strategy configuration
-    syncStrategy?: "timestamp" | "intent-based" | "custom";
-    customSyncHandler?: (conflict: SyncConflict) => ResolvedNode;
-    // Undo manager settings
-    undoManagerOptions?: {
-      enabled?: boolean;
-      trackedOrigins?: Set<string>;
-      captureTimeout?: number;
-    };
-    bindingStrategy?: "deep" | "shallow" | "lazy";
-    schema?: DocumentSchema;
-    fragmentOptions?: {
-      enableAutoFragmentation?: boolean;
-      threshold?: number;
-      nodeTypes?: string[];
-    };
-  },
-): CollaborativeDocument {
-  // Implementation would support timestamp-based synchronization by default
-  // ...
-}
-
-// Enhanced UndoManager factory
-export function createUndoManager(
-  doc: CollaborativeDocument,
-  options?: {
-    trackedOrigins?: Set<string>;
-    captureTimeout?: number;
-    trackedRoots?: Array<Y.AbstractType<any>>;
-  },
-) {
-  const undoManager = new Y.UndoManager(
-    options?.trackedRoots || [doc.ydoc.getMap("root")],
-    {
-      trackedOrigins: options?.trackedOrigins || new Set(["user-edit"]),
-      captureTimeout: options?.captureTimeout || 500,
-    },
-  );
-
-  return {
-    undo() {
-      undoManager.undo();
-    },
-    redo() {
-      undoManager.redo();
-    },
-    canUndo() {
-      return undoManager.canUndo();
-    },
-    canRedo() {
-      return undoManager.canRedo();
-    },
-    stopCapturing() {
-      undoManager.stopCapturing();
-    },
-    startCapturing(opts) {
-      undoManager.stopCapturing();
-      undoManager.captureTimeout = opts?.captureTimeout || 500;
-    },
-    on(event, callback) {
-      undoManager.on(event, callback);
-      return () => {
-        undoManager.off(event, callback);
-      };
-    },
-  };
-}
-
-// Schema validation for documents
-export interface DocumentSchema {
-  // Node type definitions
-  nodeTypes: Record<string, NodeTypeDefinition>;
-  // Validation rules
-  validationRules: ValidationRule[];
-  // Error handling configuration
-  onValidationError?: (error: ValidationError) => "ignore" | "fix" | "reject";
-}
-
-export interface NodeTypeDefinition {
-  // Required properties
-  required?: string[];
-  // Property types
-  properties?: Record<
-    string,
-    {
-      type: "string" | "number" | "boolean" | "object" | "array";
-      items?: NodeTypeDefinition;
-    }
-  >;
-  // Allowed child node types
-  allowedChildren?: string[];
-  // Binding strategy override
-  bindingStrategy?: "deep" | "shallow" | "lazy";
-}
-
-export interface ValidationRule {
-  // Node selector (type or path)
-  selector: string | ((node: Node) => boolean);
-  // Validation function
-  validate: (node: Node) => boolean | ValidationError;
-}
-
-export interface ValidationError {
-  node: Node;
-  path: (string | number)[];
-  message: string;
-  code: string;
-  severity: "warning" | "error";
-  suggestions?: Array<{
-    message: string;
-    fix: () => void;
-  }>;
-}
-```
-
-## Cursor and Selection Tracking
-
-Docen provides robust cursor and selection tracking capabilities using Yjs relative positions:
-
-```typescript
-import * as Y from "yjs";
-import {
-  createRelativePositionFromTypeIndex,
-  createAbsolutePositionFromRelativePosition,
-  RelativePosition,
-  AbsolutePosition,
-} from "yjs";
-
-// Types for cursor and selection positions
-export interface CursorPosition {
-  // Store positions as Yjs relative positions that automatically
-  // adapt to document changes
-  anchor: RelativePosition;
-  head?: RelativePosition; // For selections
-}
-
-// Extended awareness interface for collaborative editing
-export interface CollaborativeAwareness {
-  // Standard Yjs awareness methods
-  setLocalState(state: Record<string, any>): void;
-  getLocalState(): Record<string, any> | null;
-  getStates(): Map<number, Record<string, any>>;
-  on(
-    event: "change",
-    callback: (changes: {
-      added: number[];
-      updated: number[];
-      removed: number[];
-    }) => void,
-  ): void;
-  off(event: "change", callback: Function): void;
-
-  // Enhanced cursor tracking methods
-  setCursor(position: { path: (string | number)[]; offset: number }): void;
-  setSelection(range: {
-    anchor: { path: (string | number)[]; offset: number };
-    head: { path: (string | number)[]; offset: number };
-  }): void;
-
-  // Get all user cursors/selections with absolute positions
-  getCursors(): Array<{
-    clientId: number;
-    user: any;
-    cursor: AbsolutePosition | null;
-    selection: { anchor: AbsolutePosition; head: AbsolutePosition } | null;
-  }>;
-}
-
-// Helper functions for cursor tracking
-export const cursorUtils = {
-  // Create a relative position from a path and offset
-  createRelativePosition(
-    doc: Y.Doc,
-    path: (string | number)[],
-    offset: number,
-  ): RelativePosition {
-    return createRelativePositionFromTypeIndex(doc, path, offset);
-  },
-
-  // Convert a relative position to an absolute position
-  createAbsolutePosition(
-    relPos: RelativePosition,
-    doc: Y.Doc,
-  ): AbsolutePosition | null {
-    return createAbsolutePositionFromRelativePosition(relPos, doc);
-  },
-
-  // Convert absolute position to path and offset
-  absolutePositionToPathOffset(
-    absPos: AbsolutePosition,
-  ): { path: (string | number)[]; offset: number } | null {
-    if (!absPos) return null;
-    return {
-      path: absPos.type ? [absPos.type.nodeName] : [],
-      offset: absPos.index,
-    };
-  },
-
-  // Map unified AST positions to Yjs positions
-  astPositionToYjsPosition(
-    node: Node,
-    offset: number,
-    doc: Y.Doc,
-  ): RelativePosition {
-    // Traverse AST to find the path to the node
-    const path = this.findNodePath(doc.getMap("root"), node);
-    if (path) {
-      return this.createRelativePosition(doc, [...path, "value"], offset);
-    }
-    throw new Error("Cannot find node in Yjs document");
-  },
-};
-
-// Example usage of cursor tracking
-function setupCursorTracking(doc: CollaborativeDocument) {
-  // Set local cursor when user clicks/selects
-  function onCursorChange(position: {
-    path: (string | number)[];
-    offset: number;
-  }) {
-    doc.awareness.setCursor(position);
-  }
-
-  // Listen for remote cursor changes
-  doc.awareness.on("change", (changes) => {
-    const cursors = doc.awareness.getCursors();
-
-    // Render remote cursors in the interface
-    for (const { clientId, user, cursor } of cursors) {
-      if (clientId !== doc.awareness.getLocalState()?.clientId) {
-        // Render cursor at position
-        const position = cursorUtils.absolutePositionToPathOffset(cursor);
-        if (position) {
-          console.log(`User ${user.name} cursor at:`, position);
-          // Render cursor in UI...
-        }
-      }
-    }
-  });
-
-  return {
-    disconnect() {
-      // Clean up event listeners
-      doc.awareness.off("change", () => {});
-    },
-  };
-}
-```
-
-## Enhanced Awareness and Presence
-
-Docen extends the Yjs awareness system with rich presence information and VFile integration:
-
-```typescript
-import * as Y from "yjs";
-import { VFile } from "vfile";
-
-/**
- * Types of user events
- */
-export enum UserEventType {
-  USER_JOINED = "user-joined",
-  USER_LEFT = "user-left",
-  USER_UPDATED = "user-updated",
-  CURSOR_MOVED = "cursor-moved",
-  SELECTION_CHANGED = "selection-changed",
-  FOCUS_SECTION = "focus-section",
-  USER_IDLE = "user-idle",
-  USER_ACTIVE = "user-active",
-  USER_TYPING = "user-typing",
-}
-
-/**
- * Event listener type for user events
- */
-export type UserEventListener = (event: UserEvent) => void;
-
-/**
- * Base user event interface
- */
-export interface UserEvent {
-  type: UserEventType;
-  timestamp: number;
-  userId: string;
-}
-
-/**
- * User joined event
- */
-export interface UserJoinedEvent extends UserEvent {
-  type: UserEventType.USER_JOINED;
-  userInfo: UserInfo;
-}
-
-/**
- * User left event
- */
-export interface UserLeftEvent extends UserEvent {
-  type: UserEventType.USER_LEFT;
-}
-
-/**
- * User updated event
- */
-export interface UserUpdatedEvent extends UserEvent {
-  type: UserEventType.USER_UPDATED;
-  userInfo: UserInfo;
-}
-
-/**
- * Cursor moved event
- */
-export interface CursorMovedEvent extends UserEvent {
-  type: UserEventType.CURSOR_MOVED;
-  position: {
-    path: string[];
-    offset: number;
-  };
-}
-
-/**
- * Selection changed event
- */
-export interface SelectionChangedEvent extends UserEvent {
-  type: UserEventType.SELECTION_CHANGED;
-  selection: {
-    start: {
-      path: string[];
-      offset: number;
-    };
-    end: {
-      path: string[];
-      offset: number;
-    };
-  };
-}
-
-/**
- * Focus section event
- */
-export interface FocusSectionEvent extends UserEvent {
-  type: UserEventType.FOCUS_SECTION;
-  sectionId: string;
-}
-
-/**
- * User idle event
- */
-export interface UserIdleEvent extends UserEvent {
-  type: UserEventType.USER_IDLE;
-  idleTime: number;
-}
-
-/**
- * User active event
- */
-export interface UserActiveEvent extends UserEvent {
-  type: UserEventType.USER_ACTIVE;
-}
-
-/**
- * User typing event
- */
-export interface UserTypingEvent extends UserEvent {
-  type: UserEventType.USER_TYPING;
-  position: {
-    path: string[];
-    offset: number;
-  };
-}
-
-/**
- * Union type for all user events
- */
-export type DocenUserEvent =
-  | UserJoinedEvent
-  | UserLeftEvent
-  | UserUpdatedEvent
-  | CursorMovedEvent
-  | SelectionChangedEvent
-  | FocusSectionEvent
-  | UserIdleEvent
-  | UserActiveEvent
-  | UserTypingEvent;
-
-/**
- * User information
- */
-export interface UserInfo {
-  id: string;
-  name: string;
-  color?: string;
-  avatar?: string;
-  status?: "online" | "idle" | "offline" | "busy";
-  lastActive?: number;
-  customData?: Record<string, any>;
-}
-
-/**
- * Enhanced awareness system
- */
-export class EnhancedAwareness {
-  private awareness: Y.Awareness;
-  private localUser: UserInfo;
-  private eventListeners: Map<UserEventType, Set<UserEventListener>> =
-    new Map();
-  private idleTimeout: number = 60000; // 1 minute
-  private idleTimer: NodeJS.Timeout | null = null;
-  private typingDebounceTimer: NodeJS.Timeout | null = null;
-
-  constructor(awareness: Y.Awareness, localUser: UserInfo) {
-    this.awareness = awareness;
-    this.localUser = localUser;
-
-    // Initialize awareness with local user
-    this.setLocalUserInfo(localUser);
-
-    // Set up awareness change handler
-    this.awareness.on("change", this.handleAwarenessChange.bind(this));
-  }
-
-  /**
-   * Get all connected users
-   */
-  getAllUsers(): UserInfo[] {
-    const states = this.awareness.getStates();
-    const users: UserInfo[] = [];
-
-    states.forEach((state, clientId) => {
-      if (state.user) {
-        users.push(state.user as UserInfo);
-      }
-    });
-
-    return users;
-  }
-
-  /**
-   * Get user by ID
-   */
-  getUserById(userId: string): UserInfo | null {
-    const states = this.awareness.getStates();
-
-    for (const [clientId, state] of states.entries()) {
-      if (state.user && state.user.id === userId) {
-        return state.user as UserInfo;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Set local user info
-   */
-  setLocalUserInfo(userInfo: Partial<UserInfo>): void {
-    // Update local user info
-    this.localUser = { ...this.localUser, ...userInfo };
-
-    // Update awareness state
-    const currentState = this.awareness.getLocalState() || {};
-    this.awareness.setLocalState({
-      ...currentState,
-      user: this.localUser,
-      lastActive: Date.now(),
-    });
-
-    // Emit user updated event
-    this.emitEvent({
-      type: UserEventType.USER_UPDATED,
-      timestamp: Date.now(),
-      userId: this.localUser.id,
-      userInfo: this.localUser,
-    });
-
-    // Reset idle timer
-    this.resetIdleTimer();
-  }
-
-  /**
-   * Set user cursor position
-   */
-  setCursorPosition(path: string[], offset: number): void {
-    const cursorEvent: CursorMovedEvent = {
-      type: UserEventType.CURSOR_MOVED,
-      timestamp: Date.now(),
-      userId: this.localUser.id,
-      position: {
-        path,
-        offset,
-      },
-    };
-
-    // Update awareness state
-    const currentState = this.awareness.getLocalState() || {};
-    this.awareness.setLocalState({
-      ...currentState,
-      cursor: cursorEvent.position,
-      lastActive: Date.now(),
-    });
-
-    // Emit cursor moved event
-    this.emitEvent(cursorEvent);
-
-    // Also emit typing event with debounce
-    this.debouncedEmitTyping(path, offset);
-
-    // Reset idle timer
-    this.resetIdleTimer();
-  }
-
-  /**
-   * Set user selection
-   */
-  setSelection(
-    startPath: string[],
-    startOffset: number,
-    endPath: string[],
-    endOffset: number,
-  ): void {
-    const selectionEvent: SelectionChangedEvent = {
-      type: UserEventType.SELECTION_CHANGED,
-      timestamp: Date.now(),
-      userId: this.localUser.id,
-      selection: {
-        start: {
-          path: startPath,
-          offset: startOffset,
-        },
-        end: {
-          path: endPath,
-          offset: endOffset,
-        },
-      },
-    };
-
-    // Update awareness state
-    const currentState = this.awareness.getLocalState() || {};
-    this.awareness.setLocalState({
-      ...currentState,
-      selection: selectionEvent.selection,
-      lastActive: Date.now(),
-    });
-
-    // Emit selection changed event
-    this.emitEvent(selectionEvent);
-
-    // Reset idle timer
-    this.resetIdleTimer();
-  }
-
-  /**
-   * Focus a specific section
-   */
-  focusSection(sectionId: string): void {
-    const focusEvent: FocusSectionEvent = {
-      type: UserEventType.FOCUS_SECTION,
-      timestamp: Date.now(),
-      userId: this.localUser.id,
-      sectionId,
-    };
-
-    // Update awareness state
-    const currentState = this.awareness.getLocalState() || {};
-    this.awareness.setLocalState({
-      ...currentState,
-      focusedSection: sectionId,
-      lastActive: Date.now(),
-    });
-
-    // Emit focus section event
-    this.emitEvent(focusEvent);
-
-    // Reset idle timer
-    this.resetIdleTimer();
-  }
-
-  /**
-   * Add an event listener
-   */
-  on(
-    eventType: UserEventType | UserEventType[],
-    callback: UserEventListener,
-  ): () => void {
-    const types = Array.isArray(eventType) ? eventType : [eventType];
-    const cleanups: Array<() => void> = [];
-
-    types.forEach((type) => {
-      if (!this.eventListeners.has(type)) {
-        this.eventListeners.set(type, new Set());
-      }
-
-      this.eventListeners.get(type)!.add(callback);
-
-      cleanups.push(() => {
-        const listeners = this.eventListeners.get(type);
-        if (listeners) {
-          listeners.delete(callback);
-        }
-      });
-    });
-
-    // Return unsubscribe function
-    return () => cleanups.forEach((cleanup) => cleanup());
-  }
-
-  /**
-   * Emit an event
-   */
-  private emitEvent(event: DocenUserEvent): void {
-    // Notify listeners for the specific event type
-    const listeners = this.eventListeners.get(event.type);
-    if (listeners) {
-      listeners.forEach((listener) => listener(event));
-    }
-
-    // Also notify listeners for all events
-    const allEventListeners = this.eventListeners.get("all" as any);
-    if (allEventListeners) {
-      allEventListeners.forEach((listener) => listener(event));
-    }
-  }
-
-  /**
-   * Handle awareness changes
-   */
-  private handleAwarenessChange(changes: {
-    added: number[];
-    updated: number[];
-    removed: number[];
-  }): void {
-    const states = this.awareness.getStates();
-    const timestamp = Date.now();
-
-    // Handle added users
-    changes.added.forEach((clientId) => {
-      const state = states.get(clientId);
-      if (state && state.user) {
-        const userInfo = state.user as UserInfo;
-        this.emitEvent({
-          type: UserEventType.USER_JOINED,
-          timestamp,
-          userId: userInfo.id,
-          userInfo,
-        });
-      }
-    });
-
-    // Handle updated users
-    changes.updated.forEach((clientId) => {
-      const state = states.get(clientId);
-      if (state && state.user) {
-        const userInfo = state.user as UserInfo;
-        this.emitEvent({
-          type: UserEventType.USER_UPDATED,
-          timestamp,
-          userId: userInfo.id,
-          userInfo,
-        });
-      }
-    });
-
-    // Handle removed users
-    changes.removed.forEach((clientId) => {
-      // Note: we can't get the state here as it's already removed
-      // We need to use the client ID as best effort
-      this.emitEvent({
-        type: UserEventType.USER_LEFT,
-        timestamp,
-        userId: `client-${clientId}`,
-      });
-    });
-  }
-
-  /**
-   * Reset the idle timer
-   */
-  private resetIdleTimer(): void {
-    // Clear existing timer
-    if (this.idleTimer !== null) {
-      clearTimeout(this.idleTimer);
-    }
-
-    // Set new timer
-    this.idleTimer = setTimeout(() => {
-      // Update awareness state
-      const currentState = this.awareness.getLocalState() || {};
-      this.awareness.setLocalState({
-        ...currentState,
-        status: "idle",
-        lastActive: Date.now() - this.idleTimeout,
-      });
-
-      // Emit idle event
-      this.emitEvent({
-        type: UserEventType.USER_IDLE,
-        timestamp: Date.now(),
-        userId: this.localUser.id,
-        idleTime: this.idleTimeout,
-      });
-    }, this.idleTimeout);
-
-    // If previously idle, emit active event
-    const currentState = this.awareness.getLocalState() || {};
-    if (currentState.status === "idle") {
-      // Update awareness state
-      this.awareness.setLocalState({
-        ...currentState,
-        status: "online",
-        lastActive: Date.now(),
-      });
-
-      // Emit active event
-      this.emitEvent({
-        type: UserEventType.USER_ACTIVE,
-        timestamp: Date.now(),
-        userId: this.localUser.id,
-      });
-    }
-  }
-
-  /**
-   * Emit typing event with debounce
-   */
-  private debouncedEmitTyping(path: string[], offset: number): void {
-    // Clear existing timer
-    if (this.typingDebounceTimer !== null) {
-      clearTimeout(this.typingDebounceTimer);
-    }
-
-    // Set new timer
-    this.typingDebounceTimer = setTimeout(() => {
-      this.emitEvent({
-        type: UserEventType.USER_TYPING,
-        timestamp: Date.now(),
-        userId: this.localUser.id,
-        position: {
-          path,
-          offset,
-        },
-      });
-      this.typingDebounceTimer = null;
-    }, 300);
-  }
-
-  /**
-   * Clean up resources
-   */
-  destroy(): void {
-    // Clear all timers
-    if (this.idleTimer !== null) {
-      clearTimeout(this.idleTimer);
-    }
-
-    if (this.typingDebounceTimer !== null) {
-      clearTimeout(this.typingDebounceTimer);
-    }
-
-    // Remove awareness listeners
-    this.awareness.off("change", this.handleAwarenessChange.bind(this));
-
-    // Clear event listeners
-    this.eventListeners.clear();
-  }
-}
-
-/**
- * AwarenessVFile interface to integrate with unified.js
- */
-export interface AwarenessVFile extends VFile {
-  awareness: {
-    instance: EnhancedAwareness;
-
-    // Get all users
-    getUsers(): UserInfo[];
-
-    // Get a specific user
-    getUser(id: string): UserInfo | null;
-
-    // Update local user
-    updateUser(info: Partial<UserInfo>): void;
-
-    // Set cursor position
-    setCursor(path: string[], offset: number): void;
-
-    // Set selection
-    setSelection(
-      startPath: string[],
-      startOffset: number,
-      endPath: string[],
-      endOffset: number,
-    ): void;
-
-    // Focus a section
-    focusSection(sectionId: string): void;
-
-    // Observe user events
-    observe(
-      type: UserEventType | UserEventType[],
-      callback: UserEventListener,
-    ): () => void;
-  };
-}
-
-/**
- * Create AwarenessVFile to integrate with unified.js
- */
-export function createAwarenessVFile(
-  content: string,
-  doc: Y.Doc,
-  userInfo: UserInfo,
-): AwarenessVFile {
-  const vfile = new VFile(content) as AwarenessVFile;
-  const awareness = new Y.Awareness(doc);
-  const enhancedAwareness = new EnhancedAwareness(awareness, userInfo);
-
-  // Add awareness to VFile
-  vfile.awareness = {
-    instance: enhancedAwareness,
-
-    getUsers(): UserInfo[] {
-      return enhancedAwareness.getAllUsers();
-    },
-
-    getUser(id: string): UserInfo | null {
-      return enhancedAwareness.getUserById(id);
-    },
-
-    updateUser(info: Partial<UserInfo>): void {
-      enhancedAwareness.setLocalUserInfo(info);
-    },
-
-    setCursor(path: string[], offset: number): void {
-      enhancedAwareness.setCursorPosition(path, offset);
-    },
-
-    setSelection(
-      startPath: string[],
-      startOffset: number,
-      endPath: string[],
-      endOffset: number,
-    ): void {
-      enhancedAwareness.setSelection(
-        startPath,
-        startOffset,
-        endPath,
-        endOffset,
-      );
-    },
-
-    focusSection(sectionId: string): void {
-      enhancedAwareness.focusSection(sectionId);
-    },
-
-    observe(
-      type: UserEventType | UserEventType[],
-      callback: UserEventListener,
-    ): () => void {
-      return enhancedAwareness.on(type, callback);
-    },
-  };
-
-  return vfile;
-}
-
-/**
- * Example usage with unified integration
- */
-function setupCollaborativeAwareness(
-  content: string,
-  processor: DocenProcessor,
-) {
-  const doc = new Y.Doc();
-
-  // Create user info
-  const userInfo: UserInfo = {
-    id: "user1",
-    name: "User 1",
-    color: "#ff0000",
-    status: "online",
-  };
-
-  // Create awareness VFile
-  const vfile = createAwarenessVFile(content, doc, userInfo);
-
-  // Process content with unified and Yjs integration
-  processor
-    .useCollaboration({ ydoc: doc, syncStrategy: "timestamp" })
-    .process(vfile)
-    .then((file) => {
-      console.log("Processing complete");
-
-      // Get all users
-      console.log("Connected users:", file.awareness.getUsers());
-
-      // Update user info
-      file.awareness.updateUser({ status: "busy" });
-
-      // Set cursor position
-      file.awareness.setCursor(["root", "children", "0"], 5);
-
-      // Subscribe to user events
-      const unsubscribe = file.awareness.observe(
-        UserEventType.USER_JOINED,
-        (event) => {
-          console.log("User joined:", event);
-        },
-      );
-
-      return {
-        file,
-        cleanup: () => {
-          unsubscribe();
-        },
-      };
-    });
-
-  return vfile;
-}
-```
-
-## Syntax Tree Integration
-
-Docen provides deep integration with the unified.js syntax tree utilities, leveraging them for collaborative document operations:
-
-```typescript
-import { Node, Parent } from "unist";
-import { visit, SKIP, CONTINUE, EXIT } from "unist-util-visit";
-import { map } from "unist-util-map";
-import { filter } from "unist-util-filter";
-import { select, selectAll } from "unist-util-select";
-import { remove } from "unist-util-remove";
-import { is } from "unist-util-is";
-import { findAndReplace } from "mdast-util-find-and-replace";
-import * as Y from "yjs";
-
-/**
- * Extends unified-util-visit with collaborative capabilities
- */
-export function visitCollaborative(
-  tree: Node,
-  test: string | object | ((node: Node) => boolean),
-  visitor: (
-    node: Node,
-    index: number | null,
-    parent: Parent | null,
-    // Additional collaborative info
-    yNode?: Y.AbstractType<any>,
-    path?: (string | number)[],
-  ) => void | boolean,
-) {
-  // Track the path to provide to visitor
-  const path: (string | number)[] = [];
-
-  // Track the Yjs mapping
-  const yRoot = getYjsNodeForAst(tree);
-
-  const wrappedVisitor = (
-    node: Node,
-    index: number | null,
-    parent: Parent | null,
-  ) => {
-    // Update path
-    if (parent && index !== null) {
-      path.push("children", index);
-    }
-
-    // Get corresponding Yjs node
-    const yNode = getYjsNodeAtPath(yRoot, path);
-
-    // Call original visitor with collaborative info
-    const result = visitor(node, index, parent, yNode, [...path]);
-
-    // Reset path for siblings
-    if (parent && index !== null) {
-      path.pop(); // Remove index
-      path.pop(); // Remove 'children'
-    }
-
-    return result;
-  };
-
-  // Use standard visit with our wrapped visitor
-  return visit(tree, test, wrappedVisitor);
-}
-
-/**
- * Extends unist-util-map with collaborative capabilities
- */
-export function mapCollaborative<T extends Node>(
-  tree: T,
-  iteratee: (
-    node: Node,
-    // Additional collaborative info
-    yNode?: Y.AbstractType<any>,
-    path?: (string | number)[],
-  ) => Node,
-): T {
-  // Track the path
-  const path: (string | number)[] = [];
-
-  // Track the Yjs mapping
-  const yRoot = getYjsNodeForAst(tree);
-
-  const wrappedIteratee = (node: Node) => {
-    // Get corresponding Yjs node
-    const yNode = getYjsNodeAtPath(yRoot, path);
-
-    // Call the original iteratee with collaborative info
-    const result = iteratee(node, yNode, [...path]);
-
-    // Update path for children
-    if (isParent(node) && node.children.length > 0) {
-      path.push("children");
-      // Process children
-      for (let i = 0; i < node.children.length; i++) {
-        path.push(i);
-        // Reset after each child
-        path.pop();
-      }
-      path.pop(); // Remove 'children'
-    }
-
-    return result;
-  };
-
-  // Use standard map with our wrapped iteratee
-  return map(tree, wrappedIteratee);
-}
-
-/**
- * Creates, updates, or removes nodes with automatic Yjs binding
- */
-export function modifyAST(
-  doc: Y.Doc,
-  tree: Node,
-  options: {
-    select?: string | ((node: Node) => boolean);
-    add?: (selected: Node[]) => Node[];
-    update?: (node: Node) => Node;
-    remove?: boolean;
-  },
-) {
-  // Use the corresponding Yjs root
-  const yRoot = doc.getMap("root");
-
-  doc.transact(() => {
-    // Handle selection
-    let selectedNodes: Node[] = [];
-    if (options.select) {
-      if (typeof options.select === "string") {
-        selectedNodes = selectAll(options.select, tree);
-      } else if (typeof options.select === "function") {
-        visit(tree, options.select, (node) => {
-          selectedNodes.push(node);
-        });
-      }
-    }
-
-    // Handle removal
-    if (options.remove) {
-      remove(tree, (node) => selectedNodes.includes(node));
-
-      // Also remove from Yjs
-      selectedNodes.forEach((node) => {
-        const path = findNodePath(tree, node);
-        if (path) {
-          removeYjsNodeAtPath(yRoot, path);
-        }
-      });
-    }
-
-    // Handle update
-    if (options.update) {
-      selectedNodes.forEach((node) => {
-        const updated = options.update(node);
-        Object.assign(node, updated);
-
-        // Update in Yjs
-        const path = findNodePath(tree, node);
-        if (path) {
-          updateYjsNodeAtPath(yRoot, path, updated);
-        }
-      });
-    }
-
-    // Handle add
-    if (options.add) {
-      const newNodes = options.add(selectedNodes);
-
-      // For each selected node that will get new siblings/children
-      selectedNodes.forEach((node, index) => {
-        if (isParent(node)) {
-          // Add to children
-          const newChild = newNodes[index % newNodes.length];
-          node.children.push(newChild);
-
-          // Add to Yjs
-          const path = findNodePath(tree, node);
-          if (path) {
-            const yNode = getYjsNodeAtPath(yRoot, path);
-            if (yNode instanceof Y.Map) {
-              const yChildren = yNode.get("children");
-              if (yChildren instanceof Y.Array) {
-                yChildren.push([createYjsNodeFromAst(newChild)]);
-              }
-            }
-          }
-        } else if (node.parent) {
-          // Add as sibling
-          const parent = node.parent;
-          const newSibling = newNodes[index % newNodes.length];
-          const nodeIndex = parent.children.indexOf(node);
-          parent.children.splice(nodeIndex + 1, 0, newSibling);
-
-          // Add to Yjs
-          const parentPath = findNodePath(tree, parent);
-          if (parentPath) {
-            const yParent = getYjsNodeAtPath(yRoot, parentPath);
-            if (yParent instanceof Y.Map) {
-              const yChildren = yParent.get("children");
-              if (yChildren instanceof Y.Array) {
-                yChildren.insert(nodeIndex + 1, [
-                  createYjsNodeFromAst(newSibling),
-                ]);
-              }
-            }
-          }
-        }
-      });
-    }
-  });
-
-  return tree;
-}
-
-/**
- * Batch process nodes maintaining Yjs binding
- */
-export function batchProcess(
-  doc: Y.Doc,
-  tree: Node,
-  processFunction: (node: Node) => Node,
-  nodeTypes: string[] | ((node: Node) => boolean),
-) {
-  return doc.transact(() => {
-    visitCollaborative(tree, nodeTypes, (node, index, parent, yNode, path) => {
-      const processed = processFunction(node);
-
-      // Update AST
-      Object.assign(node, processed);
-
-      // Update Yjs
-      if (yNode) {
-        if (yNode instanceof Y.Map) {
-          // Update map properties
-          Object.entries(processed).forEach(([key, value]) => {
-            if (key !== "children") {
-              yNode.set(key, value);
-            }
-          });
-
-          // Handle children separately for better performance
-          if (processed.children && isParent(processed)) {
-            const yChildren = yNode.get("children");
-            if (yChildren instanceof Y.Array) {
-              // Update children if needed
-              // This is a simplified approach - a real implementation would
-              // need to handle diffing and patch children more carefully
-              if (node.children.length !== processed.children.length) {
-                // Replace children
-                yChildren.delete(0, yChildren.length);
-                processed.children.forEach((child, i) => {
-                  yChildren.insert(i, [createYjsNodeFromAst(child)]);
-                });
-              }
-            }
-          }
-        } else if (yNode instanceof Y.Text && "value" in processed) {
-          // Update text
-          yNode.delete(0, yNode.length);
-          yNode.insert(0, processed.value as string);
-        }
-      }
-
-      return CONTINUE;
-    });
-
-    return tree;
-  });
-}
-
-/**
- * Helper function to check if node is a Parent
- */
-function isParent(node: Node): node is Parent {
-  return "children" in node && Array.isArray((node as Parent).children);
-}
-
-/**
- * Helper to find node path
- */
-function findNodePath(tree: Node, node: Node): (string | number)[] | null {
-  const path: (string | number)[] = [];
-  let found = false;
-
-  visit(tree, (_node, index, parent) => {
-    if (_node === node) {
-      found = true;
-      return EXIT;
-    }
-
-    if (parent) {
-      if (index !== null) {
-        path.push("children", index);
-      }
-
-      if (found) {
-        // If found, remove the last path entries
-        path.pop(); // Remove index
-        path.pop(); // Remove 'children'
-      }
-    }
-
-    return CONTINUE;
-  });
-
-  return found ? path : null;
-}
-
-/**
- * Helper to get Yjs node for AST node
- */
-function getYjsNodeForAst(node: Node): Y.AbstractType<any> | undefined {
-  return (node as any).binding?.type;
-}
-
-/**
- * Helper to get Yjs node at path
- */
-function getYjsNodeAtPath(
-  yRoot: Y.AbstractType<any> | undefined,
-  path: (string | number)[],
-): Y.AbstractType<any> | undefined {
-  if (!yRoot) return undefined;
-
-  let current = yRoot;
-
-  for (let i = 0; i < path.length; i++) {
-    const segment = path[i];
-
-    if (current instanceof Y.Map) {
-      if (typeof segment === "string") {
-        current = current.get(segment);
-      } else {
-        return undefined;
-      }
-    } else if (current instanceof Y.Array) {
-      if (typeof segment === "number") {
-        current = current.get(segment);
-      } else {
-        return undefined;
-      }
-    } else {
-      return undefined;
-    }
-  }
-
-  return current;
-}
-
-/**
- * Helper to update Yjs node at path
- */
-function updateYjsNodeAtPath(
-  yRoot: Y.Map<any>,
-  path: (string | number)[],
-  node: Node,
-): void {
-  const yNode = getYjsNodeAtPath(yRoot, path);
-
-  if (yNode instanceof Y.Map) {
-    // Update properties
-    Object.entries(node).forEach(([key, value]) => {
-      if (key !== "children") {
-        yNode.set(key, value);
-      }
-    });
-
-    // Handle children
-    if (isParent(node)) {
-      const yChildren = yNode.get("children");
-      if (yChildren instanceof Y.Array) {
-        // Replace children for simplicity
-        // A real implementation would handle diffing more carefully
-        yChildren.delete(0, yChildren.length);
-        node.children.forEach((child, i) => {
-          yChildren.insert(i, [createYjsNodeFromAst(child)]);
-        });
-      }
-    }
-  } else if (yNode instanceof Y.Text && "value" in node) {
-    // Update text
-    yNode.delete(0, yNode.length);
-    yNode.insert(0, node.value as string);
-  }
-}
-
-/**
- * Helper to remove Yjs node at path
- */
-function removeYjsNodeAtPath(
-  yRoot: Y.Map<any>,
-  path: (string | number)[],
-): void {
-  // Need parent and key/index to remove
-  const parentPath = path.slice(0, -2);
-  const key = path[path.length - 2];
-  const index = path[path.length - 1];
-
-  const yParent = getYjsNodeAtPath(yRoot, parentPath);
-
-  if (yParent instanceof Y.Map && key === "children") {
-    const yChildren = yParent.get("children");
-    if (yChildren instanceof Y.Array && typeof index === "number") {
-      yChildren.delete(index, 1);
-    }
-  }
-}
-
-/**
- * Helper to create Yjs node from AST node
- */
-function createYjsNodeFromAst(node: Node): Y.AbstractType<any> {
-  if (isParent(node)) {
-    const yNode = new Y.Map();
-
-    // Set scalar properties
-    Object.entries(node).forEach(([key, value]) => {
-      if (key !== "children") {
-        yNode.set(key, value);
-      }
-    });
-
-    // Handle children
-    const yChildren = new Y.Array();
-    node.children.forEach((child, i) => {
-      yChildren.insert(i, [createYjsNodeFromAst(child)]);
-    });
-    yNode.set("children", yChildren);
-
-    return yNode;
-  } else if ("value" in node && typeof node.value === "string") {
-    const yText = new Y.Text();
-    yText.insert(0, node.value);
-    return yText;
-  } else {
-    const yNode = new Y.Map();
-    Object.entries(node).forEach(([key, value]) => {
-      yNode.set(key, value);
-    });
-    return yNode;
-  }
-}
-
-/**
- * Example usage with unified processor
- */
-function processMdastWithYjs(
-  processor: DocenProcessor,
-  content: string,
-  doc: Y.Doc,
-) {
-  // Parse content to AST
-  processor.parse(content).then((tree) => {
-    // Modify AST with Yjs binding
-    modifyAST(doc, tree, {
-      select: "paragraph",
-      update: (node) => ({
-        ...node,
-        data: { ...node.data, modified: true },
-      }),
-    });
-
-    // Batch process nodes
-    batchProcess(
-      doc,
-      tree,
-      (node) => {
-        if (node.type === "heading") {
-          return {
-            ...node,
-            data: { ...node.data, timestamp: Date.now() },
-          };
-        }
-        return node;
-      },
-      "heading",
-    );
-
-    // Run unified transformers
-    processor.run(tree).then((transformed) => {
-      console.log("Processing complete");
-    });
-  });
-}
-```
-
-## Unified Change Event System
-
-Docen provides a unified change event system that integrates events from both Yjs and unified.js, creating a coherent stream of document changes:
+Docen provides tight integration with Yjs for real-time collaboration capabilities, offering powerful synchronization abilities while maintaining high performance and a clean API surface. The Yjs integration implements both the `YjsAdapter` and `CollaborativeDocument` interfaces.
 
 ```typescript
 import * as Y from "yjs";
 import { Node } from "unist";
 import { VFile } from "vfile";
+import { Awareness } from "y-protocols/awareness";
 
 /**
- * Types of document change events
+ * Strategy to bind a specific Node type to Yjs data structures.
+ * Each strategy defines how to convert a specific node type to and from Yjs,
+ * and how to observe changes to the corresponding Yjs data structure.
  */
-export enum ChangeEventType {
-  // Yjs events
-  YJS_TEXT = "yjs-text",
-  YJS_MAP = "yjs-map",
-  YJS_ARRAY = "yjs-array",
-  YJS_XML = "yjs-xml",
-
-  // unified.js events (aligned with unified lifecycle)
-  UNIFIED_PARSE = "unified-parse",
-  UNIFIED_TRANSFORM = "unified-transform",
-  UNIFIED_COMPILE = "unified-compile",
-  UNIFIED_PROCESS = "unified-process",
-
-  // Synchronization events
-  SYNC_APPLIED = "sync-applied",
-  SYNC_CONFLICT = "sync-conflict",
-  SYNC_RESOLVED = "sync-resolved",
-
-  // High-level semantic events
-  PARAGRAPH_ADDED = "paragraph-added",
-  PARAGRAPH_UPDATED = "paragraph-updated",
-  PARAGRAPH_REMOVED = "paragraph-removed",
-  HEADING_ADDED = "heading-added",
-  HEADING_UPDATED = "heading-updated",
-  HEADING_REMOVED = "heading-removed",
-  LIST_ADDED = "list-added",
-  LIST_UPDATED = "list-updated",
-  LIST_REMOVED = "list-removed",
-  CODE_BLOCK_ADDED = "code-block-added",
-  CODE_BLOCK_UPDATED = "code-block-updated",
-  CODE_BLOCK_REMOVED = "code-block-removed",
-
-  // Document-level events
-  DOCUMENT_LOADED = "document-loaded",
-  DOCUMENT_SAVED = "document-saved",
-  DOCUMENT_STRUCTURE_CHANGED = "document-structure-changed",
-}
-
-/**
- * Event listener type for change events
- */
-export type ChangeEventListener = (event: DocenChangeEvent) => void;
-
-/**
- * Base change event interface
- */
-export interface ChangeEvent {
-  type: ChangeEventType;
-  timestamp: number;
-  source?: "local" | "remote" | "plugin" | "system";
-  path?: string[];
-  id?: string;
-}
-
-// VFile integration for event handling
-export interface CollaborativeVFile extends VFile {
-  collaborative: {
-    // Connect to Yjs document
-    doc: Y.Doc;
-
-    // Utility to emit change events
-    emit(type: ChangeEventType, data: any): void;
-
-    // Subscribe to change events
-    on(
-      type: ChangeEventType | ChangeEventType[],
-      callback: ChangeEventListener,
-    ): () => void;
-
-    // Get all events
-    getEventTypes(): ChangeEventType[];
-  };
-}
-
-/**
- * Synchronization conflict event
- */
-export interface SyncConflictEvent extends ChangeEvent {
-  type: ChangeEventType.SYNC_CONFLICT;
-  localNode: Node;
-  remoteNode: Node;
-  localTimestamp: number;
-  remoteTimestamp: number;
-  resolution?: "local" | "remote" | "merged";
-}
-
-/**
- * Synchronization resolved event
- */
-export interface SyncResolvedEvent extends ChangeEvent {
-  type: ChangeEventType.SYNC_RESOLVED;
-  conflictEvent: SyncConflictEvent;
-  resolvedNode: Node;
-  strategy: "timestamp" | "intent-based" | "custom";
-}
-
-/**
- * Synchronization applied event
- */
-export interface SyncAppliedEvent extends ChangeEvent {
-  type: ChangeEventType.SYNC_APPLIED;
-  update: Uint8Array;
-  origin: "local" | "remote";
-}
-
-// ... other event types from before ...
-
-/**
- * Union type for all change events
- */
-export type DocenChangeEvent =
-  | YjsTextChangeEvent
-  | YjsMapChangeEvent
-  | YjsArrayChangeEvent
-  | YjsXmlChangeEvent
-  | UnifiedParseEvent
-  | UnifiedTransformEvent
-  | UnifiedCompileEvent
-  | SyncConflictEvent
-  | SyncResolvedEvent
-  | SyncAppliedEvent
-  | NodeAddedEvent
-  | NodeUpdatedEvent
-  | NodeRemovedEvent
-  | DocumentEvent;
-
-/**
- * Unified change event system with VFile integration
- */
-export class ChangeEventSystem {
-  private eventListeners: Map<ChangeEventType, Set<ChangeEventListener>> =
-    new Map();
-  private doc: Y.Doc;
-  private ast: Node | null = null;
-  private observers = new Map<string, () => void>();
-  private vfile: CollaborativeVFile | null = null;
-  private pendingEvents: DocenChangeEvent[] = [];
-  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-
-  constructor(doc: Y.Doc, vfile?: VFile) {
-    this.doc = doc;
-
-    // Setup VFile integration if provided
-    if (vfile) {
-      this.setupVFileIntegration(vfile);
-    }
-  }
+export interface NodeBindingStrategy<N extends Node = Node> {
+  /**
+   * Converts a Node to a Yjs data structure
+   * @param node The node to convert to a Yjs data structure
+   * @returns A Yjs data structure representing the node
+   */
+  toYjs(node: N): Y.AbstractType<any>;
 
   /**
-   * Add an event listener
+   * Converts a Yjs data structure back to a Node
+   * @param yType The Yjs data structure to convert
+   * @returns The corresponding Node
    */
-  on(
-    eventType: ChangeEventType | ChangeEventType[],
-    callback: ChangeEventListener,
-  ): () => void {
-    const types = Array.isArray(eventType) ? eventType : [eventType];
-    const cleanups: Array<() => void> = [];
+  fromYjs(yType: Y.AbstractType<any>): N;
 
-    types.forEach((type) => {
-      if (!this.eventListeners.has(type)) {
-        this.eventListeners.set(type, new Set());
-      }
+  /**
+   * Observe changes to the Yjs representation of a Node
+   * @param node The corresponding AST node (may be needed for context)
+   * @param yType The Yjs data structure to observe
+   * @param callback The callback function for changes
+   * @returns A function to unobserve
+   */
+  observe(
+    node: N,
+    yType: Y.AbstractType<any>,
+    callback: (event: Y.YEvent<any>) => void,
+  ): () => void;
+}
 
-      this.eventListeners.get(type)!.add(callback);
+/**
+ * Interface for managing a collaborative document with Yjs
+ */
+export interface YjsAdapter {
+  /** The underlying Yjs document */
+  doc: Y.Doc;
 
-      cleanups.push(() => {
-        const listeners = this.eventListeners.get(type);
-        if (listeners) {
-          listeners.delete(callback);
+  /** Root map for document data */
+  rootMap: Y.Map<any>;
+
+  /** Undo manager (null if disabled) */
+  undoManager: Y.UndoManager | null;
+
+  /** Available binding strategies */
+  bindingStrategies: Record<string, NodeBindingStrategy>;
+
+  /** Bind a node to Yjs for real-time collaboration */
+  bindNode(node: Node): Node & CollaborativeNode;
+
+  /** Unbind a node from Yjs */
+  unbindNode(node: Node & CollaborativeNode): Node;
+
+  /** Resolve a conflict between concurrent edits */
+  resolveConflict(conflict: SyncConflict): ResolvedNode;
+
+  /** Execute a function within a Yjs transaction */
+  transact<T>(fn: () => T, origin?: string): T;
+
+  /** Observe changes in the Yjs document */
+  observeChanges(
+    callback: (
+      events: Array<Y.YEvent<any>>,
+      transaction: Y.Transaction,
+    ) => void,
+  ): () => void;
+}
+
+/**
+ * Type representing the outcome of conflict resolution
+ */
+export interface ResolvedNode {
+  /** The resolved node */
+  node: Node;
+  /** The origin of the resolved node */
+  origin: "local" | "remote" | "merged";
+}
+
+/**
+ * Function type for handling synchronization conflicts
+ */
+export type SyncHandler = (conflict: SyncConflict) => ResolvedNode;
+
+/**
+ * Options for configuring collaboration features
+ */
+export interface YjsAdapterOptions {
+  /**
+   * Whether to enable undo functionality (default: true)
+   */
+  enableUndo?: boolean;
+
+  /**
+   * Origins to track for undo operations (default: ['update'])
+   */
+  undoTrackOrigins?: Array<string>;
+
+  /**
+   * Strategy for resolving conflicts (default: timestamp-based)
+   */
+  conflictResolutionStrategy?: ConflictResolutionStrategy;
+
+  /**
+   * Custom binding strategies to use (will be merged with defaults)
+   */
+  bindingStrategies?: Record<string, NodeBindingStrategy>;
+}
+
+/**
+ * Creates a Yjs adapter with the given options
+ * Note: In a full unified integration, this adapter would typically be created
+ * and attached to the VFile via a plugin.
+ */
+export function createYjsAdapter(
+  doc: Y.Doc = new Y.Doc(),
+  options: YjsAdapterOptions = {},
+): YjsAdapter {
+  const rootMap = doc.getMap<any>("content");
+  const undoManager =
+    options.enableUndo !== false
+      ? new Y.UndoManager(rootMap, {
+          trackedOrigins: new Set(options.undoTrackOrigins || ["local-update"]),
+        })
+      : null;
+
+  // Define the default binding strategies
+  const defaultBindingStrategies: Record<string, NodeBindingStrategy> = {
+    // Text binding strategy
+    text: {
+      toYjs(node) {
+        const ytext = new Y.Text();
+        // Assuming TextNode has a 'value' property based on unist
+        if (node.type === "text" && typeof node.value === "string") {
+          ytext.insert(0, node.value);
         }
-      });
-    });
-
-    // Return unsubscribe function
-    return () => cleanups.forEach((cleanup) => cleanup());
-  }
-
-  /**
-   * Emit an event
-   */
-  emit(event: DocenChangeEvent): void {
-    // Add to event queue
-    this.pendingEvents.push(event);
-
-    // Process immediately
-    this.processEvent(event);
-
-    // Also notify listeners for the specific event type
-    const listeners = this.eventListeners.get(event.type);
-    if (listeners) {
-      listeners.forEach((listener) => listener(event));
-    }
-
-    // Also notify listeners for all events
-    const allEventListeners = this.eventListeners.get("all" as any);
-    if (allEventListeners) {
-      allEventListeners.forEach((listener) => listener(event));
-    }
-  }
-
-  /**
-   * Process an event
-   */
-  private processEvent(event: DocenChangeEvent): void {
-    // In a real implementation, you might want to do more here,
-    // like batching events or handling special cases
-  }
-
-  /**
-   * Setup VFile integration
-   */
-  setupVFileIntegration(vfile: VFile): CollaborativeVFile {
-    const collaborativeVFile = vfile as CollaborativeVFile;
-
-    // Add collaborative features to VFile
-    collaborativeVFile.collaborative = {
-      doc: this.doc,
-
-      emit: (type, data) => {
-        const event = {
-          type,
-          timestamp: Date.now(),
-          ...data,
-        };
-        this.emit(event as DocenChangeEvent);
-
-        // Also add as VFile message for compatibility with unified ecosystem
-        const severity = this.getSeverityFromEventType(type);
-        collaborativeVFile.message(data, null, "docen:" + type).fatal =
-          severity === "error";
+        return ytext;
       },
-
-      on: (type, callback) => {
-        return this.on(type, callback);
+      fromYjs(data) {
+        if (!(data instanceof Y.Text)) {
+          throw new Error("Expected Y.Text for text node conversion");
+        }
+        return { type: "text", value: data.toString() } as Node; // Cast necessary?
       },
-
-      getEventTypes: () => {
-        return Array.from(this.eventListeners.keys()) as ChangeEventType[];
+      observe(node, yType, callback) {
+        if (!(yType instanceof Y.Text)) {
+          throw new Error("Expected Y.Text for observation");
+        }
+        yType.observe(callback);
+        return () => yType.unobserve(callback);
       },
-    };
+    },
 
-    this.vfile = collaborativeVFile;
-    return collaborativeVFile;
-  }
-
-  /**
-   * Convert event type to VFile message severity
-   */
-  private getSeverityFromEventType(
-    type: ChangeEventType,
-  ): "info" | "warning" | "error" {
-    if (type === ChangeEventType.SYNC_CONFLICT) {
-      return "warning";
-    }
-
-    if (
-      type === ChangeEventType.DOCUMENT_LOADED ||
-      type === ChangeEventType.DOCUMENT_SAVED
-    ) {
-      return "info";
-    }
-
-    return "info";
-  }
-
-  /**
-   * Initialize observation of a Yjs shared type
-   */
-  observeSharedType(
-    sharedType: Y.AbstractType<any>,
-    path: string[] = [],
-  ): () => void {
-    const pathKey = path.join("/");
-
-    // If already observing this path, remove the old observer
-    if (this.observers.has(pathKey)) {
-      this.observers.get(pathKey)!();
-    }
-
-    const handleChange = (event: Y.YEvent) => {
-      const timestamp = Date.now();
-      const source = event.transaction.origin === "remote" ? "remote" : "local";
-
-      // Create and emit appropriate event based on event type
-      if (event instanceof Y.YTextEvent) {
-        this.emit({
-          type: ChangeEventType.YJS_TEXT,
-          timestamp,
-          source,
-          path,
-          yEvent: event,
-          delta: event.delta,
-        } as YjsTextChangeEvent);
-      } else if (event instanceof Y.YMapEvent) {
-        // Create map event
-        const changes = new Map();
-        event.keys.forEach((value, key) => {
-          changes.set(key, {
-            action: value.action,
-            oldValue: value.oldValue,
-            newValue: event.target.get(key),
-          });
+    // Map binding strategy (Generic fallback for object-like nodes)
+    map: {
+      toYjs(node) {
+        const ymap = new Y.Map();
+        for (const [key, value] of Object.entries(node)) {
+          if (key !== "type" && key !== "children") {
+            // Simple property setting, could be enhanced for nested structures
+            ymap.set(key, value);
+          }
+        }
+        ymap.set("type", node.type); // Store the original node type
+        return ymap;
+      },
+      fromYjs(data) {
+        if (!(data instanceof Y.Map)) {
+          throw new Error("Expected Y.Map for map node conversion");
+        }
+        const node: Record<string, any> = { type: data.get("type") || "map" };
+        data.forEach((value, key) => {
+          if (key !== "type") node[key] = value;
         });
+        return node as Node;
+      },
+      observe(node, yType, callback) {
+        if (!(yType instanceof Y.Map)) {
+          throw new Error("Expected Y.Map for observation");
+        }
+        yType.observe(callback);
+        return () => yType.unobserve(callback);
+      },
+    },
 
-        this.emit({
-          type: ChangeEventType.YJS_MAP,
-          timestamp,
-          source,
-          path,
-          yEvent: event,
-          changes,
-        } as YjsMapChangeEvent);
+    // Array binding strategy (Generic for parent nodes with children)
+    array: {
+      toYjs(node) {
+        const yarray = new Y.Array();
+        // Using type guard for children access
+        if (isParent(node)) {
+          node.children.forEach((child) => {
+            // Recursively convert children using the appropriate strategy
+            const childStrategy =
+              bindingStrategies[child.type] || defaultBindingStrategy;
+            const yChild = childStrategy.toYjs(child);
+            yarray.push([yChild]);
+          });
+        }
+        return yarray;
+      },
+      fromYjs(data) {
+        if (!(data instanceof Y.Array)) {
+          throw new Error("Expected Y.Array for array node conversion");
+        }
+        const children: Node[] = [];
+        for (let i = 0; i < data.length; i++) {
+          const yChild = data.get(i);
+          if (yChild instanceof Y.AbstractType) {
+            // Determine type for recursive conversion
+            const type =
+              yChild instanceof Y.Map
+                ? yChild.get("type")
+                : yChild instanceof Y.Text
+                  ? "text"
+                  : "unknown";
+            const childStrategy =
+              bindingStrategies[type as string] || defaultBindingStrategy;
+            children.push(childStrategy.fromYjs(yChild));
+          }
+        }
+        // Assumes the parent node type should be inferred or handled elsewhere
+        return { type: "array-parent", children } as Node;
+      },
+      observe(node, yType, callback) {
+        if (!(yType instanceof Y.Array)) {
+          throw new Error("Expected Y.Array for observation");
+        }
+        // Use observeDeep for arrays to capture changes within children
+        yType.observeDeep((events) => {
+          events.forEach((event) => callback(event));
+        });
+        return () => yType.unobserveDeep(callback); // Needs adjustment for unobserveDeep
+      },
+    },
+  };
+
+  // Default strategy uses map or specific type if available
+  const defaultBindingStrategy: NodeBindingStrategy = {
+    toYjs(node) {
+      const strategy =
+        defaultBindingStrategies[node.type] || defaultBindingStrategies.map;
+      return strategy.toYjs(node);
+    },
+    fromYjs(data) {
+      let type = "unknown";
+      if (data instanceof Y.Map) type = data.get("type") || "map";
+      else if (data instanceof Y.Text) type = "text";
+      else if (data instanceof Y.Array) type = "array-parent"; // Assuming array represents children
+
+      const strategy =
+        defaultBindingStrategies[type] || defaultBindingStrategies.map;
+      return strategy.fromYjs(data);
+    },
+    observe(node, yType, callback) {
+      let type = "unknown";
+      if (yType instanceof Y.Map) type = yType.get("type") || "map";
+      else if (yType instanceof Y.Text) type = "text";
+      else if (yType instanceof Y.Array) type = "array-parent";
+
+      const strategy =
+        defaultBindingStrategies[type] || defaultBindingStrategies.map;
+      // Correctly call observe with only (node, yType, callback)
+      return strategy.observe(node, yType, callback);
+    },
+  };
+
+  // Merge custom binding strategies with defaults
+  const bindingStrategies = {
+    ...defaultBindingStrategies,
+    ...(options.bindingStrategies || {}),
+  };
+
+  // Default conflict resolution based on timestamps
+  const defaultConflictStrategy: ConflictResolutionStrategy = {
+    resolve(local, remote, origin) {
+      // Simple timestamp-based resolution (higher timestamp wins)
+      const localTime = local.timestamp || 0;
+      const remoteTime = remote.timestamp || 0;
+      return remoteTime > localTime ? remote : local;
+    },
+  };
+
+  // Use provided conflict strategy or default
+  const conflictStrategy =
+    options.conflictResolutionStrategy || defaultConflictStrategy;
+
+  // The adapter implements the YjsAdapter interface.
+  // Note: Awareness is typically managed by the CollaborativeDocument or processor context,
+  // not directly part of the adapter interface itself in this design.
+  const adapter: YjsAdapter = {
+    doc,
+    rootMap,
+    undoManager,
+    bindingStrategies,
+    // awareness is not directly on the adapter interface, see CollaborativeDocument
+    resolveConflict: conflictStrategy.resolve,
+
+    bindNode(node) {
+      const strategy = bindingStrategies[node.type] || defaultBindingStrategy;
+      const yNode = strategy.toYjs(node);
+      // Simplified binding logic example
+      rootMap.set(node.id || "root", yNode);
+      // In a real implementation, would return Node & CollaborativeNode
+      return node as Node & CollaborativeNode;
+    },
+
+    unbindNode(node) {
+      rootMap.delete(node.id || "root");
+      return node;
+    },
+
+    transact(fn, origin) {
+      let result: any;
+      doc.transact(() => {
+        result = fn();
+      }, origin);
+      return result;
+    },
+
+    onChange(callback) {
+      // Simplified onChange logic
+      rootMap.observeDeep((events) => {
+        callback(events, events[0]?.transaction.origin || "unknown");
+      });
+    },
+
+    offChange(callback) {
+      // This needs a way to map the wrapped callback to the original
+      // rootMap.unobserveDeep(callback);
+    },
+
+    observe(node, callback) {
+      // Simplified observe logic
+      const yNode = rootMap.get(node.id || "root");
+      if (yNode) {
+        const strategy = bindingStrategies[node.type] || defaultBindingStrategy;
+        return strategy.observe(node, yNode, callback);
       }
-      // Similar handling for other Y.js event types...
-    };
+      return () => {}; // Return no-op unobserve if node not found
+    },
 
-    // Set up the observer
-    sharedType.observe(handleChange);
+    // ... (CollaborativeDocument methods implementation) ...
+  };
 
-    // Store the cleanup function
-    const cleanup = () => {
-      sharedType.unobserve(handleChange);
-      this.observers.delete(pathKey);
-    };
-
-    this.observers.set(pathKey, cleanup);
-
-    return cleanup;
-  }
-
-  /**
-   * Emit a synchronization conflict event
-   */
-  emitSyncConflictEvent(
-    localNode: Node,
-    remoteNode: Node,
-    localTimestamp: number,
-    remoteTimestamp: number,
-    path: string[] = [],
-  ): SyncConflictEvent {
-    const event: SyncConflictEvent = {
-      type: ChangeEventType.SYNC_CONFLICT,
-      timestamp: Date.now(),
-      source: "system",
-      path,
-      localNode,
-      remoteNode,
-      localTimestamp,
-      remoteTimestamp,
-    };
-
-    this.emit(event);
-
-    // Also add as VFile message if available
-    if (this.vfile) {
-      this.vfile.message(
-        `Synchronization conflict at ${path.join(".")}`,
-        null,
-        "docen:sync-conflict",
-      ).fatal = false;
-    }
-
-    return event;
-  }
-
-  /**
-   * Emit a synchronization resolved event
-   */
-  emitSyncResolvedEvent(
-    conflictEvent: SyncConflictEvent,
-    resolvedNode: Node,
-    strategy: "timestamp" | "intent-based" | "custom",
-  ): void {
-    const event: SyncResolvedEvent = {
-      type: ChangeEventType.SYNC_RESOLVED,
-      timestamp: Date.now(),
-      source: "system",
-      path: conflictEvent.path,
-      conflictEvent,
-      resolvedNode,
-      strategy,
-    };
-
-    this.emit(event);
-
-    // Also add as VFile message if available
-    if (this.vfile) {
-      this.vfile.message(
-        `Conflict resolved using ${strategy} strategy`,
-        null,
-        "docen:sync-resolved",
-      ).fatal = false;
-    }
-  }
-
-  /**
-   * Emit a synchronization applied event
-   */
-  emitSyncAppliedEvent(update: Uint8Array, origin: "local" | "remote"): void {
-    const event: SyncAppliedEvent = {
-      type: ChangeEventType.SYNC_APPLIED,
-      timestamp: Date.now(),
-      source: "system",
-      update,
-      origin,
-    };
-
-    this.emit(event);
-  }
-
-  /**
-   * Get a debounced version of an event callback
-   */
-  debounced(
-    key: string,
-    callback: () => void,
-    delay: number = 250,
-  ): () => void {
-    return () => {
-      // Clear existing timer
-      if (this.debounceTimers.has(key)) {
-        clearTimeout(this.debounceTimers.get(key)!);
-      }
-
-      // Set new timer
-      const timer = setTimeout(() => {
-        callback();
-        this.debounceTimers.delete(key);
-      }, delay);
-
-      this.debounceTimers.set(key, timer);
-    };
-  }
-
-  /**
-   * Clean up resources
-   */
-  destroy(): void {
-    // Remove all observers
-    for (const cleanup of this.observers.values()) {
-      cleanup();
-    }
-
-    this.observers.clear();
-    this.eventListeners.clear();
-
-    // Clear debounce timers
-    for (const timer of this.debounceTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.debounceTimers.clear();
-  }
-}
-
-/**
- * Create a collaborative VFile that integrates with unified and Yjs
- */
-export function createCollaborativeVFile(
-  content: string,
-  doc: Y.Doc,
-): CollaborativeVFile {
-  const vfile = new VFile(content);
-  const eventSystem = new ChangeEventSystem(doc);
-  return eventSystem.setupVFileIntegration(vfile);
-}
-
-/**
- * Example usage with unified integration
- */
-function setupCollaborativeProcessor(
-  content: string,
-  processor: DocenProcessor,
-) {
-  const doc = new Y.Doc();
-  const vfile = createCollaborativeVFile(content, doc);
-
-  // Process content with unified and Yjs integration
-  processor
-    .useCollaboration({ ydoc: doc, syncStrategy: "timestamp" })
-    .process(vfile)
-    .then((file) => {
-      console.log("Processing complete");
-
-      // Subscribe to sync conflict events
-      const unsubscribe = file.collaborative.on(
-        ChangeEventType.SYNC_CONFLICT,
-        (event) => {
-          console.log("Sync conflict detected:", event);
-        },
-      );
-
-      // Access VFile messages (compatible with unified ecosystem)
-      console.log("Messages:", file.messages);
-
-      return {
-        file,
-        cleanup: () => {
-          unsubscribe();
-        },
-      };
-    });
-
-  return vfile;
+  return adapter as YjsAdapter;
 }
 ```
+
+## Cursor and Selection Tracking
+
+Docen utilizes Yjs relative positions for cursor and selection tracking in collaborative editing. This enables real-time visualization of cursor positions and selections across multiple users.
+
+```typescript
+import * as Y from "yjs";
+import { Awareness } from "y-protocols/awareness";
+
+// Interface for cursor position
+export interface CursorPosition {
+  // Relative position in the Yjs document (allows for stable position tracking during edits)
+  relativePosition: Y.RelativePosition;
+
+  // Selection range (null if no selection, just cursor position)
+  range?: {
+    start: Y.RelativePosition;
+    end: Y.RelativePosition;
+  } | null;
+}
+
+// Interface for user awareness state
+export interface AwarenessState {
+  // User information
+  user: {
+    id: string;
+    name: string;
+    color?: string;
+    avatar?: string;
+  };
+
+  // Current cursor position (null if not available)
+  cursor: CursorPosition | null;
+}
+
+// Interface for collaborative awareness management
+// Matches the definition in packages/core/src/types.ts
+export interface Awareness {
+  /** The underlying Yjs awareness instance */
+  readonly awareness: YAwareness;
+
+  /** Get the local client ID */
+  readonly clientID: number;
+
+  /** Get the current local state */
+  getLocalState(): AwarenessState | null;
+
+  /** Set the entire local state */
+  setLocalState(state: Partial<AwarenessState> | null): void;
+
+  /** Set a specific field in the local state */
+  setLocalStateField<K extends keyof AwarenessState>(
+    field: K,
+    value: AwarenessState[K],
+  ): void;
+
+  /** Get all states from awareness */
+  getStates(): Map<number, AwarenessState>;
+
+  /** Register an event listener */
+  on(event: "change" | "update", callback: (...args: any[]) => void): void;
+
+  /** Unregister an event listener */
+  off(event: "change" | "update", callback: (...args: any[]) => void): void;
+
+  /** Clean up resources */
+  destroy(): void;
+}
+
+// Helper functions for relative positions
+
+/**
+ * Creates a relative position from an absolute position in the document
+ */
+export function createRelativePosition(
+  doc: Y.Doc,
+  path: string[],
+  offset: number,
+): Y.RelativePosition {
+  // Find the target Yjs text at the given path
+  let target: Y.AbstractType<any> = doc.getMap("content");
+  for (const key of path) {
+    target = target.get(key);
+  }
+
+  // Create a relative position
+  if (target instanceof Y.Text) {
+    return Y.createRelativePositionFromTypeIndex(target, offset);
+  } else {
+    throw new Error("Target is not a Y.Text");
+  }
+}
+
+/**
+ * Resolves a relative position to an absolute position
+ */
+export function resolveRelativePosition(
+  doc: Y.Doc,
+  relativePosition: Y.RelativePosition,
+): { path: string[]; offset: number } | null {
+  const absPos = Y.createAbsolutePositionFromRelativePosition(
+    relativePosition,
+    doc,
+  );
+  if (!absPos) return null;
+
+  // Extract path and offset from absolute position
+  const path: string[] = [];
+  let current: Y.AbstractType<any> | null = absPos.type;
+  while (current && current !== doc.getMap("content")) {
+    // In a real implementation, we'd need to traverse up the Yjs structure
+    // This is a simplified example
+    const parentAndKey = findParentAndKey(current, doc);
+    if (parentAndKey) {
+      path.unshift(parentAndKey.key);
+      current = parentAndKey.parent;
+    } else {
+      break;
+    }
+  }
+
+  return { path, offset: absPos.index };
+}
+
+/**
+ * Helper to find parent and key for a Yjs type
+ * Note: This is a simplified example, actual implementation would be more complex
+ */
+function findParentAndKey(
+  type: Y.AbstractType<any>,
+  doc: Y.Doc,
+): { parent: Y.AbstractType<any>; key: string } | null {
+  // Implementation would scan the doc for the parent of this type
+  return null;
+}
+
+/**
+ * Creates a test awareness state for development/testing
+ */
+export function createTestAwarenessState(userId: string): AwarenessState {
+  return {
+    user: {
+      id: userId,
+      name: `User ${userId}`,
+      color: `#${Math.floor(Math.random() * 16777215)
+        .toString(16)
+        .padStart(6, "0")}`,
+    },
+    cursor: null,
+  };
+}
+```
+
+## Performance Optimizations
+
+To ensure optimal performance, Docen implements several optimizations:
+
+1. **Batched Updates**: Using Yjs transactions to batch multiple changes
+2. **Delayed Binding**: Only binding nodes to Yjs when necessary
+3. **Update Throttling**: Limiting the frequency of awareness updates
+4. **Incremental Updates**: Updating only changed parts of the document
+
+```typescript
+// Example of batched updates with transactions
+adapter.transact(() => {
+  // Multiple operations in a single transaction
+  node1.value = "new value";
+  node2.children.push(newChild);
+  // ...more operations
+}, "batch-update");
+
+// Example of throttled cursor updates
+const throttledCursorUpdate = throttle((position) => {
+  adapter.setLocalCursor(position);
+}, 50); // Update at most every 50ms
+
+// Use throttled update instead of direct call
+throttledCursorUpdate(newPosition);
+```
+
+These performance optimizations maintain the design principles while ensuring Docen performs well even with large documents and many concurrent users.

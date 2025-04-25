@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   CollaborationError,
   DocenError,
-  type Result,
   SyncConflictError,
   ensureDocenError,
   tryCatch,

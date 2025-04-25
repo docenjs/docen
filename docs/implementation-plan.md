@@ -9,7 +9,7 @@ This document outlines the implementation plan for the Docen project based on th
   - [x] Set up monorepo structure with appropriate package manager (pnpm)
   - [x] Configure TypeScript for all packages
   - [x] Set up Biome and Prettier configurations
-  - [ ] Configure testing framework (Vitest)
+  - [x] Configure testing framework (Vitest)
   - [ ] Set up CI/CD pipeline
 
 - [x] Create initial package structure

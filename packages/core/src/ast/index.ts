@@ -2,20 +2,23 @@
  * AST module for Docen
  * Provides utilities for working with Abstract Syntax Tree
  */
-import { DocenRoot, Node, Parent, TextNode } from "./types";
-
-// Expose core type interfaces but exclude ValidationError to avoid duplicate exports
-export { Node, Parent, TextNode, DocenRoot };
-
-// NOTE: ValidationError is intentionally not exported here to avoid duplicate exports
-// It is exported via '../types.ts' instead
+import type {
+  CollaborationMetadata,
+  CollaborativeNode,
+  DocenRoot,
+  Node,
+  Parent,
+  TextNode,
+} from "../types";
 
 /**
  * Check if a node is a parent node
  */
 export function isParent(node: Node): node is Parent {
   return Boolean(
-    node && typeof node === "object" && Array.isArray((node as Parent).children)
+    node &&
+      typeof node === "object" &&
+      Array.isArray((node as Parent).children),
   );
 }
 
@@ -27,7 +30,7 @@ export function isTextNode(node: Node): node is TextNode {
     node &&
       typeof node === "object" &&
       node.type &&
-      typeof (node as TextNode).value === "string"
+      typeof (node as TextNode).value === "string",
   );
 }
 
@@ -43,7 +46,7 @@ export function isRoot(node: Node): node is DocenRoot {
  */
 export function createNode<T extends Node>(
   type: string,
-  props: Partial<T> = {}
+  props: Partial<T> = {},
 ): T {
   return {
     type,
@@ -67,7 +70,7 @@ export function createTextNode(value: string): TextNode {
 export function createParent<T extends Parent>(
   type: string,
   children: Node[] = [],
-  props: Partial<Omit<T, "type" | "children">> = {}
+  props: Partial<Omit<T, "type" | "children">> = {},
 ): T {
   return {
     type,
@@ -88,19 +91,27 @@ export function createRoot(children: Node[] = []): DocenRoot {
 
 /**
  * Create a node with collaboration metadata
+ * Explicitly returns CollaborativeNode
  */
-export function createCollaborativeNode<T extends Node>(
+export function createCollaborativeNode(
   type: string,
-  props: Partial<Omit<T, "type" | "collaborationMetadata">> = {},
-  metadata: Partial<Node["collaborationMetadata"]> = {}
-): T {
-  return {
+  props: Partial<
+    Omit<CollaborativeNode, "type" | "collaborationMetadata" | "binding">
+  > = {},
+  metadata: Partial<CollaborationMetadata> = {},
+): CollaborativeNode {
+  const node: CollaborativeNode = {
     type,
     ...props,
     collaborationMetadata: {
-      createdAt: Date.now(),
-      lastModifiedTimestamp: Date.now(),
-      ...metadata,
+      createdBy: metadata.createdBy,
+      createdAt: metadata.createdAt ?? Date.now(),
+      modifiedBy: metadata.modifiedBy,
+      modifiedAt: metadata.modifiedAt,
+      lastModifiedTimestamp: metadata.lastModifiedTimestamp ?? Date.now(),
+      version: metadata.version,
+      origin: metadata.origin,
     },
-  } as T;
+  };
+  return node;
 }

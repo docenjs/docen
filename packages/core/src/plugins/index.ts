@@ -4,47 +4,45 @@
  */
 import type { Plugin } from "unified";
 import type { VFile } from "vfile";
-import type { Node } from "../ast";
-import type {
-  CollaborativeDocument,
-  PluginDiscovery,
-  PluginMeta,
-} from "../types";
+import type { Node } from "../types";
+import type { DocenProcessor } from "../types";
+
+/**
+ * Interface for plugin discovery mechanisms
+ */
+export interface PluginDiscovery {
+  scanPlugins(path: string): Promise<Plugin[]>;
+  getAvailablePlugins(): Plugin[];
+  registerPlugin(plugin: Plugin): void;
+}
 
 /**
  * Collaborative processor plugin with Yjs integration
  */
 export function collaborativePlugin(): Plugin {
   return () =>
-    function transformer(tree: Node, file: VFile) {
+    function transformer(this: DocenProcessor, tree: Node, file: VFile) {
       // Check if file has collaborative document attached
-      const vfile = file as VFile & {
-        collaborativeDocument?: CollaborativeDocument;
-      };
+      // Access the processor context to check if collaboration is active
+      // (Assuming transformer is run within the processor scope where 'this' is the processor)
+      const adapter = this.getYjsAdapter ? this.getYjsAdapter() : null;
 
-      if (!vfile.collaborativeDocument) {
+      if (!adapter) {
+        console.warn(
+          "collaborativePlugin: YjsAdapter not found on processor context. Collaboration features might be disabled or not initialized.",
+        );
         return tree;
       }
 
-      // Add collaboration metadata to nodes that don't have it
-      function addCollaborationMetadata(node: Node) {
-        if (!node.collaborationMetadata) {
-          node.collaborationMetadata = {
-            createdAt: Date.now(),
-            lastModifiedTimestamp: Date.now(),
-            version: 1,
-            origin: "system",
-          };
-        }
+      // This plugin's role is now mainly to signal that collaboration is active
+      // or potentially perform setup tasks that require the adapter.
+      // Actual node binding should happen elsewhere (e.g., when loading content into Yjs).
+      console.log("collaborativePlugin: Collaboration is active.");
 
-        if ("children" in node && Array.isArray((node as any).children)) {
-          (node as any).children.forEach(addCollaborationMetadata);
-        }
-      }
+      // Example: Potentially attach adapter info to VFile if needed by subsequent non-context-aware plugins?
+      // file.data = { ...(file.data || {}), yjsAdapterAvailable: true };
 
-      // Process the tree
-      addCollaborationMetadata(tree);
-
+      // Return the original tree, no modifications needed here for metadata.
       return tree;
     };
 }
@@ -73,7 +71,7 @@ export function fragmentationPlugin(
     threshold?: number;
     maxFragments?: number;
     nodeTypes?: string[];
-  } = {}
+  } = {},
 ): Plugin {
   return () =>
     function transformer(tree: Node, file: VFile) {

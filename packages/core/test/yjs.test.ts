@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import type { Node, Parent, TextNode } from "../src/ast";
-import { nodeToYjs, yjsToNode } from "../src/utils";
+import type { Parent, TextNode } from "../src/types";
 import { createYjsAdapter } from "../src/yjs";
 
 describe("Yjs Integration", () => {
@@ -118,8 +117,10 @@ describe("Yjs Integration", () => {
 
   it("should support undo/redo functionality", () => {
     const adapter = createYjsAdapter(ydoc, {
-      undoEnabled: true,
-      undoTrackOrigin: ["user"],
+      undoManagerOptions: {
+        enabled: true,
+        trackedOrigins: ["user"],
+      },
     });
 
     const adapterRootMap = adapter.rootMap;

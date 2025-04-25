@@ -3,8 +3,8 @@
  * Provides strategies for resolving conflicts during document synchronization
  */
 import * as Y from "yjs";
-import type { Node } from "../ast";
 import type {
+  Node,
   ResolvedNode,
   SyncConflict,
   SyncHandler,
@@ -27,70 +27,9 @@ export function resolveTimestampBased(conflict: SyncConflict): ResolvedNode {
  * Tries to merge changes based on the semantic intent of each change
  */
 export function resolveIntentBased(conflict: SyncConflict): ResolvedNode {
-  // Simple case: same node type and non-conflicting properties
-  if (conflict.localNode.type === conflict.remoteNode.type) {
-    // Create a merged node with properties from both sources
-    const mergedNode: Record<string, any> = {
-      type: conflict.localNode.type,
-    };
-
-    // Get all property keys from both nodes
-    const allKeys = new Set([
-      ...Object.keys(conflict.localNode),
-      ...Object.keys(conflict.remoteNode),
-    ]);
-
-    // For each property, decide which value to use
-    for (const key of allKeys) {
-      if (key === "children") continue; // Handle children separately
-
-      const localValue = (conflict.localNode as any)[key];
-      const remoteValue = (conflict.remoteNode as any)[key];
-
-      if (localValue === undefined) {
-        // Property only exists in remote
-        mergedNode[key] = remoteValue;
-      } else if (remoteValue === undefined) {
-        // Property only exists in local
-        mergedNode[key] = localValue;
-      } else if (localValue === remoteValue) {
-        // Same value in both
-        mergedNode[key] = localValue;
-      } else {
-        // Conflict: prefer the one with more recent timestamp
-        mergedNode[key] =
-          conflict.localTimestamp >= conflict.remoteTimestamp
-            ? localValue
-            : remoteValue;
-      }
-    }
-
-    // Handle children if present in both nodes
-    if ("children" in conflict.localNode && "children" in conflict.remoteNode) {
-      const localChildren = (conflict.localNode as any).children as Node[];
-      const remoteChildren = (conflict.remoteNode as any).children as Node[];
-
-      // Simple merge: longer children array wins
-      if (localChildren.length >= remoteChildren.length) {
-        mergedNode.children = localChildren;
-      } else {
-        mergedNode.children = remoteChildren;
-      }
-    } else if ("children" in conflict.localNode) {
-      // Only local has children
-      mergedNode.children = (conflict.localNode as any).children;
-    } else if ("children" in conflict.remoteNode) {
-      // Only remote has children
-      mergedNode.children = (conflict.remoteNode as any).children;
-    }
-
-    return {
-      node: mergedNode as Node,
-      origin: "merged",
-    };
-  }
-
-  // Different node types: fallback to timestamp-based resolution
+  console.warn(
+    "Intent-based conflict resolution is not fully implemented. Falling back to timestamp.",
+  );
   return resolveTimestampBased(conflict);
 }
 
@@ -99,18 +38,19 @@ export function resolveIntentBased(conflict: SyncConflict): ResolvedNode {
  */
 export function createSyncHandler(
   strategy: SyncStrategy = "timestamp",
-  customHandler?: SyncHandler
+  customHandler?: SyncHandler,
 ): SyncHandler {
   if (strategy === "custom" && customHandler) {
     return customHandler;
   }
-
-  if (strategy === "intent-based") {
-    return resolveIntentBased;
+  switch (strategy) {
+    case "timestamp":
+      return resolveTimestampBased;
+    case "intent-based":
+      return resolveIntentBased;
+    default:
+      throw new Error(`Unsupported strategy: ${strategy}`);
   }
-
-  // Default to timestamp-based strategy
-  return resolveTimestampBased;
 }
 
 /**
@@ -119,7 +59,7 @@ export function createSyncHandler(
 export function applySyncUpdate(
   targetDoc: Y.Doc,
   update: Uint8Array,
-  syncHandler: SyncHandler = resolveTimestampBased
+  syncHandler: SyncHandler = resolveTimestampBased,
 ): void {
   // Start a transaction for atomic updates
   targetDoc.transact(() => {
@@ -142,12 +82,12 @@ export function createSyncManager(
     customHandler?: SyncHandler;
     onConflict?: (conflict: SyncConflict) => void;
     onResolved?: (resolved: ResolvedNode) => void;
-  } = {}
+  } = {},
 ) {
   // Create the sync handler based on the strategy
   const syncHandler = createSyncHandler(
     options.strategy,
-    options.customHandler
+    options.customHandler,
   );
 
   // Return the sync manager API
@@ -200,7 +140,7 @@ export function mergeNodes(
   local: Node,
   remote: Node,
   strategy: SyncStrategy = "timestamp",
-  customHandler?: SyncHandler
+  customHandler?: SyncHandler,
 ): Node {
   // Create a conflict object
   const conflict: SyncConflict = {

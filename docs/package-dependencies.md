@@ -11,19 +11,6 @@ This document outlines the dependencies required for each package in the Docen p
 - `vfile`: Virtual file handling
 - `unist`: Universal Syntax Tree utilities
 - `unist-util-visit`: AST traversal utility
-- `unist-util-map`: AST mapping utility
-- `unist-util-filter`: AST filtering utility
-- `unist-util-select`: AST node selection
-- `unist-util-is`: AST node type checking
-- `unist-util-find-after`: AST node finding utility
-- `unist-util-find-before`: AST node finding utility
-- `unist-util-remove`: AST node removal utility
-- `unist-builder`: Create AST nodes programmatically
-- `@types/unist`: TypeScript types for unist
-- `consola`: Elegant console logger from UnJS
-- `defu`: Recursive default assignment from UnJS
-- `std-env`: Runtime environment detection from UnJS
-- `perfect-debounce`: Smart debounce function from UnJS
 
 ## @docen/document
 

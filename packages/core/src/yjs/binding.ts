@@ -3,32 +3,13 @@
  * Handles the bidirectional mappings between syntax trees and Yjs data structures
  */
 import * as Y from "yjs";
-import type { Node } from "../ast";
-import type { CollaborativeNode } from "../types";
-
-/**
- * Node binding strategy interface for optimized bindings
- */
-export interface NodeBindingStrategy {
-  /**
-   * Convert a Node to a Yjs data structure
-   */
-  toYjs: (node: Node) => Y.AbstractType<any>;
-
-  /**
-   * Convert a Yjs data structure back to a Node
-   */
-  fromYjs: (yType: Y.AbstractType<any>) => Node;
-
-  /**
-   * Observe changes to the Yjs representation of a Node
-   */
-  observe: (
-    node: Node,
-    yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void
-  ) => () => void;
-}
+import type {
+  CollaborationMetadata,
+  CollaborativeNode,
+  Node,
+  NodeBindingStrategy,
+  YjsBinding,
+} from "../types";
 
 /**
  * Deep binding strategy that recursively binds all node properties and children
@@ -40,9 +21,14 @@ export const deepBindingStrategy: NodeBindingStrategy = {
     // Create a Yjs map to represent the node
     const yNode = new Y.Map();
 
-    // Set all properties except children
+    // Set all properties except children and internal props
     for (const [key, value] of Object.entries(node)) {
-      if (key === "children") continue;
+      if (
+        key === "children" ||
+        key === "binding" ||
+        key === "collaborationMetadata"
+      )
+        continue;
 
       if (typeof value === "string" && value.length > 100) {
         // Use YText for long string values
@@ -106,7 +92,7 @@ export const deepBindingStrategy: NodeBindingStrategy = {
   observe(
     node: Node,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void
+    callback: (event: Y.YEvent<any>) => void,
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map for node observation");
@@ -159,9 +145,14 @@ export const shallowBindingStrategy: NodeBindingStrategy = {
     // Create a Yjs map to represent the node
     const yNode = new Y.Map();
 
-    // Set all properties except children
+    // Set all properties except children and internal props
     for (const [key, value] of Object.entries(node)) {
-      if (key === "children") continue;
+      if (
+        key === "children" ||
+        key === "binding" ||
+        key === "collaborationMetadata"
+      )
+        continue;
       yNode.set(key, value);
     }
 
@@ -192,7 +183,7 @@ export const shallowBindingStrategy: NodeBindingStrategy = {
   observe(
     node: Node,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void
+    callback: (event: Y.YEvent<any>) => void,
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map for node observation");
@@ -227,7 +218,10 @@ export const lazyBindingStrategy: NodeBindingStrategy = {
     }
 
     // Store a JSON representation for lazy loading
-    yNode.set("_jsonData", JSON.stringify(node));
+    // Exclude binding/metadata from stringification
+    const { binding, collaborationMetadata, ...rest } =
+      node as CollaborativeNode;
+    yNode.set("_jsonData", JSON.stringify(rest));
 
     return yNode;
   },
@@ -280,7 +274,7 @@ export const lazyBindingStrategy: NodeBindingStrategy = {
   observe(
     node: Node,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void
+    callback: (event: Y.YEvent<any>) => void,
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map for node observation");
@@ -298,34 +292,47 @@ export const lazyBindingStrategy: NodeBindingStrategy = {
 
 /**
  * Bind a Node to a Yjs shared type using the specified strategy
+ * This function now correctly attaches the YjsBinding and CollaborationMetadata
  */
 export function bindNodeToYjs(
   node: Node,
-  strategy: NodeBindingStrategy = deepBindingStrategy
+  strategy: NodeBindingStrategy = deepBindingStrategy,
 ): Node & CollaborativeNode {
   // Convert the node to Yjs representation
   const yType = strategy.toYjs(node);
 
   // Create the binding information
-  const binding = {
+  const binding: YjsBinding = {
     type: yType,
-    path: [], // Will be set by caller
+    path: [], // Path should be set by the caller context (e.g., adapter)
     observe(callback: (event: Y.YEvent<any>) => void): () => void {
+      // Pass node context if needed by the strategy's observe
       return strategy.observe(node, yType, callback);
     },
     update(newValue: any): void {
       if (yType instanceof Y.Map) {
-        yType.forEach((_, key) => {
-          // Clear existing properties
-          if (key !== "children") {
-            yType.delete(key);
-          }
-        });
-
-        // Update with new properties
+        const currentKeys = Array.from(yType.keys());
+        // Update/add new properties
         for (const [key, value] of Object.entries(newValue)) {
-          if (key !== "children" && key !== "binding") {
+          if (
+            key !== "children" &&
+            key !== "binding" &&
+            key !== "collaborationMetadata" &&
+            key !== "type"
+          ) {
             yType.set(key, value);
+          }
+        }
+        // Remove old properties not in newValue (excluding internal/managed ones)
+        for (const key of currentKeys) {
+          if (
+            key !== "children" &&
+            key !== "binding" &&
+            key !== "collaborationMetadata" &&
+            key !== "type" &&
+            !(key in newValue)
+          ) {
+            yType.delete(key);
           }
         }
 
@@ -336,44 +343,61 @@ export function bindNodeToYjs(
           yType.has("children")
         ) {
           const yChildren = yType.get("children");
-
           if (yChildren instanceof Y.Array) {
-            // Clear and replace children
+            // Efficiently update children (more complex logic needed for granular updates)
             yChildren.delete(0, yChildren.length);
-
             for (const child of newValue.children) {
+              // Recursively bind child - ensure strategy is passed if needed
               const boundChild = bindNodeToYjs(child, strategy);
-              yChildren.push([boundChild.binding?.type]);
+              // Only push the Yjs type associated with the bound child
+              if (boundChild.binding) {
+                yChildren.push([boundChild.binding.type]);
+              }
             }
           }
+        } else if (yType.has("children") && !("children" in newValue)) {
+          // Remove children if they are no longer present
+          yType.delete("children");
         }
+      } else if (yType instanceof Y.Text && typeof newValue === "string") {
+        // Handle Text updates
+        yType.delete(0, yType.length);
+        yType.insert(0, newValue);
       }
+      // Add handling for other types like Y.Array if needed
     },
   };
 
   // Create metadata
-  const collaborationMetadata = {
+  const collaborationMetadata: CollaborationMetadata = {
     createdAt: Date.now(),
     lastModifiedTimestamp: Date.now(),
     version: 1,
   };
 
-  // Return extended node
+  // Return extended node, ensuring properties are correctly typed
   return {
     ...node,
     binding,
     collaborationMetadata,
-  };
+  } as Node & CollaborativeNode;
 }
 
 /**
  * Utility to check if a node is already collaboratively bound
+ * Checks for the presence and correct structure of binding and metadata
  */
-export function isCollaborativeNode(node: Node): node is CollaborativeNode {
+export function isCollaborativeNode(node: any): node is CollaborativeNode {
   return (
     node !== null &&
     typeof node === "object" &&
+    "type" in node && // Ensure it conforms to base Node
     "binding" in node &&
-    "collaborationMetadata" in node
+    typeof node.binding === "object" &&
+    node.binding !== null &&
+    "type" in node.binding &&
+    "collaborationMetadata" in node &&
+    typeof node.collaborationMetadata === "object" &&
+    node.collaborationMetadata !== null
   );
 }

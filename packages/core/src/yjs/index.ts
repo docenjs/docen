@@ -4,473 +4,563 @@
  */
 import * as Y from "yjs";
 import {
-  AbstractType,
-  RelativePosition,
+  type AbstractType,
   type Transaction,
   Array as YArray,
   type Doc as YDoc,
   type YEvent,
   Map as YMap,
   Text as YText,
-  XmlElement as YXmlElement,
-  XmlFragment as YXmlFragment,
-  XmlText as YXmlText,
-  UndoManager as YjsUndoManager,
 } from "yjs";
-import type { Node, Parent, TextNode } from "../ast";
 import { isParent } from "../ast";
+// Import Node from the consolidated core types
 import type {
-  ChangeEvent,
-  CollaborativeDocument,
   CollaborativeNode,
-  DocumentOptions,
-  ResolvedNode,
-  SyncConflict,
-  SyncHandler,
-  SyncStrategy,
+  DocenNode,
+  Node,
+  NodeBindingStrategy,
+  Parent,
+  TextNode,
+  YjsAdapter,
+  YjsAdapterOptions,
+  YjsBinding,
 } from "../types";
-import { Awareness } from "./awareness";
-import {
-  NodeBindingStrategy as BindingStrategy,
-  bindNodeToYjs,
-  deepBindingStrategy,
-  isCollaborativeNode,
-} from "./binding";
-import {
-  createSyncHandler,
-  createSyncManager,
-  mergeNodes,
-  resolveIntentBased,
-  resolveTimestampBased,
-} from "./sync";
-
-// Re-export modules
-export {
-  // Awareness
-  Awareness,
-  // Binding strategies
-  bindNodeToYjs,
-  isCollaborativeNode,
-  deepBindingStrategy,
-  BindingStrategy,
-  // Sync utilities
-  createSyncHandler,
-  resolveTimestampBased,
-  resolveIntentBased,
-  createSyncManager,
-  mergeNodes,
-};
+import { resolveIntentBased } from "./sync";
+import type { YjsResolvedNode, YjsSyncConflict, YjsSyncHandler } from "./types";
 
 /**
- * Interface for node binding strategy
+ * Creates a Yjs adapter for collaborative editing
+ *
+ * @param doc Optional Yjs document to use, creates a new one if not provided
+ * @param options Configuration options for the adapter using YjsAdapterOptions
  */
-export interface NodeBindingStrategy {
-  /**
-   * Convert a Yjs structure to an AST node
-   */
-  yjsToAst(yjs: AbstractType<any>, path?: (string | number)[]): Node;
+export function createYjsAdapter(
+  doc: YDoc = new Y.Doc(),
+  options: YjsAdapterOptions = {},
+): YjsAdapter {
+  const rootMap = doc.getMap<any>("content");
 
-  /**
-   * Convert an AST node to a Yjs structure
-   */
-  astToYjs(node: Node, parent?: AbstractType<any>): AbstractType<any>;
-}
+  // Configure undo manager based on undoManagerOptions
+  const undoManagerOptions = options.undoManagerOptions ?? {};
+  const undoEnabled = undoManagerOptions.enabled !== false; // Default to true
+  const trackedOrigins = new Set(
+    undoManagerOptions.trackedOrigins ?? ["local-update"],
+  ); // Default origin
+  const captureTimeout = undoManagerOptions.captureTimeout ?? 500; // Default timeout
 
-/**
- * Options for creating a Yjs adapter
- */
-export interface YjsAdapterOptions {
-  /**
-   * Document ID
-   */
-  id?: string;
+  const undoManager = undoEnabled
+    ? new Y.UndoManager(rootMap, {
+        ...undoManagerOptions, // Pass through other compatible options
+        trackedOrigins,
+        captureTimeout,
+      })
+    : null;
 
-  /**
-   * The binding strategy to use
-   */
-  bindingStrategy?: NodeBindingStrategy;
-
-  /**
-   * Whether to enable undo/redo functionality
-   */
-  undoEnabled?: boolean;
-
-  /**
-   * Custom capture scope for undo manager
-   */
-  undoScope?: string;
-
-  /**
-   * Callback for when changes are observed
-   */
-  onObserveChanges?: (
-    events: Array<YEvent<any>>,
-    transaction: Transaction
-  ) => void;
-}
-
-/**
- * Options for creating a document from Yjs
- */
-export interface YjsDocumentOptions {
-  /**
-   * Document ID
-   */
-  id?: string;
-
-  /**
-   * Whether to enable undo functionality
-   */
-  undoEnabled?: boolean;
-
-  /**
-   * Custom binding strategy
-   */
-  bindingStrategy?: NodeBindingStrategy;
-}
-
-/**
- * Default binding strategy that maps AST nodes to Yjs structures
- */
-const defaultBindingStrategy: NodeBindingStrategy = {
-  yjsToAst(yjs: AbstractType<any>, path: (string | number)[] = []): Node {
-    if (yjs instanceof YMap) {
-      // Map YMap to object node
-      const nodeMap = yjs as YMap<any>;
-      const type = nodeMap.get("type") as string;
-
-      if (!type) {
-        throw new Error("Node type is missing");
-      }
-
-      const node: any = { type };
-
-      // Convert all properties
-      for (const [key, value] of Object.entries(nodeMap)) {
-        if (key === "type") continue;
-
-        if (value instanceof AbstractType) {
-          node[key] = this.yjsToAst(value, [...path, key]);
-        } else {
-          node[key] = value;
+  // Define the default binding strategies (ensure NodeBindingStrategy is imported/defined)
+  const defaultBindingStrategies: Record<string, NodeBindingStrategy> = {
+    text: {
+      toYjs(node: Node): AbstractType<any> {
+        const yText = new YText();
+        if (
+          node.type === "text" &&
+          typeof (node as TextNode).value === "string"
+        ) {
+          yText.insert(0, (node as TextNode).value);
         }
-      }
-
-      // Handle children separately
-      if (nodeMap.has("children")) {
-        const children = nodeMap.get("children");
-        if (children instanceof YArray) {
-          node.children = [];
-          for (let i = 0; i < children.length; i++) {
-            const child = children.get(i);
-            if (child instanceof AbstractType) {
-              node.children.push(
-                this.yjsToAst(child, [...path, "children", i])
-              );
-            } else {
-              node.children.push(child);
+        return yText;
+      },
+      fromYjs(data: Y.AbstractType<any>): TextNode {
+        if (!(data instanceof YText)) {
+          throw new Error("Expected Y.Text");
+        }
+        return {
+          type: "text",
+          value: data.toString(),
+        };
+      },
+      observe(
+        node: Node,
+        yType: Y.AbstractType<any>,
+        callback: (event: Y.YEvent<any>) => void,
+      ): () => void {
+        if (!(yType instanceof YText)) {
+          throw new Error("Expected Y.Text for observation");
+        }
+        const handler = (event: YEvent<YText>) => callback(event);
+        yType.observe(handler);
+        return () => yType.unobserve(handler);
+      },
+    },
+    map: {
+      toYjs(node: Node): AbstractType<any> {
+        const yMap = new YMap();
+        for (const [key, value] of Object.entries(node)) {
+          // Exclude non-serializable properties and internal ones
+          if (
+            key !== "type" &&
+            key !== "children" &&
+            key !== "position" && // Unist position info is not typically synced
+            key !== "data" && // Specific handling might be needed for data
+            key !== "collaborationMetadata" && // Internal metadata
+            key !== "binding" && // Internal binding info
+            value !== undefined &&
+            !(value instanceof Function) &&
+            !(value instanceof Y.AbstractType) // Avoid double-wrapping Y types
+          ) {
+            try {
+              // Attempt to handle different value types
+              if (typeof value === "object" && value !== null) {
+                // Basic object/array check, might need deeper inspection or specific strategies
+                // Avoid circular references - simple JSON stringify/parse check
+                // WARNING: This is a basic check and might not cover all cases.
+                // Consider using a library for robust cycle detection if needed.
+                try {
+                  JSON.stringify(value);
+                  // If stringify works, assume it's serializable for now
+                  yMap.set(key, value);
+                } catch (e) {
+                  if (
+                    e instanceof TypeError &&
+                    e.message.includes("circular structure")
+                  ) {
+                    console.warn(`Skipping circular structure in key: ${key}`);
+                  } else {
+                    console.warn(
+                      `Skipping potentially problematic value for key ${key}:`,
+                      value,
+                      e,
+                    );
+                  }
+                }
+              } else {
+                // Handle primitives directly
+                yMap.set(key, value);
+              }
+            } catch (e) {
+              console.warn(`Error setting Yjs Map key '${key}':`, e);
             }
           }
         }
-      }
-
-      return node as Node;
-    }
-    if (yjs instanceof YArray) {
-      // Map YArray to array of nodes
-      const nodeArray = yjs as YArray<any>;
-      const result: any = [];
-
-      for (let i = 0; i < nodeArray.length; i++) {
-        const item = nodeArray.get(i);
-        if (item instanceof AbstractType) {
-          result.push(this.yjsToAst(item, [...path, i]));
-        } else {
-          result.push(item);
+        // Always set the node type
+        yMap.set("type", node.type);
+        // Store ID if available (useful for tracking)
+        if ((node as DocenNode).id) {
+          yMap.set("id", (node as DocenNode).id);
         }
-      }
-
-      return result as unknown as Node;
-    }
-    if (yjs instanceof YText) {
-      // Map YText to text node
-      const textNode = yjs as YText;
-      return {
-        type: "text",
-        value: textNode.toString(),
-      } as TextNode;
-    }
-
-    throw new Error(`Unsupported Yjs type: ${yjs.constructor.name}`);
-  },
-
-  astToYjs(node: Node, parent?: AbstractType<any>): AbstractType<any> {
-    if (!node) {
-      throw new Error("Node is null or undefined");
-    }
-
-    if (typeof node !== "object") {
-      throw new Error(`Node must be an object, got ${typeof node}`);
-    }
-
-    // Create a YMap for this node
-    const ymap = new YMap<any>();
-
-    // Set type
-    ymap.set("type", node.type);
-
-    // Handle properties
-    for (const [key, value] of Object.entries(node)) {
-      if (key === "type") continue; // Already set
-
-      if (key === "children" && Array.isArray(value)) {
-        // Handle children array
-        const yarray = new YArray();
-        for (const child of value) {
-          if (typeof child === "object" && child !== null) {
-            const childYjs = this.astToYjs(child);
-            yarray.push([childYjs]);
-          } else {
-            yarray.push([child]);
+        return yMap;
+      },
+      fromYjs(data: Y.AbstractType<any>): Node {
+        if (!(data instanceof YMap)) {
+          throw new Error("Expected Y.Map");
+        }
+        const nodeData: Record<string, any> = {
+          type: data.get("type") || "map", // Default type if missing
+        };
+        data.forEach((value, key) => {
+          if (key !== "type") {
+            if (value instanceof Y.AbstractType) {
+              // Recursively convert nested Yjs types back to Nodes
+              nodeData[key] = yjsToNode(value);
+            } else {
+              // Assume other values are primitives/plain objects
+              nodeData[key] = value;
+            }
+          }
+        });
+        return nodeData as Node;
+      },
+      observe(
+        node: Node,
+        yType: Y.AbstractType<any>,
+        callback: (event: Y.YEvent<any>) => void,
+      ): () => void {
+        if (!(yType instanceof YMap)) {
+          throw new Error("Expected Y.Map for observation");
+        }
+        const handler = (event: YEvent<YMap<any>>) => callback(event);
+        yType.observe(handler);
+        return () => yType.unobserve(handler);
+      },
+    },
+    array: {
+      toYjs(node: Node): AbstractType<any> {
+        const yArray = new YArray();
+        if (isParent(node)) {
+          for (const child of node.children) {
+            // Find the appropriate strategy for the child node
+            const childStrategy =
+              adapterInternal.bindingStrategies[child.type] ||
+              // Access defaultBindingStrategy from options, fallback to 'map'
+              adapterInternal.bindingStrategies[
+                options.defaultBindingStrategy || "map"
+              ];
+            const childYjs = childStrategy.toYjs(child);
+            yArray.push([childYjs]);
           }
         }
-        ymap.set("children", yarray);
-      } else if (value !== null && typeof value === "object") {
-        // Handle nested objects
-        const nestedYjs = this.astToYjs(value as Node);
-        ymap.set(key, nestedYjs);
-      } else {
-        // Handle primitive values
-        ymap.set(key, value);
-      }
+        return yArray;
+      },
+      fromYjs(data: Y.AbstractType<any>): Parent {
+        if (!(data instanceof YArray)) {
+          throw new Error("Expected Y.Array");
+        }
+        const children: Node[] = [];
+        for (let i = 0; i < data.length; i++) {
+          const item = data.get(i);
+          if (item instanceof Y.AbstractType) {
+            children.push(yjsToNode(item));
+          } else {
+            // Assuming non-AbstractType items are simple nodes or primitives
+            // This might need refinement based on actual usage
+            children.push(item as Node);
+          }
+        }
+        // Determine parent type dynamically if possible, otherwise use a default
+        return {
+          type: "array-parent", // Consider making this configurable or dynamic
+          children,
+        };
+      },
+      observe(
+        node: Node,
+        yType: Y.AbstractType<any>,
+        callback: (event: Y.YEvent<any>) => void,
+      ): () => void {
+        if (!(yType instanceof YArray)) {
+          throw new Error("Expected YArray for array node observation");
+        }
+        // Use observeDeep for arrays
+        const handler = (
+          events: Array<YEvent<any>>,
+          transaction: Transaction,
+        ) => {
+          // Process each event in the deep observation
+          // Use for...of instead of forEach
+          for (const event of events) {
+            callback(event);
+          }
+        };
+        yType.observeDeep(handler);
+        // Return the unobserve function
+        return () => yType.unobserveDeep(handler);
+      },
+    },
+  };
+
+  // Final binding strategies merging defaults with provided options
+  const bindingStrategies: Record<string, NodeBindingStrategy> = {
+    ...defaultBindingStrategies,
+    ...(options.bindingStrategies || {}),
+  };
+  // Determine the default strategy to use if a specific type is not found
+  const defaultStrategyKey = options.defaultBindingStrategy || "map"; // Default to map
+  const fallbackStrategy =
+    bindingStrategies[defaultStrategyKey] || bindingStrategies.map;
+
+  // Helper function to convert any Yjs type back to Node using the determined strategy
+  function yjsToNode(data: Y.AbstractType<any>): Node {
+    let typeKey = "unknown";
+    if (data instanceof YText) typeKey = "text";
+    else if (data instanceof YArray) typeKey = "array";
+    else if (data instanceof YMap && data.has("type"))
+      typeKey = data.get("type") as string;
+    else if (data instanceof YMap) typeKey = "map";
+
+    // Use the specific strategy or the chosen fallback
+    const strategy = bindingStrategies[typeKey] || fallbackStrategy;
+
+    if (!strategy || !strategy.fromYjs) {
+      console.error(
+        `No valid 'fromYjs' binding strategy found for Yjs type:`,
+        data,
+        `(TypeKey: ${typeKey}, Fallback: ${defaultStrategyKey})`,
+      );
+      throw new Error(
+        `No valid 'fromYjs' strategy for ${typeKey || "unknown type"}`,
+      );
     }
-
-    return ymap;
-  },
-};
-
-/**
- * Create a Yjs adapter for collaborative editing
- */
-export function createYjsAdapter(
-  ydoc: YDoc,
-  options: YjsAdapterOptions = {}
-): CollaborativeDocument {
-  // Root map stores all nodes
-  const rootMap = ydoc.getMap("docen");
-
-  // Use provided binding strategy or default
-  const bindingStrategy = options.bindingStrategy || defaultBindingStrategy;
-
-  // Set up undo manager if enabled
-  let undoManager: YjsUndoManager | null = null;
-  if (options.undoEnabled) {
-    undoManager = new YjsUndoManager([rootMap], {
-      captureTimeout: 500,
-      trackedOrigins: new Set(["user"]),
-      ...(options.undoScope ? { scope: options.undoScope } : {}),
-    });
+    try {
+      return strategy.fromYjs(data);
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      console.error(
+        `Error in fromYjs for strategy '${typeKey}':`,
+        error.message,
+        data,
+      );
+      throw new Error(`Conversion failed for ${typeKey}: ${error.message}`);
+    }
   }
 
-  // Create awareness instance for this document
-  const awareness = new Awareness(ydoc);
+  // Default timestamp-based conflict resolution - MODIFIED
+  function defaultTimestampStrategy(
+    conflict: YjsSyncConflict,
+  ): YjsResolvedNode {
+    // Use timestamps directly from the conflict object as provided
+    const localTimestamp = conflict.localTimestamp;
+    const remoteTimestamp = conflict.remoteTimestamp;
 
-  /**
-   * Convert Yjs to AST
-   */
-  const yjsToAst = (): Parent => {
-    const root = rootMap.get("root");
-    if (!root) {
-      return { type: "root", children: [] } as Parent;
+    // Keep local if timestamp is greater or equal
+    if (localTimestamp >= remoteTimestamp) {
+      return { node: conflict.localNode, origin: "local" };
     }
+    // Otherwise, keep remote
+    return { node: conflict.remoteNode, origin: "remote" };
+  }
 
-    return bindingStrategy.yjsToAst(root as AbstractType<any>) as Parent;
-  };
+  // Intent-based conflict resolution (implementation likely in ./sync)
+  function intentBasedStrategy(conflict: YjsSyncConflict): YjsResolvedNode {
+    // Assuming resolveIntentBased is correctly implemented and imported
+    return resolveIntentBased(conflict);
+  }
 
-  /**
-   * Convert AST to Yjs
-   */
-  const astToYjs = (node: Node): void => {
-    ydoc.transact(() => {
-      const yjsNode = bindingStrategy.astToYjs(node);
-      rootMap.set("root", yjsNode);
-    }, "user");
-  };
+  // Choose sync strategy based on options
+  let resolveConflictHandler: YjsSyncHandler;
+  switch (options.syncStrategy) {
+    case "custom":
+      // Use custom handler if provided, otherwise fallback to timestamp
+      resolveConflictHandler = options.customSyncHandler
+        ? (options.customSyncHandler as YjsSyncHandler) // Cast if necessary, ensure type compatibility
+        : defaultTimestampStrategy;
+      break;
+    case "intent-based":
+      resolveConflictHandler = intentBasedStrategy;
+      break;
+    default:
+      // Default to timestamp strategy
+      resolveConflictHandler = defaultTimestampStrategy;
+      break;
+  }
 
-  /**
-   * Setup observer for changes
-   */
-  const observeChanges = (
-    callback: (events: Array<YEvent<any>>, transaction: Transaction) => void
-  ): (() => void) => {
-    const handler = (events: Array<YEvent<any>>, tr: Transaction) => {
-      callback(events, tr);
-    };
+  // Cache for node bindings to improve performance and avoid redundant conversions
+  const nodeBindingCache = new Map<string, AbstractType<any>>();
 
-    rootMap.observeDeep(handler);
+  // Map for observeChanges handlers to manage listeners correctly
+  const changeHandlers = new Map<
+    (events: Array<Y.YEvent<any>>, transaction: Y.Transaction) => void,
+    (events: Array<Y.YEvent<any>>, transaction: Y.Transaction) => void
+  >();
 
-    // Return unobserve function
-    return () => {
-      rootMap.unobserveDeep(handler);
-    };
-  };
+  // Create the internal adapter object including methods
+  const adapterInternal: YjsAdapter & {
+    _observeNode: <N extends Node>(
+      node: N,
+      callback: (event: Y.YEvent<any>) => void,
+    ) => () => void;
+  } = {
+    doc,
+    rootMap,
+    undoManager, // Assign the configured undoManager (can be null)
+    bindingStrategies, // Assign the final merged strategies
 
-  // Create collaborative document
-  const collaborativeDoc: CollaborativeDocument = {
-    // Core document methods
-    id: options.id || `ydoc-${Date.now().toString(36)}`,
-
-    parse: async (content: string): Promise<Parent> => {
-      // Convert string to AST
-      const parsedAst = JSON.parse(content) as Parent;
-
-      // Update Yjs document with AST
-      astToYjs(parsedAst);
-
-      return parsedAst;
-    },
-
-    stringify: async (tree: Node): Promise<string> => {
-      // Convert AST to string
-      return JSON.stringify(tree);
-    },
-
-    run: async (tree: Node): Promise<Node> => {
-      // Simple pass-through as we don't run transformations here
-      return tree;
-    },
-
-    process: async (
-      input: string | Node
-    ): Promise<{ tree: Node; value: string }> => {
-      // Process input into AST and string
-      const tree =
-        typeof input === "string"
-          ? await collaborativeDoc.parse(input)
-          : ((isParent(input)
-              ? input
-              : { type: "root", children: [input] }) as Parent);
-
-      const value = await collaborativeDoc.stringify(tree);
-
-      return { tree, value };
-    },
-
-    transact: <T>(fn: () => T, origin?: string): T => {
-      return ydoc.transact(fn, origin || "user");
-    },
-
-    setSyncStrategy: (strategy: SyncStrategy, handler?: SyncHandler): void => {
-      // Not implemented in this adapter
-    },
-
-    getStateVector: (): Uint8Array => {
-      return Y.encodeStateVector(ydoc);
-    },
-
-    encodeStateAsUpdate: (): Uint8Array => {
-      return Y.encodeStateAsUpdate(ydoc);
-    },
-
-    applyUpdate: (update: Uint8Array): void => {
-      Y.applyUpdate(ydoc, update);
-    },
-
-    createCollaborativeNode: (
-      nodeType: string,
-      initialData?: Record<string, unknown>
-    ): Node => {
-      const node: any = { type: nodeType, ...initialData };
-      if (!node.collaborationMetadata) {
-        node.collaborationMetadata = {};
+    bindNode(node: Node): Node & CollaborativeNode {
+      // Ensure node has an ID for binding
+      const docenNode = node as DocenNode;
+      const nodeId = docenNode?.id;
+      if (!nodeId) {
+        console.warn(
+          "Attempted to bind a node without an ID. Returning original node.",
+          node,
+        );
+        // Return the node cast to the expected type, but without binding
+        return node as Node & CollaborativeNode;
       }
-      node.collaborationMetadata.createdAt = Date.now();
-      node.collaborationMetadata.lastModifiedTimestamp = Date.now();
-      return node;
-    },
 
-    // Yjs specific methods
-    ydoc,
-    awareness,
-    undoManager: {
-      undo: () => {
-        if (undoManager) undoManager.undo();
-      },
-      redo: () => {
-        if (undoManager) undoManager.redo();
-      },
-      canUndo: () => !!undoManager?.canUndo(),
-      canRedo: () => !!undoManager?.canRedo(),
-      stopCapturing: () => {
-        if (undoManager) undoManager.stopCapturing();
-      },
-      startCapturing: (options?: { captureTimeout?: number }) => {
-        if (undoManager) {
-          undoManager.stopCapturing();
-          undoManager.captureTimeout = options?.captureTimeout || 500;
-        }
-      },
-      on: (event, callback) => {
-        if (undoManager) {
-          undoManager.on(event, callback as any);
-          return () => undoManager.off(event, callback as any);
-        }
-        return () => {};
-      },
-    },
-
-    // Observer methods
-    observeChanges: (
-      path:
-        | string[]
-        | ((
-            event: YEvent<AbstractType<unknown>>,
-            transaction: Transaction
-          ) => boolean),
-      callback: (
-        event: YEvent<AbstractType<unknown>>,
-        transaction: Transaction
-      ) => void
-    ): (() => void) => {
-      if (Array.isArray(path)) {
-        // Path-based observation not implemented in this adapter
-        return () => {};
+      // Check cache first
+      if (nodeBindingCache.has(nodeId)) {
+        // Node is already bound, potentially update metadata if needed?
+        // For now, return the node as is (it should already be CollaborativeNode)
+        return node as Node & CollaborativeNode;
       }
-      // Use the predicate-based observer
-      const predicateFn = path;
-      const handler = (events: Array<YEvent<any>>, tr: Transaction) => {
-        for (const event of events) {
-          if (predicateFn(event, tr)) {
-            callback(event, tr);
+
+      // Determine the binding strategy
+      const strategy = bindingStrategies[node.type] || fallbackStrategy;
+      if (!strategy || !strategy.toYjs) {
+        console.warn(
+          `No valid 'toYjs' binding strategy found for node type: ${node.type}. Using fallback: ${defaultStrategyKey}. Skipping bind.`,
+        );
+        return node as Node & CollaborativeNode;
+      }
+
+      // Convert node to Yjs type
+      let yType: AbstractType<any>;
+      try {
+        yType = strategy.toYjs(node);
+      } catch (e) {
+        console.error(`Error in toYjs for strategy '${node.type}':`, e, node);
+        return node as Node & CollaborativeNode;
+      }
+
+      // Add Yjs type to the document within a transaction (trackable by undo)
+      adapterInternal.transact(() => {
+        rootMap.set(nodeId, yType);
+      }, "local-update"); // Use a consistent, trackable origin
+
+      // Store in cache
+      nodeBindingCache.set(nodeId, yType);
+
+      // Create the binding object for the node
+      const binding: YjsBinding = {
+        type: yType,
+        path: [nodeId], // Simple path for root-level binding
+        observe: (callback) => {
+          if (adapterInternal._observeNode) {
+            return adapterInternal._observeNode(node, callback);
           }
-        }
+          console.warn("_observeNode not available on adapterInternal.");
+          return () => {}; // No-op unsubscribe
+        },
+        update: (newValue) => {
+          // Implement update logic based on yType, wrap in transaction
+          console.warn(
+            "Binding update function called (Implementation needed)",
+            { nodeId, newValue },
+          );
+          adapterInternal.transact(() => {
+            // Example: Update logic for YText (needs robust implementation for others)
+            if (yType instanceof YText && typeof newValue === "string") {
+              yType.delete(0, yType.length);
+              yType.insert(0, newValue);
+            } else {
+              console.error(
+                "Update logic not implemented for this Yjs type in binding.",
+                yType,
+              );
+            }
+          }, "local-update");
+        },
       };
 
-      rootMap.observeDeep(handler);
-      return () => rootMap.unobserveDeep(handler);
+      // Return the node augmented with binding and metadata
+      const boundNode: Node & CollaborativeNode = {
+        ...node,
+        binding: binding,
+        // Ensure collaborationMetadata exists, merge if node already had some
+        collaborationMetadata: {
+          lastModifiedTimestamp: Date.now(), // Set initial timestamp
+          ...(node as Partial<CollaborativeNode>).collaborationMetadata, // Merge existing
+        },
+      };
+      return boundNode;
     },
 
-    // Cleanup
-    destroy: (): void => {
-      if (undoManager) undoManager.destroy();
-      awareness.destroy();
-      ydoc.destroy();
+    unbindNode(node: Node & CollaborativeNode): Node {
+      const nodeId = (node as DocenNode)?.id;
+      if (nodeId && nodeBindingCache.has(nodeId)) {
+        nodeBindingCache.delete(nodeId);
+        // Remove from Yjs document within a transaction
+        if (rootMap.has(nodeId)) {
+          adapterInternal.transact(() => {
+            rootMap.delete(nodeId);
+          }, "local-update");
+        }
+      }
+
+      // Remove binding and metadata from the node
+      const { binding, collaborationMetadata, ...originalNode } = node;
+      return originalNode as Node;
+    },
+
+    transact<T>(fn: () => T, origin?: string): T {
+      // Ensure a default origin is used if none provided, align with undo tracking
+      return doc.transact(fn, origin ?? trackedOrigins.values().next().value); // Use first default tracked origin
+    },
+
+    // Assign the chosen conflict handler
+    resolveConflict: resolveConflictHandler,
+
+    observeChanges(
+      callback: (
+        events: Array<Y.YEvent<any>>,
+        transaction: Y.Transaction,
+      ) => void,
+    ): () => void {
+      // Wrap the callback to ensure it's stored correctly in the map
+      const handler = (
+        events: Array<YEvent<any>>,
+        transaction: Transaction,
+      ) => {
+        try {
+          callback(events, transaction);
+        } catch (e) {
+          console.error("Error in observeChanges callback:", e);
+        }
+      };
+      changeHandlers.set(callback, handler);
+      // Observe deep changes on the root map
+      rootMap.observeDeep(handler);
+
+      // Return an unobserve function
+      return () => {
+        const storedHandler = changeHandlers.get(callback);
+        if (storedHandler) {
+          try {
+            rootMap.unobserveDeep(storedHandler);
+          } catch (e) {
+            // Catch potential errors during unobserve, e.g., if doc is destroyed
+            console.error("Error during rootMap.unobserveDeep:", e);
+          }
+          changeHandlers.delete(callback);
+        }
+      };
+    },
+
+    // Internal helper method for observing specific nodes (not part of public API)
+    _observeNode<N extends Node>(
+      node: N,
+      callback: (event: Y.YEvent<any>) => void,
+    ): () => void {
+      const nodeId = (node as DocenNode)?.id;
+      let yType = nodeId ? nodeBindingCache.get(nodeId) : undefined;
+
+      if (!yType && nodeId) {
+        yType = rootMap.get(nodeId) as AbstractType<any> | undefined;
+        if (yType) {
+          nodeBindingCache.set(nodeId, yType);
+        } else {
+          console.warn(
+            `Cannot observe node: Yjs type not found in cache or rootMap for node ID: ${nodeId}`,
+          );
+          return () => {}; // No-op unsubscribe
+        }
+      } else if (!yType) {
+        console.warn(
+          "Cannot observe node: No Yjs type found (no node ID or not in cache/rootMap).",
+        );
+        return () => {}; // No-op unsubscribe
+      }
+
+      // Determine the strategy based on the actual Yjs type
+      let typeKey = "unknown";
+      if (yType instanceof YText) typeKey = "text";
+      else if (yType instanceof YArray) typeKey = "array";
+      else if (yType instanceof YMap && yType.has("type"))
+        typeKey = yType.get("type") as string;
+      else if (yType instanceof YMap) typeKey = "map";
+
+      const strategy = bindingStrategies[typeKey] || fallbackStrategy;
+      if (!strategy || !strategy.observe) {
+        console.warn(
+          `No observe implementation in strategy for type: ${typeKey}. Cannot observe.`,
+        );
+        return () => {}; // No-op unsubscribe
+      }
+
+      // Delegate observation to the specific strategy
+      try {
+        return strategy.observe(node, yType, callback);
+      } catch (e) {
+        console.error(
+          `Error calling observe on strategy for type ${typeKey}:`,
+          e,
+        );
+        return () => {}; // No-op unsubscribe on error
+      }
     },
   };
 
-  return collaborativeDoc;
-}
-
-/**
- * Create a CollaborativeDocument from a Yjs Doc
- */
-export function createDocumentFromYjs(
-  ydoc: YDoc,
-  options: YjsDocumentOptions = {}
-): CollaborativeDocument {
-  // Create and return a collaborative document using the adapter
-  return createYjsAdapter(ydoc, {
-    undoEnabled: options.undoEnabled,
-    bindingStrategy: options.bindingStrategy,
-  });
+  // Return the public adapter interface, excluding internal methods like _observeNode
+  const { _observeNode, ...publicAdapter } = adapterInternal;
+  // Ensure the returned publicAdapter conforms to the YjsAdapter interface
+  return publicAdapter as YjsAdapter;
 }
