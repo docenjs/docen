@@ -1,8 +1,13 @@
 {
-  "name": "@docen/playground",
-  "private": true,
+  "name": "docen-playground",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
-  "scripts": {},
-  "dependencies": {}
+  "scripts": {
+    "start": "vite-node src/index.ts"
+  },
+  "dependencies": {
+    "@docen/core": "workspace:*",
+    "@docen/document": "workspace:*"
+  }
 }

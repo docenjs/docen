@@ -11,6 +11,7 @@ The document package handles text-based document formats with unified.js process
 | Format           | Extension      | Read | Write | Description                                    |
 | ---------------- | -------------- | ---- | ----- | ---------------------------------------------- |
 | Markdown         | .md, .markdown | ✅   | ✅    | Standard Markdown and GitHub Flavored Markdown |
+| Markdown+        | .mdx           | ✅   | ✅    | Markdown with JSX and React components         |
 | HTML             | .html, .htm    | ✅   | ✅    | HTML documents with full DOM structure         |
 | Plain Text       | .txt           | ✅   | ✅    | Simple text documents without formatting       |
 | ReStructuredText | .rst           | ✅   | ✅    | Python documentation format                    |

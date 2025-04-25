@@ -7,6 +7,14 @@
     "resolveJsonModule": true,
     "strict": true,
     "target": "ESNext",
-    "paths": {}
+    "paths": {
+      "docen": ["./packages/docen/src/index.ts"],
+      "@docen/core": ["./packages/core/src/index.ts"],
+      "@docen/document": ["./packages/document/src/index.ts"],
+      "@docen/office": ["./packages/office/src/index.ts"],
+      "@docen/media": ["./packages/media/src/index.ts"],
+      "@docen/providers": ["./packages/providers/src/index.ts"],
+      "@docen/data": ["./packages/data/src/index.ts"]
+    }
   }
 }

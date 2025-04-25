@@ -3,9 +3,12 @@
  * This file consolidates shared types across the core package.
  */
 
-import type { Plugin as UnifiedPlugin } from "unified";
+import type {
+  Plugin as UnifiedPlugin,
+  Processor as UnifiedProcessor,
+} from "unified";
 import type { Node as UnistNode, Parent as UnistParent } from "unist";
-import type { VFile, VFileData } from "vfile";
+import type { VFileData } from "vfile";
 import type * as Y from "yjs";
 import type { YjsAdapterOptions } from "./yjs/types";
 
@@ -248,32 +251,24 @@ export type ChangeEventListener = (event: ChangeEvent) => void;
 export type CollaborativeTransformer = (node: Node) => Promise<Node> | Node;
 
 /** DocenProcessor extends the standard unified processor */
-export interface DocenProcessor {
-  // Do not extend directly, rely on structural typing
-  // Keep unified methods like use, parse, run, stringify, process
-  use(plugin: UnifiedPlugin, ...settings: any[]): this;
-  parse(file: VFile | string): Node;
-  run(node: Node, file?: VFile): Promise<Node>;
-  runSync(node: Node, file?: VFile): Node;
-  stringify(node: Node, file?: VFile): VFile | string; // Unified stringify can return string
-  process(file: VFile | string): Promise<VFile>; // Process typically takes VFile/string
-  processSync(file: VFile | string): VFile;
-
+export interface DocenProcessor extends UnifiedProcessor {
   // Add Docen specific methods
-  observeChanges(callback: (changes: Array<ChangeEvent>) => void): () => void; // Keep change observation
-  getDocument(): CollaborativeDocument | null; // Get the associated state container
-  setCursor(position: { path: (string | number)[]; offset: number }): this; // Keep UI related methods
+  observeChanges(callback: (changes: Array<ChangeEvent>) => void): () => void;
+  getDocument(): CollaborativeDocument | null;
+  setCursor(position: { path: (string | number)[]; offset: number }): this;
   setSelection(range: {
     anchor: { path: (string | number)[]; offset: number };
     head: { path: (string | number)[]; offset: number };
-  }): this; // Keep UI related methods
+  }): this;
   getCursors(): Array<{
     clientId: number;
     user: AwarenessState["user"];
     cursor: CursorPosition | null;
-  }>; // Keep UI related methods
-  // Add a way for plugins to access the adapter (Suggestion 2 Option 1)
-  getYjsAdapter(): YjsAdapter | null; // Method to get the adapter instance
+  }>;
+  getYjsAdapter(): YjsAdapter | null;
+
+  // Add context if needed internally (though direct access might be discouraged)
+  // context?: any;
 }
 
 /** Options for creating a Docen processor */
