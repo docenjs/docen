@@ -1,8 +1,10 @@
 import type { Node } from "@docen/core"; // Assuming Node is exported from core
-import type { Schema } from "hast-util-sanitize";
 import rehypeParse from "rehype-parse";
 import rehypeRemark from "rehype-remark";
-import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeSanitize, {
+  defaultSchema,
+  type Options as Schema,
+} from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
 import remarkStringify from "remark-stringify";

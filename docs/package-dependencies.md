@@ -25,15 +25,8 @@ This document outlines the dependencies required for each package in the Docen p
 - `rehype-parse`: HTML parser
 - `rehype-stringify`: HTML serializer
 - `rehype-remark`: HTML to Markdown transformer
-- `mdast-util-to-hast`: Markdown AST to HTML AST converter
-- `hast-util-to-mdast`: HTML AST to Markdown AST converter
 - `mdast`: Markdown AST types and utilities
 - `hast`: HTML AST types and utilities
-- `mdast-util-from-markdown`: Create mdast from markdown
-- `mdast-util-to-markdown`: Create markdown from mdast
-- `hast-util-from-html`: Create hast from HTML
-- `hast-util-to-html`: Create HTML from hast
-- `asciidoctor.js`: AsciiDoc processor
 
 ### Custom Implementations
 
@@ -41,8 +34,7 @@ This document outlines the dependencies required for each package in the Docen p
 
 ### Development Dependencies
 
-- `remark-cli`: Command-line interface for testing
-- `rehype-cli`: Command-line interface for testing
+- Sample markdown and html files for testing
 
 ## @docen/office
 

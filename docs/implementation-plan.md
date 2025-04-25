@@ -61,13 +61,13 @@ This document outlines the implementation plan for the Docen project based on th
 
 - [ ] Integrate with remark and rehype
 
-  - [ ] Create adapters for mdast
-  - [ ] Create adapters for hast
+  - [x] Create adapters for mdast (Initial structure and basic mappings)
+  - [x] Create adapters for hast (Initial structure and basic mappings)
   - [ ] Ensure compatibility with existing plugins
 
-- [ ] Implement collaborative document interface
+- [x] Implement collaborative document interface
 
-  - [ ] Implement CollaborativeDocument interface
+  - [x] Implement CollaborativeDocument interface (`DocenCollabDocument`)
   - [ ] Create document transformation utilities
   - [ ] Implement document synchronization
 
