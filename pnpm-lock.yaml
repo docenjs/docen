@@ -19,9 +19,15 @@ importers:
       "@funish/lint":
         specifier: 0.0.2
         version: 0.0.2
+      "@prettier/plugin-xml":
+        specifier: 3.4.1
+        version: 3.4.1(prettier@3.5.3)
       "@types/node":
         specifier: 22.14.1
         version: 22.14.1
+      "@types/xast":
+        specifier: ^2.0.4
+        version: 2.0.4
       "@vitest/coverage-v8":
         specifier: 3.1.2
         version: 3.1.2(vitest@3.1.2)
@@ -49,6 +55,9 @@ importers:
       unist:
         specifier: 0.0.1
         version: 0.0.1
+      unist-builder:
+        specifier: ^4.0.0
+        version: 4.0.0
       unist-util-visit:
         specifier: 5.0.0
         version: 5.0.0
@@ -77,9 +86,6 @@ importers:
       papaparse:
         specifier: 5.5.2
         version: 5.5.2
-      sheetjs:
-        specifier: 2.0.0
-        version: 2.0.0
       unified-engine:
         specifier: 11.2.2
         version: 11.2.2
@@ -234,18 +240,18 @@ importers:
       docx:
         specifier: 9.4.1
         version: 9.4.1
-      docx-to-vfile:
-        specifier: 0.11.0
-        version: 0.11.0
+      fast-xml-parser:
+        specifier: 4.4.0
+        version: 4.4.0
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
       pathe:
         specifier: 2.0.3
         version: 2.0.3
       pdf-lib:
         specifier: 1.17.1
         version: 1.17.1
-      sheetjs:
-        specifier: 2.0.0
-        version: 2.0.0
       std-env:
         specifier: 3.9.0
         version: 3.9.0
@@ -258,6 +264,22 @@ importers:
       unpdf:
         specifier: 0.12.1
         version: 0.12.1
+      xast-util-from-xml:
+        specifier: 4.0.0
+        version: 4.0.0
+      xast-util-to-string:
+        specifier: ^3.0.0
+        version: 3.0.0
+      xast-util-to-xml:
+        specifier: 4.0.0
+        version: 4.0.0
+      xastscript:
+        specifier: ^4.0.0
+        version: 4.0.0
+    devDependencies:
+      "@types/xast":
+        specifier: ^2.0.4
+        version: 2.0.4
 
   packages/providers:
     dependencies:
@@ -1191,6 +1213,14 @@ packages:
         integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==,
       }
 
+  "@prettier/plugin-xml@3.4.1":
+    resolution:
+      {
+        integrity: sha512-Uf/6/+9ez6z/IvZErgobZ2G9n1ybxF5BhCd7eMcKqfoWuOzzNUxBipNo3QAP8kRC1VD18TIo84no7LhqtyDcTg==,
+      }
+    peerDependencies:
+      prettier: ^3.0.0
+
   "@rgrove/parse-xml@4.2.0":
     resolution:
       {
@@ -1610,6 +1640,12 @@ packages:
         integrity: sha512-5GGd0ytZ7BH3H6JTj9Kw7Prn1Nbg0wZVrIvou+UWxm54d+WoXXgAgjFJ8wn3LdagWLFSEfpPeyYrByZaGEZHLg==,
       }
 
+  "@xml-tools/parser@1.0.11":
+    resolution:
+      {
+        integrity: sha512-aKqQ077XnR+oQtHJlrAflaZaL7qZsulWc/i/ZEooar5JiWj1eLt0+Wg28cpa+XLney107wXqneC+oG1IZvxkTA==,
+      }
+
   abbrev@1.1.1:
     resolution:
       {
@@ -1888,6 +1924,12 @@ packages:
         integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==,
       }
     engines: { node: ">= 16" }
+
+  chevrotain@7.1.1:
+    resolution:
+      {
+        integrity: sha512-wy3mC1x4ye+O+QkEinVJkPf5u2vsrDIYW9G7ZuwFl6v/Yu0LwUuT2POsb+NUWApebyxfkQq6+yDfRExbnI5rcw==,
+      }
 
   chokidar@3.6.0:
     resolution:
@@ -2213,12 +2255,6 @@ packages:
         integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==,
       }
 
-  docx-to-vfile@0.11.0:
-    resolution:
-      {
-        integrity: sha512-5oi6ZlKBBrnVpZ9y1MFVRQwj4L8jJqLDNUCRR0NlSU3pFNJsH5lX0DZWV1kCYtOY8xUy4i+DUyZNQVLBAISeSw==,
-      }
-
   docx@9.4.1:
     resolution:
       {
@@ -2398,6 +2434,13 @@ packages:
       {
         integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==,
       }
+
+  fast-xml-parser@4.4.0:
+    resolution:
+      {
+        integrity: sha512-kLY3jFlwIYwBNDojclKsNAC12sfD6NwW74QB2CoNGPvtVxjliYehVunB3HYyNi+n4Tt1dAcgwYvmKF/Z18flqg==,
+      }
+    hasBin: true
 
   fdir@6.4.4:
     resolution:
@@ -4300,6 +4343,12 @@ packages:
       }
     engines: { node: ">= 14.18.0" }
 
+  regexp-to-ast@0.5.0:
+    resolution:
+      {
+        integrity: sha512-tlbJqcMHnPKI9zSrystikWKwHkBqu2a/Sgw01h3zFjvYrMxEDYHzzoMZnUrbIfpTFEsoRnnviOXNCzFiSc54Qw==,
+      }
+
   regexp-tree@0.1.27:
     resolution:
       {
@@ -4492,13 +4541,6 @@ packages:
       }
     engines: { node: ">=8" }
 
-  sheetjs@2.0.0:
-    resolution:
-      {
-        integrity: sha512-/zxauUZFsJaClP16zlYHWuD/K9VDOHsZlbunZFVUwz9tqBZeUNhSKw7ubC1s6LdiCJYG+7IFY8IEJ+9hLQwDmw==,
-      }
-    engines: { node: ">=0.8" }
-
   siginfo@2.0.0:
     resolution:
       {
@@ -4665,6 +4707,12 @@ packages:
         integrity: sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ==,
       }
     engines: { node: ">=12" }
+
+  strnum@1.1.2:
+    resolution:
+      {
+        integrity: sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==,
+      }
 
   strtok3@10.2.2:
     resolution:
@@ -4952,6 +5000,12 @@ packages:
         integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==,
       }
 
+  unist-builder@4.0.0:
+    resolution:
+      {
+        integrity: sha512-wmRFnH+BLpZnTKpc5L7O67Kac89s9HMrtELpnNaE6TAobq5DTZZs5YaTQfAZBA9bFPECx2uVAPO31c+GVug8mg==,
+      }
+
   unist-util-find-after@5.0.0:
     resolution:
       {
@@ -5090,13 +5144,6 @@ packages:
       }
     hasBin: true
 
-  unzipit@1.4.3:
-    resolution:
-      {
-        integrity: sha512-gsq2PdJIWWGhx5kcdWStvNWit9FVdTewm4SEG7gFskWs+XCVaULt9+BwuoBtJiRE8eo3L1IPAOrbByNLtLtIlg==,
-      }
-    engines: { node: ">=12" }
-
   update-browserslist-db@1.1.3:
     resolution:
       {
@@ -5116,12 +5163,6 @@ packages:
     resolution:
       {
         integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==,
-      }
-
-  uzip-module@1.0.3:
-    resolution:
-      {
-        integrity: sha512-AMqwWZaknLM77G+VPYNZLEruMGWGzyigPK3/Whg99B3S6vGHuqsyl5ZrOv1UUF3paGK1U6PM0cnayioaryg/fA==,
       }
 
   validate-npm-package-license@3.0.4:
@@ -5363,6 +5404,12 @@ packages:
         integrity: sha512-Pwj6Bw5XARduMeTWpeEfmfgT8/Ma3oiMI4bBIRzCd7GH26A/dn3x7jDc2BHBCQxxdQniTh0MjVUYbjaj4Ljb+Q==,
       }
 
+  xast-util-to-string@3.0.0:
+    resolution:
+      {
+        integrity: sha512-FmKJ130Fbo7SLMTLGECP0WE/bAYNC0AXeiKItv8Qk19Bb2YON09N6hbCvO4gdo4yvO4vulswCJKYQMU+Mmv+5A==,
+      }
+
   xast-util-to-xml@4.0.0:
     resolution:
       {
@@ -5373,6 +5420,12 @@ packages:
     resolution:
       {
         integrity: sha512-xuC+c5wpa5XJQUiIj4H2qxR7J06CJv7iENMXrn1FllbFoN87xFOlsORXZhwN+U8Ax3ulgEMGUI/5zsD+1EGqTg==,
+      }
+
+  xastscript@4.0.0:
+    resolution:
+      {
+        integrity: sha512-r7a0kObEyivkML0dLrp/nOH5l51y9v5DL1MT/Xc6qUgGGNP1mZZUmT6NXtWAmx2FLfjonop++PtpVMwp1Hw/Gw==,
       }
 
   xml-js@1.6.11:
@@ -6032,6 +6085,11 @@ snapshots:
 
   "@polka/url@1.0.0-next.29": {}
 
+  "@prettier/plugin-xml@3.4.1(prettier@3.5.3)":
+    dependencies:
+      "@xml-tools/parser": 1.0.11
+      prettier: 3.5.3
+
   "@rgrove/parse-xml@4.2.0": {}
 
   "@rollup/plugin-alias@5.1.1(rollup@4.40.0)":
@@ -6264,6 +6322,10 @@ snapshots:
       loupe: 3.1.3
       tinyrainbow: 2.0.0
 
+  "@xml-tools/parser@1.0.11":
+    dependencies:
+      chevrotain: 7.1.1
+
   abbrev@1.1.1:
     optional: true
 
@@ -6420,6 +6482,10 @@ snapshots:
   character-entities@2.0.2: {}
 
   check-error@2.1.1: {}
+
+  chevrotain@7.1.1:
+    dependencies:
+      regexp-to-ast: 0.5.0
 
   chokidar@3.6.0:
     dependencies:
@@ -6615,12 +6681,6 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  docx-to-vfile@0.11.0:
-    dependencies:
-      "@types/xast": 2.0.4
-      unzipit: 1.4.3
-      vfile: 6.0.3
-
   docx@9.4.1:
     dependencies:
       "@types/node": 22.14.1
@@ -6723,6 +6783,10 @@ snapshots:
   exsolve@1.0.5: {}
 
   extend@3.0.2: {}
+
+  fast-xml-parser@4.4.0:
+    dependencies:
+      strnum: 1.1.2
 
   fdir@6.4.4(picomatch@4.0.2):
     optionalDependencies:
@@ -8068,6 +8132,8 @@ snapshots:
 
   readdirp@4.1.2: {}
 
+  regexp-to-ast@0.5.0: {}
+
   regexp-tree@0.1.27: {}
 
   rehype-minify-whitespace@6.0.2:
@@ -8251,8 +8317,6 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  sheetjs@2.0.0: {}
-
   siginfo@2.0.0: {}
 
   signal-exit@3.0.7:
@@ -8364,6 +8428,8 @@ snapshots:
   strip-ansi@7.1.0:
     dependencies:
       ansi-regex: 6.1.0
+
+  strnum@1.1.2: {}
 
   strtok3@10.2.2:
     dependencies:
@@ -8576,6 +8642,10 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
+  unist-builder@4.0.0:
+    dependencies:
+      "@types/unist": 3.0.3
+
   unist-util-find-after@5.0.0:
     dependencies:
       "@types/unist": 3.0.3
@@ -8647,10 +8717,6 @@ snapshots:
       knitwork: 1.2.0
       scule: 1.3.0
 
-  unzipit@1.4.3:
-    dependencies:
-      uzip-module: 1.0.3
-
   update-browserslist-db@1.1.3(browserslist@4.24.4):
     dependencies:
       browserslist: 4.24.4
@@ -8662,8 +8728,6 @@ snapshots:
       pako: 1.0.11
 
   util-deprecate@1.0.2: {}
-
-  uzip-module@1.0.3: {}
 
   validate-npm-package-license@3.0.4:
     dependencies:
@@ -8847,6 +8911,10 @@ snapshots:
       vfile-location: 5.0.3
       vfile-message: 4.0.2
 
+  xast-util-to-string@3.0.0:
+    dependencies:
+      "@types/xast": 2.0.4
+
   xast-util-to-xml@4.0.0:
     dependencies:
       "@types/xast": 2.0.4
@@ -8854,6 +8922,10 @@ snapshots:
       stringify-entities: 4.0.4
 
   xast@0.1.217: {}
+
+  xastscript@4.0.0:
+    dependencies:
+      "@types/xast": 2.0.4
 
   xml-js@1.6.11:
     dependencies:

@@ -45,7 +45,6 @@ This document outlines the dependencies required for each package in the Docen p
 - `pdf-lib`: Pure JavaScript PDF manipulation library (browser-compatible)
 - `docx`: Modern DOCX generation library
 - `docx-to-vfile`: Reads .docx files and stores components in vfile format for unified processing
-- `sheetjs`: Cross-platform spreadsheet library (also known as xlsx)
 - `undio`: Type conversion utilities from UnJS
 - `unified-engine`: Unified processing engine
 - `pathe`: Cross-platform path utilities from UnJS
@@ -78,7 +77,6 @@ The following formats will be implemented without external dependencies:
 - `papaparse`: Cross-platform CSV parser (works in browser and Node.js)
 - `yaml`: YAML parser and serializer
 - `json5`: JSON5 parser and serializer
-- `sheetjs`: Cross-platform spreadsheet library (for Excel data processing)
 
 ### Development Dependencies
 

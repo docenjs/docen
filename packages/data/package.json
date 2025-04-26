@@ -43,7 +43,6 @@
     "json5": "2.2.3",
     "ofetch": "1.4.1",
     "papaparse": "5.5.2",
-    "sheetjs": "2.0.0",
     "unified-engine": "11.2.2",
     "xast": "0.1.217",
     "xast-util-from-xml": "4.0.0",

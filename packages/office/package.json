@@ -19,7 +19,10 @@
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
-    "prepack": "pnpm build"
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "office",
@@ -43,13 +46,20 @@
   "dependencies": {
     "@docen/core": "workspace:*",
     "docx": "9.4.1",
-    "docx-to-vfile": "0.11.0",
+    "fast-xml-parser": "4.4.0",
+    "fflate": "^0.8.2",
     "pathe": "2.0.3",
     "pdf-lib": "1.17.1",
-    "sheetjs": "2.0.0",
     "std-env": "3.9.0",
     "undio": "0.2.0",
     "unified-engine": "11.2.2",
-    "unpdf": "0.12.1"
+    "unpdf": "0.12.1",
+    "xast-util-from-xml": "4.0.0",
+    "xast-util-to-string": "^3.0.0",
+    "xast-util-to-xml": "4.0.0",
+    "xastscript": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/xast": "^2.0.4"
   }
 }
