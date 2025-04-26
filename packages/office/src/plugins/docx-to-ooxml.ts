@@ -2,6 +2,7 @@ import { strFromU8, unzip } from "fflate";
 import type { Plugin } from "unified";
 import type { Literal, Node, Parent } from "unist";
 import type { VFile } from "vfile";
+import type { ElementContent } from "xast";
 import { fromXml } from "xast-util-from-xml";
 import { toString as xastToString } from "xast-util-to-string";
 import type {
@@ -12,6 +13,7 @@ import type {
   OoxmlComment,
   OoxmlCommentReference,
   OoxmlContent,
+  OoxmlData,
   OoxmlDrawing,
   OoxmlHyperlink,
   OoxmlImage,
@@ -45,12 +47,20 @@ import type {
   SharedStyleDefinition,
   SpacingProperties,
 } from "../ast/common-types";
+import { isOoxmlBlockContent, isOoxmlBreak } from "../ast/type-guards";
 
+// --- Top-level Interfaces & Types ---
 // Type for relationship mapping
 type RelationshipMap = Record<
   string,
   { type: string; target: string; targetMode?: string }
 >;
+
+// Context for transformation functions
+interface TransformContext {
+  resources: SharedResources;
+  relationships: RelationshipMap;
+}
 
 // --- Utility Functions ---
 
@@ -58,16 +68,16 @@ type RelationshipMap = Record<
 function getOoxmlDataProps<T extends XastNode | OoxmlNode>(
   node: T,
 ): Record<string, any> | undefined {
-  // @ts-ignore
-  return node?.data?.properties;
+  // Use type assertion to clarify the expected structure of data
+  return (node?.data as OoxmlData | undefined)?.properties;
 }
 
 // Function to safely get specific Ooxml type from data field
 function getOoxmlType<T extends XastNode | OoxmlNode>(
   node: T,
 ): string | undefined {
-  // @ts-ignore
-  return node?.data?.ooxmlType;
+  // Use type assertion to clarify the expected structure of data
+  return (node?.data as OoxmlData | undefined)?.ooxmlType;
 }
 
 // Helper to merge properties (Restored and kept as is)
@@ -138,6 +148,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
     return {};
   const props: FontProperties = {};
 
+  // Font Name
   const rFonts = rPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:rFonts",
   ) as XastElement | undefined;
@@ -150,6 +161,8 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
         "",
     );
   }
+
+  // Bold
   const boldElement = rPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:b",
   ) as XastElement | undefined;
@@ -160,6 +173,8 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
   ) {
     props.bold = true;
   }
+
+  // Italic
   const italicElement = rPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:i",
   ) as XastElement | undefined;
@@ -170,6 +185,8 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
   ) {
     props.italic = true;
   }
+
+  // Underline
   const underlineElement = rPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:u",
   ) as XastElement | undefined;
@@ -179,7 +196,79 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
     ) as FontProperties["underline"];
   }
 
-  console.warn("parseRPr needs implementation for size, color, etc.");
+  // Strikethrough
+  const strikeElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:strike",
+  ) as XastElement | undefined;
+  if (
+    strikeElement &&
+    strikeElement.attributes?.["w:val"] !== "false" &&
+    strikeElement.attributes?.["w:val"] !== "0"
+  ) {
+    props.strike = true;
+  }
+  const dstrikeElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:dstrike",
+  ) as XastElement | undefined;
+  if (
+    dstrikeElement &&
+    dstrikeElement.attributes?.["w:val"] !== "false" &&
+    dstrikeElement.attributes?.["w:val"] !== "0"
+  ) {
+    props.doubleStrike = true;
+  }
+
+  // Font Size (typically in half-points)
+  const szElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:sz",
+  ) as XastElement | undefined;
+  const szVal = szElement?.attributes?.["w:val"];
+  if (szVal !== undefined) {
+    const sizeHalfPoints = Number(szVal);
+    if (!Number.isNaN(sizeHalfPoints)) {
+      props.size = sizeHalfPoints; // Store as half-points for now, may convert later
+    }
+  }
+
+  // Font Color
+  const colorElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:color",
+  ) as XastElement | undefined;
+  if (
+    colorElement?.attributes?.["w:val"] &&
+    colorElement.attributes["w:val"] !== "auto"
+  ) {
+    props.color = String(colorElement.attributes["w:val"]);
+    // TODO: Handle theme colors (w:themeColor)
+  }
+
+  // Vertical Align (Superscript/Subscript)
+  const vertAlignElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:vertAlign",
+  ) as XastElement | undefined;
+  const vertAlignVal = vertAlignElement?.attributes?.["w:val"];
+  if (vertAlignVal === "superscript" || vertAlignVal === "subscript") {
+    props.verticalAlign = vertAlignVal;
+  }
+
+  // Highlight
+  const highlightElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:highlight",
+  ) as XastElement | undefined;
+  const highlightVal = highlightElement?.attributes?.["w:val"];
+  if (highlightVal && highlightVal !== "none") {
+    props.highlight = String(highlightVal);
+  }
+
+  // Character Style
+  const rStyleElement = rPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:rStyle",
+  ) as XastElement | undefined;
+  if (rStyleElement?.attributes?.["w:val"]) {
+    props.styleId = String(rStyleElement.attributes["w:val"]);
+  }
+
+  // console.warn("parseRPr needs implementation for ..., etc.");
   return props;
 }
 
@@ -193,6 +282,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     return {};
   const props: ParagraphFormatting = {};
 
+  // Paragraph Style
   const pStyleElement = pPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:pStyle",
   ) as XastElement | undefined;
@@ -200,6 +290,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     props.styleId = String(pStyleElement.attributes["w:val"]);
   }
 
+  // Justification/Alignment
   const jcElement = pPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:jc",
   ) as XastElement | undefined;
@@ -209,6 +300,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     ) as ParagraphFormatting["alignment"];
   }
 
+  // Numbering Properties
   const numPrElement = pPrElement.children?.find(
     (child) => child.type === "element" && child.name === "w:numPr",
   ) as XastElement | undefined;
@@ -232,8 +324,146 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     }
   }
 
-  console.warn("parsePPr needs implementation for spacing, indent, etc.");
+  // Indentation
+  const indElement = pPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:ind",
+  ) as XastElement | undefined;
+  if (indElement?.attributes) {
+    props.indentation = {};
+    if (indElement.attributes.left)
+      props.indentation.left = String(indElement.attributes.left);
+    if (indElement.attributes.right)
+      props.indentation.right = String(indElement.attributes.right);
+    if (indElement.attributes.firstLine)
+      props.indentation.firstLine = String(indElement.attributes.firstLine);
+    if (indElement.attributes.hanging)
+      props.indentation.hanging = String(indElement.attributes.hanging);
+    // TODO: Consider parsing units (dxa, etc.) into a structured format later
+  }
+
+  // Spacing
+  const spacingElement = pPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:spacing",
+  ) as XastElement | undefined;
+  if (spacingElement?.attributes) {
+    props.spacing = {};
+    if (spacingElement.attributes.before)
+      props.spacing.before = String(spacingElement.attributes.before);
+    if (spacingElement.attributes.after)
+      props.spacing.after = String(spacingElement.attributes.after);
+    if (spacingElement.attributes.line)
+      props.spacing.line = String(spacingElement.attributes.line);
+    if (spacingElement.attributes.lineRule) {
+      props.spacing.lineRule = String(
+        spacingElement.attributes.lineRule,
+      ) as SpacingProperties["lineRule"];
+    }
+    // TODO: Consider parsing units (dxa, etc.)
+  }
+
+  // Keep Lines / Keep Next / Widow Control / Page Break Before
+  const keepNextElement = pPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:keepNext",
+  ) as XastElement | undefined;
+  if (
+    keepNextElement &&
+    keepNextElement.attributes?.["w:val"] !== "false" &&
+    keepNextElement.attributes?.["w:val"] !== "0"
+  ) {
+    props.keepNext = true;
+  }
+  const keepLinesElement = pPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:keepLines",
+  ) as XastElement | undefined;
+  if (
+    keepLinesElement &&
+    keepLinesElement.attributes?.["w:val"] !== "false" &&
+    keepLinesElement.attributes?.["w:val"] !== "0"
+  ) {
+    props.keepLines = true;
+  }
+  const widowControlElement = pPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:widowControl",
+  ) as XastElement | undefined;
+  if (
+    widowControlElement &&
+    widowControlElement.attributes?.["w:val"] !== "false" &&
+    widowControlElement.attributes?.["w:val"] !== "0"
+  ) {
+    props.widowControl = true;
+  }
+  const pageBreakBeforeElement = pPrElement.children?.find(
+    (child) => child.type === "element" && child.name === "w:pageBreakBefore",
+  ) as XastElement | undefined;
+  if (
+    pageBreakBeforeElement &&
+    pageBreakBeforeElement.attributes?.["w:val"] !== "false" &&
+    pageBreakBeforeElement.attributes?.["w:val"] !== "0"
+  ) {
+    props.pageBreakBefore = true;
+  }
+
+  // console.warn("parsePPr needs implementation for borders, fill, etc.");
   return props;
+}
+
+// Helper to parse <w:tblPr>
+function parseTblPr(
+  tblPrElement: XastElement | undefined,
+): Record<string, any> {
+  // Basic placeholder - add actual parsing logic as needed
+  if (
+    !tblPrElement ||
+    tblPrElement.type !== "element" ||
+    tblPrElement.name !== "w:tblPr"
+  )
+    return {};
+  console.log("Parsing w:tblPr (basic)...");
+  // Example: Parse table style
+  const tblStyle = tblPrElement.children?.find(
+    (c) => c.type === "element" && c.name === "w:tblStyle",
+  ) as XastElement | undefined;
+  return {
+    styleId: tblStyle?.attributes?.["w:val"]
+      ? String(tblStyle.attributes["w:val"])
+      : undefined,
+    // Add other table properties here
+  };
+}
+
+// Helper to parse <w:trPr>
+function parseTrPr(trPrElement: XastElement | undefined): Record<string, any> {
+  // Basic placeholder
+  if (
+    !trPrElement ||
+    trPrElement.type !== "element" ||
+    trPrElement.name !== "w:trPr"
+  )
+    return {};
+  console.log("Parsing w:trPr (basic)...");
+  return {};
+}
+
+// Helper to parse <w:tcPr>
+function parseTcPr(tcPrElement: XastElement | undefined): Record<string, any> {
+  // Basic placeholder
+  if (
+    !tcPrElement ||
+    tcPrElement.type !== "element" ||
+    tcPrElement.name !== "w:tcPr"
+  )
+    return {};
+  console.log("Parsing w:tcPr (basic)...");
+  // Example: Parse vertical alignment
+  const vAlign = tcPrElement.children?.find(
+    (c) => c.type === "element" && c.name === "w:vAlign",
+  ) as XastElement | undefined;
+  return {
+    verticalAlign: vAlign?.attributes?.["w:val"]
+      ? String(vAlign.attributes["w:val"])
+      : undefined,
+    // Add other cell properties here
+  };
 }
 
 // Generic property parser
@@ -249,6 +479,15 @@ function parseProperties(
     return parseRPr(propElement);
   }
   // TODO: Add cases for w:tblPr, w:trPr, w:tcPr, etc.
+  if (propElement.name === "w:tblPr") {
+    return parseTblPr(propElement);
+  }
+  if (propElement.name === "w:trPr") {
+    return parseTrPr(propElement);
+  }
+  if (propElement.name === "w:tcPr") {
+    return parseTcPr(propElement);
+  }
 
   console.warn(
     `Property parsing not implemented for element: ${propElement.name}`,
@@ -579,255 +818,420 @@ async function parseRelationshipsXml(
   return relationships;
 }
 
-// TODO: Adapt parseCommentsXml
+// --- Comment Parsing (Adapted for XAST) ---
 async function parseCommentsXml(
   files: Record<string, Uint8Array>,
-  relationships: RelationshipMap,
-): Promise<Record<string, OoxmlComment> | undefined> {
-  console.warn(
-    "parseCommentsXml needs rewrite for xast - Returning empty for now.",
-  );
-  return undefined;
+  context: TransformContext, // Pass the full context for traverse
+): Promise<Record<string, OoxmlComment>> {
+  const commentsPath = "word/comments.xml";
+  const commentsMap: Record<string, OoxmlComment> = {};
+  if (!files[commentsPath]) {
+    console.warn("word/comments.xml not found.");
+    return commentsMap;
+  }
+
+  try {
+    const xmlContent = strFromU8(files[commentsPath]);
+    const parsedCommentsData = fromXml(xmlContent);
+    const commentsRootElement = parsedCommentsData.children?.find(
+      (node) => node.type === "element" && node.name === "w:comments",
+    ) as XastElement | undefined;
+
+    if (!commentsRootElement?.children) return commentsMap;
+
+    const commentEls = commentsRootElement.children.filter(
+      (node): node is XastElement =>
+        node.type === "element" && node.name === "w:comment",
+    );
+
+    console.error(`Found ${commentEls.length} w:comment elements.`); // New log 1
+
+    for (const commentEl of commentEls) {
+      // Changed from forEach for clarity
+      const idVal = commentEl.attributes?.["w:id"];
+      const id = idVal !== undefined ? String(idVal) : "";
+      if (!id) continue;
+
+      const author = String(commentEl.attributes?.["w:author"] || "");
+      const initials = String(commentEl.attributes?.["w:initials"] || "");
+      const dateStr = String(commentEl.attributes?.["w:date"] || "");
+      // Note: date parsing can be complex due to potential timezone issues
+      // const date = dateStr ? new Date(dateStr) : undefined; // Basic parsing
+
+      const commentChildren: OoxmlBlockContent[] = [];
+      if (commentEl.children && commentEl.children.length > 0) {
+        for (const childNode of commentEl.children) {
+          const processedNode = traverse(childNode, context, commentEl);
+
+          if (Array.isArray(processedNode)) {
+            commentChildren.push(
+              ...(processedNode.filter(
+                isOoxmlBlockContent,
+              ) as OoxmlBlockContent[]),
+            );
+          } else if (processedNode && isOoxmlBlockContent(processedNode)) {
+            commentChildren.push(processedNode as OoxmlBlockContent);
+          }
+        }
+      }
+
+      const commentData: OoxmlComment = {
+        type: "comment",
+        id: id,
+        author: author,
+        initials: initials,
+        date: dateStr, // Store as string for now
+        children: commentChildren, // Assign the processed children
+      };
+      commentsMap[id] = commentData;
+    }
+    console.log(
+      `Parsed ${Object.keys(commentsMap).length} comments from comments.xml`,
+    );
+  } catch (error) {
+    console.error("Error parsing word/comments.xml with xast:", error);
+  }
+  return commentsMap;
 }
 
-// --- Transformation Function (Refactored for XAST) ---
-
-interface TransformContext {
-  resources: SharedResources;
-  relationships: RelationshipMap;
-}
-
+// --- Standalone Traverse Function ---
 /**
- * Traverses the raw XAST tree from fromXml and adds OOXML specific semantics
- * (like ooxmlType and properties) into the `data` field of nodes.
- * It also performs structural transformations like grouping list items.
- * Returns a new OoxmlRoot node (which still extends XastRoot but has enriched data).
+ * Recursively traverses an XAST node, enriching it with OOXML semantics
+ * and transforming its structure based on the context.
  */
-function transformXastToOoxmlAst(
-  bodyContentRoot: XastRoot,
-  context: TransformContext,
-): OoxmlRoot {
-  console.warn(
-    "transformXastToOoxmlAst needs further implementation and testing.",
-  );
+function traverse(
+  node: XastNode,
+  context: TransformContext, // Added context parameter
+  parent?: XastElement,
+): XastNode | XastNode[] | null {
+  if (!node) return null;
 
+  // Ensure data object exists
+  if (!node.data) {
+    node.data = {};
+  }
+  const nodeData = node.data as OoxmlData;
+
+  // Extract context needed within traverse
   const { resources, relationships } = context;
   const defaultParaProps = resources.defaults?.paragraph || {};
   const defaultRunProps = resources.defaults?.run || {};
   const styles = resources.styles || {};
 
-  // Recursive traversal function to enrich nodes
-  function traverse(node: XastNode, parent?: XastElement) {
-    if (!node) return;
-    if (!node.data) node.data = {};
+  if (node.type === "element") {
+    const element = node as XastElement;
+    const elementName = element.name;
+    nodeData.ooxmlType = elementName; // Initial assignment
 
-    if (node.type === "element") {
-      const element = node as XastElement;
-      const elementName = element.name;
-      // @ts-ignore Ensure data is initialized
-      node.data.ooxmlType = elementName;
+    // --- Property Parsing ---
+    let directProps: Record<string, any> = {};
+    const propElement = element.children?.find(
+      (child) =>
+        child.type === "element" &&
+        ["w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr"].includes(child.name),
+    ) as XastElement | undefined;
 
-      const propElement = element.children?.find(
-        (child) =>
-          child.type === "element" &&
-          ["w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr" /* etc */].includes(
-            child.name,
-          ),
-      ) as XastElement | undefined;
+    if (propElement) {
+      directProps = parseProperties(propElement);
+    }
 
-      let directProps: Record<string, any> = {};
-      if (propElement) {
-        directProps = parseProperties(propElement);
-      }
-
-      if (elementName === "w:p") {
-        // @ts-ignore
-        node.data.ooxmlType = "paragraph";
-        const paragraphProps = directProps as ParagraphFormatting;
-        const styleId =
-          paragraphProps?.styleId || defaultParaProps.styleId || "Normal";
-        const resolvedParaStyle = resolveStyleChain(
-          styleId,
-          styles,
-          "paragraph",
-        );
-        const finalParaProps = mergeProps(
-          defaultParaProps,
-          resolvedParaStyle,
-          paragraphProps,
-        );
-        finalParaProps.styleId = styleId;
-        // @ts-ignore
-        node.data.properties = finalParaProps;
-      } else if (elementName === "w:r") {
-        // @ts-ignore
-        node.data.properties = directProps as FontProperties;
-      } else if (elementName === "w:t") {
-        let finalRunProps: FontProperties = {};
-        if (parent && parent.name === "w:r") {
-          // @ts-ignore Get props from parent <w:r>
-          const parentRunProps =
-            (parent.data?.properties as FontProperties) || {};
-          // @ts-ignore Find rStyle within the parent rPr props
-          const charStyleId = String(parentRunProps.styleId || "");
-          const resolvedCharStyle = resolveStyleChain(
-            charStyleId || undefined,
-            styles,
-            "character",
-          );
-          // TODO: Need paragraph context for para default run props
-          const paraDefaultRunProps = {};
-          finalRunProps = mergeProps(
-            defaultRunProps,
-            paraDefaultRunProps,
-            resolvedCharStyle,
-            parentRunProps,
-          );
-        }
-        // @ts-ignore
-        node.data.ooxmlType = "textRun";
-        // @ts-ignore
-        node.data.properties = finalRunProps;
-      } else if (elementName === "w:tbl") {
-        // @ts-ignore
-        node.data.ooxmlType = "table";
-        // @ts-ignore
-        node.data.properties = directProps;
-      } else if (elementName === "w:tr") {
-        // @ts-ignore
-        node.data.ooxmlType = "tableRow";
-        // @ts-ignore
-        node.data.properties = directProps;
-      } else if (elementName === "w:tc") {
-        // @ts-ignore
-        node.data.ooxmlType = "tableCell";
-        // @ts-ignore
-        node.data.properties = directProps;
-      } else if (elementName === "w:hyperlink") {
-        // @ts-ignore
-        node.data.ooxmlType = "hyperlink";
-        const rId = String(element.attributes?.["r:id"] || "");
-        const rel = rId ? relationships[rId] : undefined;
-        const url =
-          rel?.targetMode === "External" ? rel.target : "invalid_link";
-        const tooltip = String(element.attributes?.["w:tooltip"] || "");
-        const rPrElement = element.children?.find(
+    // --- Element-Specific Logic & Typing ---
+    if (elementName === "w:p") {
+      nodeData.ooxmlType = "paragraph";
+      const paragraphProps = directProps as ParagraphFormatting;
+      const styleId =
+        paragraphProps?.styleId || defaultParaProps.styleId || "Normal";
+      const resolvedParaStyle = resolveStyleChain(styleId, styles, "paragraph");
+      const finalParaProps = mergeProps(
+        defaultParaProps,
+        resolvedParaStyle,
+        paragraphProps,
+      );
+      finalParaProps.styleId = styleId;
+      nodeData.properties = finalParaProps;
+    } else if (elementName === "w:r") {
+      // Handle w:r - Enrich the node, process children, keep w:r structure
+      nodeData.ooxmlType = "run"; // Mark as a run container
+      // Explicitly capture properties for THIS run element
+      const currentRunDirectProps = parseProperties(
+        element.children?.find(
           (c) => c.type === "element" && c.name === "w:rPr",
-        ) as XastElement | undefined;
-        const linkRunProps = parseRPr(rPrElement);
-        // @ts-ignore
-        node.data.properties = { url, tooltip, ...linkRunProps };
-      } else if (elementName === "w:drawing") {
-        // Basic find for blip -> embed (can be nested differently)
-        let relationId = "";
-        function findBlipEmbed(n: XastNode): string | undefined {
-          if (n.type === "element") {
-            if (n.name === "a:blip" && n.attributes?.["r:embed"]) {
-              return String(n.attributes["r:embed"]);
+        ) as XastElement | undefined,
+      ) as FontProperties;
+      // Store direct properties on the run node itself for potential later use/reference
+      // The final effective properties are on the OoxmlTextRun children.
+      nodeData.properties = currentRunDirectProps;
+
+      const newChildren: XastNode[] = [];
+
+      if (element.children) {
+        for (const child of element.children) {
+          if (child.type === "element" && child.name === "w:t") {
+            const tValue = xastToString(child);
+            // Style Resolution
+            let parentParaProps: ParagraphFormatting | undefined;
+            if (
+              parent &&
+              (parent.data as OoxmlData | undefined)?.ooxmlType === "paragraph"
+            ) {
+              parentParaProps = (parent.data as OoxmlData)
+                .properties as ParagraphFormatting;
             }
-            if (n.children) {
-              for (const child of n.children) {
-                const found = findBlipEmbed(child);
-                if (found) return found;
+            const charStyleId = currentRunDirectProps.styleId; // Use props from THIS run
+            const resolvedCharStyle = resolveStyleChain(
+              charStyleId || undefined,
+              styles,
+              "character",
+            );
+            const paraStyleId =
+              parentParaProps?.styleId || defaultParaProps.styleId || "Normal";
+            const resolvedParaStyleForRun = resolveStyleChain(
+              paraStyleId,
+              styles,
+              "paragraph",
+            );
+            const paraDefaultRunProps = resolvedParaStyleForRun?.runProps || {};
+
+            // Ensure merge starts clean and uses only properties relevant to this specific w:t context
+            const finalRunProps = mergeProps(
+              defaultRunProps,
+              paraDefaultRunProps,
+              resolvedCharStyle,
+              currentRunDirectProps, // Explicitly use properties derived ONLY from this run's <w:rPr>
+            );
+
+            const textRunNode: OoxmlTextRun = {
+              type: "text", // Use 'text' type, but data identifies it as OoxmlTextRun
+              value: tValue,
+              data: { ooxmlType: "textRun", properties: finalRunProps },
+            };
+            newChildren.push(textRunNode);
+          } else if (child.type === "element" && child.name === "w:br") {
+            const processedChild = traverse(child, context, element); // Pass context
+            if (processedChild) {
+              // traverse for w:br should return a single enriched node
+              if (!Array.isArray(processedChild)) {
+                newChildren.push(processedChild);
+              } else {
+                console.warn(
+                  "Traverse returned an array for w:br, expected single node.",
+                );
+                newChildren.push(...processedChild); // Handle unexpected array
+              }
+            }
+          } else if (child.type === "element" && child.name === "w:rPr") {
+            // Skip rPr element itself - properties already captured in currentRunDirectProps
+          } else if (
+            child.type === "element" ||
+            child.type === "text" ||
+            child.type === "instruction" ||
+            child.type === "comment"
+          ) {
+            // Handle other potential inline elements like drawing, symbols etc.
+            const currentChild = child as ElementContent; // Cast needed?
+            const processedChild = traverse(currentChild, context, element); // Pass context
+            if (processedChild) {
+              // Traverse for other inline elements might return single node or array
+              if (Array.isArray(processedChild)) {
+                newChildren.push(...processedChild);
+              } else {
+                newChildren.push(processedChild);
               }
             }
           }
-          return undefined;
-        }
-        relationId = findBlipEmbed(element) || "";
-
-        // TODO: Extract size/position properties
-        // @ts-ignore
-        node.data.ooxmlType = "drawing";
-        // @ts-ignore
-        node.data.properties = { relationId, size: { width: 0, height: 0 } };
-      } else if (elementName === "w:br") {
-        // @ts-ignore
-        node.data.ooxmlType = "break";
-        const breakTypeAttr = element.attributes?.["w:type"];
-        const breakType = breakTypeAttr ? String(breakTypeAttr) : "line"; // Default to line break
-        // @ts-ignore
-        node.data.properties = { breakType };
-      } else if (elementName === "w:bookmarkStart") {
-        // @ts-ignore
-        node.data.ooxmlType = "bookmarkStart";
-        // @ts-ignore
-        node.data.properties = {
-          id: String(element.attributes?.["w:id"] || ""),
-          name: String(element.attributes?.["w:name"] || ""),
-        };
-      } else if (elementName === "w:bookmarkEnd") {
-        // @ts-ignore
-        node.data.ooxmlType = "bookmarkEnd";
-        // @ts-ignore
-        node.data.properties = {
-          id: String(element.attributes?.["w:id"] || ""),
-        };
-      } else if (elementName === "w:commentReference") {
-        // @ts-ignore
-        node.data.ooxmlType = "commentReference";
-        // @ts-ignore
-        node.data.properties = {
-          id: String(element.attributes?.["w:id"] || ""),
-        };
-      }
-
-      // Recursively traverse children
-      if (element.children) {
-        for (const child of element.children) {
-          traverse(child, element);
         }
       }
-    } else if (node.type === "text") {
-      if (parent && parent.name === "w:r") {
-        // @ts-ignore
-        node.data.ooxmlType = "textRun";
-      } else {
-        // @ts-ignore
-        node.data.ooxmlType = "orphanText";
+      // Replace the original children with the processed ones (e.g., w:t -> OoxmlTextRun)
+      element.children = newChildren as ElementContent[];
+      // Return the enriched w:r node itself, not the children
+      // return element; // Fall through to default return
+    } else if (elementName === "w:t") {
+      // Orphan w:t found outside w:r - log and remove
+      nodeData.ooxmlType = "orphanText";
+      console.warn("Encountered w:t element outside of w:r context:", element);
+      return null;
+    } else if (elementName === "w:tbl") {
+      nodeData.ooxmlType = "table";
+      nodeData.properties = directProps;
+    } else if (elementName === "w:tr") {
+      nodeData.ooxmlType = "tableRow";
+      nodeData.properties = directProps;
+    } else if (elementName === "w:tc") {
+      nodeData.ooxmlType = "tableCell";
+      nodeData.properties = directProps;
+    } else if (elementName === "w:hyperlink") {
+      nodeData.ooxmlType = "hyperlink";
+      const rId = String(element.attributes?.["r:id"] || "");
+      const rel = rId ? relationships[rId] : undefined;
+      const url = rel?.targetMode === "External" ? rel.target : `rels://${rId}`;
+      const tooltip = String(element.attributes?.["w:tooltip"] || "");
+      nodeData.properties = { url, tooltip };
+      (nodeData as any).url = url;
+    } else if (elementName === "w:drawing") {
+      nodeData.ooxmlType = "drawing";
+      let relationId = "";
+      function findBlipEmbed(n: XastNode): string | undefined {
+        if (n.type === "element") {
+          if (n.name === "a:blip" && n.attributes?.["r:embed"]) {
+            return String(n.attributes["r:embed"]);
+          }
+          if (n.children) {
+            for (const child of n.children) {
+              const found = findBlipEmbed(child);
+              if (found) return found;
+            }
+          }
+        }
+        return undefined;
       }
-    } else if (node.type === "comment") {
-      // @ts-ignore
-      node.data.ooxmlType = "comment";
-    } else if (node.type === "instruction") {
-      // @ts-ignore
-      node.data.ooxmlType = "instruction";
+      relationId = findBlipEmbed(element) || "";
+      nodeData.properties = { relationId, size: { width: 0, height: 0 } };
+      (nodeData as any).relationId = relationId;
+    } else if (elementName === "w:br") {
+      nodeData.ooxmlType = "break";
+      const breakTypeAttr = element.attributes?.["w:type"];
+      const breakType = breakTypeAttr ? String(breakTypeAttr) : "line";
+      nodeData.properties = { breakType };
+    } else if (elementName === "w:bookmarkStart") {
+      nodeData.ooxmlType = "bookmarkStart";
+      nodeData.properties = {
+        id: String(element.attributes?.["w:id"] || ""),
+        name: String(element.attributes?.["w:name"] || ""),
+      };
+    } else if (elementName === "w:bookmarkEnd") {
+      nodeData.ooxmlType = "bookmarkEnd";
+      nodeData.properties = {
+        id: String(element.attributes?.["w:id"] || ""),
+      };
+    } else if (elementName === "w:commentReference") {
+      nodeData.ooxmlType = "commentReference";
+      nodeData.properties = {
+        id: String(element.attributes?.["w:id"] || ""),
+      };
     }
+
+    // --- Child Traversal (for elements NOT early returning like w:r) ---
+    if (element.children) {
+      const originalChildren = [...element.children];
+      const newChildren: ElementContent[] = [];
+      for (const child of originalChildren) {
+        // Skip property elements
+        if (
+          child.type === "element" &&
+          [
+            "w:pPr",
+            "w:rPr",
+            "w:tblPr",
+            "w:trPr",
+            "w:tcPr",
+            "w:sectPr",
+          ].includes(child.name)
+        ) {
+          continue;
+        }
+        // Skip the specific property element already parsed for this node
+        if (child === propElement) {
+          continue;
+        }
+
+        const processedChild = traverse(child, context, element); // Pass context
+
+        if (processedChild) {
+          if (Array.isArray(processedChild)) {
+            newChildren.push(...(processedChild as ElementContent[]));
+          } else {
+            newChildren.push(processedChild as ElementContent);
+          }
+        }
+      }
+      element.children = newChildren;
+    }
+    // Fall through to return the modified element node
+  } else if (node.type === "text") {
+    // Handle loose text nodes if necessary (e.g., mark as orphan)
+    // nodeData.ooxmlType = "orphanText";
+    return node; // Return text node as is
+  } else if (node.type === "comment") {
+    nodeData.ooxmlType = "comment"; // XML comment, not OOXML logical comment
+    return node;
+  } else if (node.type === "instruction") {
+    nodeData.ooxmlType = "instruction";
+    return node;
   }
 
-  // Start traversal
+  // Return the processed node by default
+  return node;
+}
+
+// --- Transformation Function (Main Entry Point) ---
+/**
+ * Transforms the raw XAST tree (from document body) into an enriched OOXML AST,
+ * handling structure like list grouping.
+ */
+function transformXastToOoxmlAst(
+  bodyContentRoot: XastRoot,
+  context: TransformContext, // Context is passed in
+): OoxmlRoot {
+  console.warn(
+    "transformXastToOoxmlAst needs further implementation and testing.",
+  );
+
+  // Start traversal of the main body content
   if (bodyContentRoot.children) {
-    for (const child of bodyContentRoot.children) {
-      traverse(child, undefined);
+    // Use a temporary array for new children as traverse might modify the array in place
+    const initialChildren = [...bodyContentRoot.children];
+    const traversedChildren: XastNode[] = [];
+    for (const child of initialChildren) {
+      const processed = traverse(child, context, undefined); // Call standalone traverse
+      if (processed) {
+        if (Array.isArray(processed)) {
+          traversedChildren.push(...processed);
+        } else {
+          traversedChildren.push(processed);
+        }
+      }
     }
+    bodyContentRoot.children = traversedChildren as ElementContent[]; // Update root with traversed children
   }
 
-  // --- Post-processing: List Grouping ---
+  // --- Post-processing: List Grouping & Top-Level Element Filtering ---
   console.warn("List grouping logic needs careful implementation and testing.");
-  const processedChildren: OoxmlBlockContent[] = []; // Target type is OoxmlBlockContent[]
+  const processedChildren: OoxmlBlockContent[] = [];
   let currentList: OoxmlList | null = null;
 
   if (bodyContentRoot.children) {
     for (const node of bodyContentRoot.children) {
+      if (node.type !== "element") continue;
+
       let isListItem = false;
       let numberingProps: { level: number; id: string } | undefined = undefined;
 
-      // @ts-ignore Check if it's a paragraph that should be a list item
-      if (node.type === "element" && node.data?.ooxmlType === "paragraph") {
-        // @ts-ignore
-        numberingProps = node.data?.properties?.numbering;
-        if (numberingProps) {
+      const nodeData = node.data as OoxmlData | undefined;
+      if (nodeData?.ooxmlType === "paragraph") {
+        const paragraphProps = nodeData.properties as
+          | ParagraphFormatting
+          | undefined;
+        const potentialNumbering = paragraphProps?.numbering;
+        if (
+          potentialNumbering?.id !== undefined &&
+          potentialNumbering?.level !== undefined
+        ) {
+          numberingProps = {
+            level: potentialNumbering.level,
+            id: String(potentialNumbering.id),
+          };
           isListItem = true;
         }
       }
 
       if (isListItem && numberingProps) {
         const abstractNumId =
-          resources.numberingInstances?.[numberingProps.id]?.abstractNumId;
-        // The list item itself contains the original paragraph node
+          context.resources.numberingInstances?.[numberingProps.id]
+            ?.abstractNumId;
         const listItem: OoxmlListItem = {
           type: "listItem",
-          children: [node as OoxmlParagraph], // Store the original paragraph
+          children:
+            nodeData?.ooxmlType === "paragraph" ? [node as OoxmlParagraph] : [],
           data: {
             ooxmlType: "listItem",
             properties: {
@@ -836,13 +1240,13 @@ function transformXastToOoxmlAst(
             },
           },
         };
-
         if (
           currentList &&
-          currentList.data?.properties?.abstractNumId === abstractNumId
+          currentList.data?.properties?.numId === numberingProps.id
         ) {
           currentList.children.push(listItem);
         } else {
+          if (currentList) processedChildren.push(currentList);
           currentList = {
             type: "list",
             children: [listItem],
@@ -851,60 +1255,48 @@ function transformXastToOoxmlAst(
               properties: { numId: numberingProps.id, abstractNumId },
             },
           };
-          processedChildren.push(currentList); // Add the new OoxmlList
         }
       } else {
-        // Not a list item or end of a list sequence
-        currentList = null;
-        // Only add nodes that are valid OoxmlBlockContent
-        if (node.type === "element") {
-          // @ts-ignore Check ooxmlType added during traversal
-          const ooxmlType = node.data?.ooxmlType;
-          if (
-            ooxmlType === "paragraph" ||
-            ooxmlType === "table" ||
-            ooxmlType === "bookmarkStart" ||
-            ooxmlType === "bookmarkEnd"
-          ) {
-            processedChildren.push(
-              node as
-                | OoxmlParagraph
-                | OoxmlTable
-                | OoxmlBookmarkStart
-                | OoxmlBookmarkEnd
-                | XastElement,
-            ); // Cast needed
-          } else {
-            // Log or ignore other top-level elements like w:sectPr
-            // console.warn('Ignoring non-block element at top level:', node.name);
-          }
-        } else if (node.type === "comment") {
-          // Top level comments? Decide if allowed in OoxmlBlockContent
-        } else if (node.type === "instruction") {
-          // Top level PIs? Decide if allowed
-        } // Ignore text, cdata, doctype at top level
+        if (currentList) {
+          processedChildren.push(currentList);
+          currentList = null;
+        }
+        // Add other valid block-level Ooxml nodes
+        if (
+          ["w:p", "w:tbl", "w:bookmarkStart", "w:bookmarkEnd"].includes(
+            node.name,
+          )
+        ) {
+          // Basic check, push potentially OoxmlBlockContent compatible nodes
+          // More robust type checking might be needed based on exact OoxmlBlockContent definition
+          processedChildren.push(node as OoxmlBlockContent);
+        } else {
+          console.warn(`Skipping non-block element at top level: ${node.name}`);
+        }
       }
     }
+    if (currentList) processedChildren.push(currentList);
   }
 
-  // Create the final OoxmlRoot
+  // --- Final Root Construction ---
   const finalRoot: OoxmlRoot = {
     type: "root",
-    children: processedChildren, // Should now match OoxmlBlockContent[]
+    children: processedChildren, // Use the list-grouped and filtered children
     data: {
-      ...(bodyContentRoot.data || {}),
       ooxmlType: "root",
       metadata: {
-        source: "docx-to-ooxml-ast",
-        sharedResources: resources,
-        relationships: relationships,
-        comments: {},
-        headerAsts: {},
-        footerAsts: {},
+        relationships: context.relationships,
+        numbering: {
+          instances: context.resources.numberingInstances,
+          abstracts: context.resources.abstractNumbering,
+        },
+        styles: context.resources.styles,
+        comments: undefined, // Comments will be added later by the main plugin function
       },
     },
   };
 
+  console.log("OOXML AST transformation completed.");
   return finalRoot;
 }
 
@@ -972,7 +1364,7 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
     }
 
     // --- 3. Transform Raw XAST into Enriched OOXML AST ---
-    const transformContext: TransformContext = { resources, relationships };
+    const transformContext: TransformContext = { resources, relationships }; // Now visible
     let ooxmlAstRoot: OoxmlRoot;
     try {
       const documentElement = parsedXast.children?.find(
@@ -994,9 +1386,14 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
         children: bodyElement.children || [],
       };
 
+      // Call the main transformation function
       ooxmlAstRoot = transformXastToOoxmlAst(bodyContentRoot, transformContext);
 
-      const comments = await parseCommentsXml(decompressedFiles, relationships);
+      // Parse comments using the same context AFTER main body transformation
+      const comments = await parseCommentsXml(
+        decompressedFiles,
+        transformContext,
+      );
 
       // --- Safely initialize data and metadata before assignment ---
       // Ensure ooxmlAstRoot.data exists and has the correct type

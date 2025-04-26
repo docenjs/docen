@@ -40,11 +40,18 @@ export type XastNode =
   | Comment
   | Cdata;
 
+// Define a base interface for common data fields in OOXML nodes
+export interface OoxmlData extends Record<string, unknown> {
+  // Extends basic unist Data structure
+  ooxmlType?: string; // Semantic OOXML type (e.g., 'paragraph', 'textRun')
+  properties?: Record<string, any>; // Placeholder for specific properties
+}
+
 // Base OOXML node, extending unist Node.
 // Primarily intended for custom OOXML nodes (List, ListItem, Image, etc.)
 // that don't directly extend XastElement/XastText.
 export interface OoxmlNode extends Node {
-  properties?: Record<string, any>; // Keep for non-data properties on custom nodes?
+  // properties?: Record<string, any>; // Consider removing this top-level one if all props go in data
   collaborationMetadata?: {
     createdBy?: string;
     createdAt?: number;
@@ -53,11 +60,8 @@ export interface OoxmlNode extends Node {
     version?: number;
     lastModifiedTimestamp?: number;
   };
-  data?: Node["data"] & {
-    // Ensure custom nodes can also have ooxmlType/properties in data
-    ooxmlType?: string;
-    properties?: Record<string, any>;
-  };
+  // Use the OoxmlData interface for the data field
+  data?: OoxmlData;
 }
 
 export interface FontProperties {
@@ -88,6 +92,7 @@ export interface FontProperties {
     | "allCaps"
     | "vanish"
     | "webHidden"; // Simplified representation
+  styleId?: string; // Reference to a character style <w:rStyle w:val="..."/>
   // Add other properties like character spacing, kerning etc. if needed
 }
 

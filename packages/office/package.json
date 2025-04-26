@@ -46,8 +46,7 @@
   "dependencies": {
     "@docen/core": "workspace:*",
     "docx": "9.4.1",
-    "fast-xml-parser": "4.4.0",
-    "fflate": "^0.8.2",
+    "fflate": "0.8.2",
     "pathe": "2.0.3",
     "pdf-lib": "1.17.1",
     "std-env": "3.9.0",
@@ -55,11 +54,11 @@
     "unified-engine": "11.2.2",
     "unpdf": "0.12.1",
     "xast-util-from-xml": "4.0.0",
-    "xast-util-to-string": "^3.0.0",
+    "xast-util-to-string": "3.0.0",
     "xast-util-to-xml": "4.0.0",
-    "xastscript": "^4.0.0"
+    "xastscript": "4.0.0"
   },
   "devDependencies": {
-    "@types/xast": "^2.0.4"
+    "@types/xast": "2.0.4"
   }
 }

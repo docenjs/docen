@@ -1,8 +1,10 @@
 import type { Node } from "unist";
+import type { ElementData, RootData, TextData } from "xast";
 import type {
   BorderProperties,
   FillProperties,
   FontProperties,
+  OoxmlData,
   OoxmlNode,
   ParagraphFormatting,
   PositionalProperties,
@@ -14,28 +16,43 @@ import type {
   XastText,
 } from "./common-types";
 
-// --- Custom OOXML Node Types (Extending OoxmlNode) ---
+// --- Custom OOXML Node Types (Extending OoxmlNode or XastElement) ---
 
-// Represents <w:bookmarkStart w:id="..." w:name="..."/>
-export interface OoxmlBookmarkStart extends OoxmlNode {
-  type: "bookmarkStart";
-  id: string;
-  name: string;
-  data?: OoxmlNode["data"] & { ooxmlType: "bookmarkStart" };
+// Represents <w:bookmarkStart .../> - Now extends XastElement
+export interface OoxmlBookmarkStart extends XastElement {
+  // type: 'element', name: 'w:bookmarkStart' inherited
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "bookmarkStart";
+      properties: {
+        id: string;
+        name: string;
+      };
+    };
 }
 
-// Represents <w:bookmarkEnd w:id="..."/>
-export interface OoxmlBookmarkEnd extends OoxmlNode {
-  type: "bookmarkEnd";
-  id: string;
-  data?: OoxmlNode["data"] & { ooxmlType: "bookmarkEnd" };
+// Represents <w:bookmarkEnd .../> - Now extends XastElement
+export interface OoxmlBookmarkEnd extends XastElement {
+  // type: 'element', name: 'w:bookmarkEnd' inherited
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "bookmarkEnd";
+      properties: {
+        id: string;
+      };
+    };
 }
 
-// Represents <w:commentReference w:id="..."/>
-export interface OoxmlCommentReference extends OoxmlNode {
-  type: "commentReference";
-  id: string; // Corresponds to the comment ID in comments.xml
-  data?: OoxmlNode["data"] & { ooxmlType: "commentReference" };
+// Represents <w:commentReference .../> - Now extends XastElement
+export interface OoxmlCommentReference extends XastElement {
+  // type: 'element', name: 'w:commentReference' inherited
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "commentReference";
+      properties: {
+        id: string;
+      };
+    };
 }
 
 // Represents a comment defined in comments.xml
@@ -47,14 +64,14 @@ export interface OoxmlComment extends OoxmlNode {
   initials?: string;
   date?: string;
   children: OoxmlBlockContent[]; // Define children explicitly
-  data?: OoxmlNode["data"] & { ooxmlType: "comment" };
+  data?: OoxmlData & { ooxmlType: "comment" };
 }
 
 // Represents an image
 export interface OoxmlImage extends OoxmlNode {
   type: "image";
   relationId: string;
-  data?: OoxmlNode["data"] & {
+  data?: OoxmlData & {
     ooxmlType: "image";
     properties?: PositionalProperties & {
       title?: string;
@@ -67,7 +84,7 @@ export interface OoxmlImage extends OoxmlNode {
 export interface OoxmlDrawing extends OoxmlNode {
   type: "drawing";
   relationId?: string;
-  data?: OoxmlNode["data"] & {
+  data?: OoxmlData & {
     ooxmlType: "drawing";
     properties?: PositionalProperties;
   };
@@ -78,9 +95,9 @@ export interface OoxmlDrawing extends OoxmlNode {
 export interface OoxmlListItem extends OoxmlNode {
   type: "listItem";
   children: OoxmlBlockContent[]; // Define children explicitly (e.g., the paragraph(s) it contains)
-  data?: OoxmlNode["data"] & {
+  data?: OoxmlData & {
     ooxmlType: "listItem";
-    properties?: { level: number; numId?: string };
+    properties: { level: number; numId?: string };
   };
 }
 
@@ -89,40 +106,39 @@ export interface OoxmlListItem extends OoxmlNode {
 export interface OoxmlList extends OoxmlNode {
   type: "list";
   children: OoxmlListItem[]; // Define children explicitly
-  data?: OoxmlNode["data"] & {
+  data?: OoxmlData & {
     ooxmlType: "list";
-    properties?: { numId?: string; abstractNumId?: string };
+    properties: { numId?: string; abstractNumId?: string };
   };
 }
 
 // Represents a break (<w:br/>, etc.)
-export interface OoxmlBreak extends OoxmlNode {
-  type: "break";
-  data?: OoxmlNode["data"] & {
-    ooxmlType: "break";
-    properties?: {
-      breakType:
-        | "line"
-        | "page"
-        | "column"
-        | "sectionContinuous"
-        | "sectionNextPage"
-        | "sectionEvenPage"
-        | "sectionOddPage";
+export interface OoxmlBreak extends XastElement {
+  // type: 'element', name: 'w:br' inherited
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "break";
+      properties: {
+        breakType:
+          | "line"
+          | "page"
+          | "column"
+          | "sectionContinuous"
+          | "sectionNextPage"
+          | "sectionEvenPage"
+          | "sectionOddPage";
+      };
     };
-  };
 }
 
 // --- OOXML Nodes Extending Xast Types ---
 
 // Represents the root of an OOXML document
-// Change inheritance from XastRoot to OoxmlNode
+// Revert to extending OoxmlNode to allow OoxmlList as a child
 export interface OoxmlRoot extends OoxmlNode {
   type: "root"; // Explicitly define type
-  // Explicitly define children with specific OOXML block content type
   children: OoxmlBlockContent[];
-  data?: OoxmlNode["data"] & {
-    // Use OoxmlNode["data"]
+  data?: OoxmlData & {
     ooxmlType: "root";
     metadata?: {
       source?: string;
@@ -147,11 +163,12 @@ export interface OoxmlParagraph extends XastElement {
   // name: string (e.g., 'w:p') is inherited
   // attributes?: Record<...> is inherited
   // children: XastNode[] is inherited - Contains text runs, breaks, bookmarks, etc.
-  data?: XastElement["data"] & {
-    ooxmlType: "paragraph";
-    properties?: ParagraphFormatting;
-    collaborationMetadata?: OoxmlNode["collaborationMetadata"];
-  };
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "paragraph";
+      properties?: ParagraphFormatting;
+      collaborationMetadata?: OoxmlNode["collaborationMetadata"];
+    };
 }
 
 // Represents a text run (<w:r>/<w:t>)
@@ -159,11 +176,13 @@ export interface OoxmlTextRun extends XastText {
   // Extends XastText
   // type: 'text' is inherited
   // value: string is inherited
-  data?: XastText["data"] & {
-    ooxmlType: "textRun";
-    properties?: FontProperties & { styleId?: string };
-    collaborationMetadata?: OoxmlNode["collaborationMetadata"];
-  };
+  data?: TextData &
+    OoxmlData & {
+      ooxmlType: "textRun";
+      // Now directly uses FontProperties which includes styleId?
+      properties?: FontProperties;
+      collaborationMetadata?: OoxmlNode["collaborationMetadata"];
+    };
 }
 
 // Represents a table (<w:tbl>)
@@ -171,17 +190,18 @@ export interface OoxmlTable extends XastElement {
   // Extends XastElement
   // type: 'element', name: 'w:tbl', attributes, children: XastNode[] inherited
   // Children should ideally be OoxmlTableRow elements after processing
-  data?: XastElement["data"] & {
-    ooxmlType: "table";
-    properties?: {
-      styleId?: string;
-      borders?: BorderProperties;
-      fill?: FillProperties;
-      layout?: "fixed" | "autofit";
-      width?: number | string;
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "table";
+      properties?: {
+        styleId?: string;
+        borders?: BorderProperties;
+        fill?: FillProperties;
+        layout?: "fixed" | "autofit";
+        width?: number | string;
+      };
+      collaborationMetadata?: OoxmlNode["collaborationMetadata"];
     };
-    collaborationMetadata?: OoxmlNode["collaborationMetadata"];
-  };
 }
 
 // Represents a table row (<w:tr>)
@@ -189,16 +209,17 @@ export interface OoxmlTableRow extends XastElement {
   // Extends XastElement
   // type: 'element', name: 'w:tr', attributes, children: XastNode[] inherited
   // Children should ideally be OoxmlTableCell elements after processing
-  data?: XastElement["data"] & {
-    ooxmlType: "tableRow";
-    properties?: {
-      isHeader?: boolean;
-      height?: number | string;
-      heightRule?: "auto" | "exact" | "atLeast";
-      cantSplit?: boolean;
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "tableRow";
+      properties?: {
+        isHeader?: boolean;
+        height?: number | string;
+        heightRule?: "auto" | "exact" | "atLeast";
+        cantSplit?: boolean;
+      };
+      collaborationMetadata?: OoxmlNode["collaborationMetadata"];
     };
-    collaborationMetadata?: OoxmlNode["collaborationMetadata"];
-  };
 }
 
 // Represents a table cell (<w:tc>)
@@ -206,19 +227,20 @@ export interface OoxmlTableCell extends XastElement {
   // Extends XastElement
   // type: 'element', name: 'w:tc', attributes, children: XastNode[] inherited
   // Children should ideally be OoxmlParagraph, OoxmlTable, etc. after processing
-  data?: XastElement["data"] & {
-    ooxmlType: "tableCell";
-    properties?: {
-      borders?: BorderProperties;
-      fill?: FillProperties;
-      verticalAlignment?: "top" | "center" | "bottom" | "baseline" | "auto";
-      gridSpan?: number;
-      vMerge?: "restart" | "continue" | "merged";
-      width?: number | string;
-      noWrap?: boolean;
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "tableCell";
+      properties?: {
+        borders?: BorderProperties;
+        fill?: FillProperties;
+        verticalAlignment?: "top" | "center" | "bottom" | "baseline" | "auto";
+        gridSpan?: number;
+        vMerge?: "restart" | "continue" | "merged";
+        width?: number | string;
+        noWrap?: boolean;
+      };
+      collaborationMetadata?: OoxmlNode["collaborationMetadata"];
     };
-    collaborationMetadata?: OoxmlNode["collaborationMetadata"];
-  };
 }
 
 // Represents a hyperlink (<w:hyperlink>)
@@ -226,14 +248,16 @@ export interface OoxmlHyperlink extends XastElement {
   // Extends XastElement
   // type: 'element', name: 'w:hyperlink', attributes, children: XastNode[] inherited
   // Children should ideally be OoxmlTextRun elements after processing
-  data?: XastElement["data"] & {
-    ooxmlType: "hyperlink";
-    url: string; // Custom property moved to data
-    relationId?: string;
-    tooltip?: string;
-    properties?: FontProperties & { styleId?: string }; // Style of the link text
-    collaborationMetadata?: OoxmlNode["collaborationMetadata"];
-  };
+  data?: ElementData &
+    OoxmlData & {
+      ooxmlType: "hyperlink";
+      url: string; // Custom property moved to data
+      relationId?: string;
+      tooltip?: string;
+      // Now directly uses FontProperties which includes styleId?
+      properties?: FontProperties; // Style of the link text
+      collaborationMetadata?: OoxmlNode["collaborationMetadata"];
+    };
 }
 
 // --- Content Unions (Adjusted) ---
@@ -247,20 +271,20 @@ export type OoxmlInlineContent =
   | OoxmlImage
   | OoxmlDrawing
   | OoxmlBreak
-  | OoxmlBookmarkStart
-  | OoxmlBookmarkEnd
-  | OoxmlCommentReference
-  | XastElement
-  | XastText;
+  | OoxmlBookmarkStart // Now XastElement with specific data
+  | OoxmlBookmarkEnd // Now XastElement with specific data
+  | OoxmlCommentReference // Now XastElement with specific data
+  | XastElement // Generic element catch-all
+  | XastText; // Generic text catch-all
 
 // Block content might include Elements (paragraph, table) and custom nodes (list)
 export type OoxmlBlockContent =
   | OoxmlParagraph
   | OoxmlTable
   | OoxmlList
-  | OoxmlBookmarkStart
-  | OoxmlBookmarkEnd
-  | XastElement;
+  | OoxmlBookmarkStart // Bookmarks can appear at block level
+  | OoxmlBookmarkEnd // Bookmarks can appear at block level
+  | XastElement; // Generic element catch-all (e.g., for intermediate processing)
 
 // General content union for processing flexibility
 export type OoxmlContent =

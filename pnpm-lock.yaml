@@ -25,9 +25,6 @@ importers:
       "@types/node":
         specifier: 22.14.1
         version: 22.14.1
-      "@types/xast":
-        specifier: ^2.0.4
-        version: 2.0.4
       "@vitest/coverage-v8":
         specifier: 3.1.2
         version: 3.1.2(vitest@3.1.2)
@@ -240,11 +237,8 @@ importers:
       docx:
         specifier: 9.4.1
         version: 9.4.1
-      fast-xml-parser:
-        specifier: 4.4.0
-        version: 4.4.0
       fflate:
-        specifier: ^0.8.2
+        specifier: 0.8.2
         version: 0.8.2
       pathe:
         specifier: 2.0.3
@@ -268,17 +262,17 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       xast-util-to-string:
-        specifier: ^3.0.0
+        specifier: 3.0.0
         version: 3.0.0
       xast-util-to-xml:
         specifier: 4.0.0
         version: 4.0.0
       xastscript:
-        specifier: ^4.0.0
+        specifier: 4.0.0
         version: 4.0.0
     devDependencies:
       "@types/xast":
-        specifier: ^2.0.4
+        specifier: 2.0.4
         version: 2.0.4
 
   packages/providers:
@@ -2434,13 +2428,6 @@ packages:
       {
         integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==,
       }
-
-  fast-xml-parser@4.4.0:
-    resolution:
-      {
-        integrity: sha512-kLY3jFlwIYwBNDojclKsNAC12sfD6NwW74QB2CoNGPvtVxjliYehVunB3HYyNi+n4Tt1dAcgwYvmKF/Z18flqg==,
-      }
-    hasBin: true
 
   fdir@6.4.4:
     resolution:
@@ -4708,12 +4695,6 @@ packages:
       }
     engines: { node: ">=12" }
 
-  strnum@1.1.2:
-    resolution:
-      {
-        integrity: sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==,
-      }
-
   strtok3@10.2.2:
     resolution:
       {
@@ -6784,10 +6765,6 @@ snapshots:
 
   extend@3.0.2: {}
 
-  fast-xml-parser@4.4.0:
-    dependencies:
-      strnum: 1.1.2
-
   fdir@6.4.4(picomatch@4.0.2):
     optionalDependencies:
       picomatch: 4.0.2
@@ -8428,8 +8405,6 @@ snapshots:
   strip-ansi@7.1.0:
     dependencies:
       ansi-regex: 6.1.0
-
-  strnum@1.1.2: {}
 
   strtok3@10.2.2:
     dependencies:

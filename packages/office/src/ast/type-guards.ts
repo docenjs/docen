@@ -1,6 +1,15 @@
 import type { Node } from "unist";
-import type { OoxmlNode, XastParent } from "./common-types";
 import type {
+  OoxmlData,
+  OoxmlNode,
+  XastElement,
+  XastNode,
+  XastParent,
+} from "./common-types";
+import type {
+  OoxmlBlockContent,
+  OoxmlBookmarkEnd,
+  OoxmlBookmarkStart,
   OoxmlBreak,
   OoxmlDrawing,
   OoxmlHyperlink,
@@ -62,4 +71,52 @@ export function isOoxmlListItem(node: Node): node is OoxmlListItem {
 }
 export function isOoxmlBreak(node: Node): node is OoxmlBreak {
   return node.type === "break";
+}
+
+// Type guard for OoxmlBlockContent union type
+export function isOoxmlBlockContent(
+  node: Node | XastNode | null | undefined,
+): node is OoxmlBlockContent {
+  if (!node || typeof node !== "object" || !node.type) return false;
+
+  const nodeType = node.type;
+
+  // Check against specific OoxmlNode types included in OoxmlBlockContent
+  // Assumes isOoxmlParagraph etc. work correctly with Node | XastNode input
+  if (isOoxmlParagraph(node) || isOoxmlTable(node) || isOoxmlList(node)) {
+    return true;
+  }
+
+  // Check if it's an XastElement type that qualifies as OoxmlBlockContent
+  if (nodeType === "element") {
+    // Cast to XastElement for safety, though type check ensures it
+    const element = node as XastElement;
+    const ooxmlType = (element.data as OoxmlData | undefined)?.ooxmlType;
+
+    // Check specific block-level elements identified by ooxmlType
+    if (ooxmlType === "bookmarkStart" || ooxmlType === "bookmarkEnd") {
+      return true;
+    }
+
+    // Check elements that might have been marked as paragraph/table/list by traverse
+    // Note: This might overlap with the isOoxmlParagraph/Table/List checks above,
+    // but covers cases where the node is technically just XastElement but semantically block.
+    if (
+      ooxmlType === "paragraph" ||
+      ooxmlType === "table" ||
+      ooxmlType === "list"
+    ) {
+      return true;
+    }
+
+    // Fallback: OoxmlBlockContent includes the generic XastElement type.
+    // We should be careful not to accidentally include inline elements like <w:r>.
+    // Rely on the `traverse` function correctly removing/transforming inline elements
+    // or setting appropriate `ooxmlType` for block elements.
+    // A check like `!['w:r', 'w:t', ...].includes(element.name)` could be added for safety.
+    // For now, aligning with the type definition `... | XastElement`.
+    return true;
+  }
+
+  return false;
 }
