@@ -1,60 +1,178 @@
+import * as core from "@docen/core";
 import { strFromU8, unzip } from "fflate";
 import type { Plugin } from "unified";
-import type { Literal, Node, Parent } from "unist";
+import { is } from "unist-util-is";
+import { CONTINUE, EXIT, SKIP, visit } from "unist-util-visit";
 import type { VFile } from "vfile";
-import type { ElementContent } from "xast";
 import { fromXml } from "xast-util-from-xml";
-import { toString as xastToString } from "xast-util-to-string";
 import type {
-  OoxmlBlockContent,
-  OoxmlBookmarkEnd,
-  OoxmlBookmarkStart,
-  OoxmlBreak,
-  OoxmlComment,
-  OoxmlCommentReference,
-  OoxmlContent,
-  OoxmlData,
-  OoxmlDrawing,
-  OoxmlHyperlink,
-  OoxmlImage,
-  OoxmlInlineContent,
-  OoxmlList,
-  OoxmlListItem,
-  OoxmlNode,
-  OoxmlParagraph,
-  OoxmlRoot,
-  OoxmlTable,
-  OoxmlTableCell,
-  OoxmlTableRow,
-  OoxmlTextRun,
-  XastElement,
-  XastNode,
-  XastRoot,
-  XastText,
-} from "../ast";
-import type {
-  BorderProperties,
-  BorderStyleProperties,
-  FillProperties,
+  ColorDefinition,
+  DmlDrawingProperties,
   FontProperties,
   IndentationProperties,
+  Measurement,
+  MeasurementOrAuto,
+  MeasurementOrPercent,
+  MeasurementUnit,
+  NumberingProperties,
+  OnOffValue,
+  OoxmlAttributes,
+  OoxmlData,
+  OoxmlElement,
+  OoxmlElementContent,
+  OoxmlNode,
+  OoxmlRoot,
+  OoxmlRootData,
+  OoxmlText,
+  ParagraphBorderProperties,
   ParagraphFormatting,
   PositionalProperties,
+  RelationshipMap,
+  ShadingProperties,
   SharedAbstractNumDefinition,
+  SharedCommentDefinition,
   SharedNumInstanceDefinition,
   SharedNumberingLevelDefinition,
   SharedResources,
   SharedStyleDefinition,
   SpacingProperties,
-} from "../ast/common-types";
-import { isOoxmlBlockContent, isOoxmlBreak } from "../ast/type-guards";
+  TabStop,
+  TableBorderProperties,
+  WmlBookmarkEndProperties,
+  WmlBookmarkStartProperties,
+  WmlBreakProperties,
+  WmlCommentRefProperties,
+  WmlDrawingProperties,
+  WmlEndnoteReferenceProperties,
+  WmlFootnoteReferenceProperties,
+  WmlHyperlinkProperties,
+  WmlPictureProperties,
+  WmlTableCellProperties,
+  WmlTableGridColProperties,
+  WmlTableGridProperties,
+  WmlTableProperties,
+  WmlTableRowProperties,
+} from "../ast";
 
-// --- Top-level Interfaces & Types ---
-// Type for relationship mapping
-type RelationshipMap = Record<
-  string,
-  { type: string; target: string; targetMode?: string }
->;
+// --- Helper Functions (Define BEFORE first use) ---
+
+function getAttribute(
+  element: OoxmlElement | undefined,
+  attrName: string,
+): string | undefined {
+  return element?.attributes?.[attrName]
+    ? String(element.attributes[attrName])
+    : undefined;
+}
+
+function parseOnOff(value: string | undefined): OnOffValue | undefined {
+  // If the tag exists but value is undefined, it typically means 'true' or 'on'
+  if (value === undefined) return true;
+  if (value === "true" || value === "1" || value === "on") return true;
+  if (value === "false" || value === "0" || value === "off") return false;
+  return undefined; // Return undefined for other values
+}
+
+function parseMeasurement(
+  value: string | undefined,
+  defaultUnit: MeasurementUnit = "dxa",
+): Measurement | undefined {
+  if (value === undefined) return undefined;
+  if (value === "auto") return undefined;
+  const num = Number.parseInt(value, 10);
+  if (!Number.isNaN(num)) {
+    // Basic implementation: assumes default unit
+    // TODO: Extend to handle units like pt, pct etc. based on context or type attribute
+    return { value: num, unit: defaultUnit };
+  }
+  return undefined;
+}
+
+function parseColor(
+  colorElement: OoxmlElement | undefined,
+): ColorDefinition | undefined {
+  if (!colorElement) return undefined;
+  const value = getAttribute(colorElement, "w:val");
+  const themeColor = getAttribute(colorElement, "w:themeColor");
+  const themeTint = getAttribute(colorElement, "w:themeTint");
+  const themeShade = getAttribute(colorElement, "w:themeShade");
+  const definition: ColorDefinition = {};
+  if (value && value !== "auto") definition.value = value;
+  if (themeColor) definition.themeColor = themeColor;
+  if (themeTint) definition.themeTint = Number.parseInt(themeTint, 16) / 255; // Example conversion
+  if (themeShade) definition.themeShade = Number.parseInt(themeShade, 16) / 255; // Example conversion
+  return Object.keys(definition).length > 0 ? definition : undefined;
+}
+
+function parseUnderline(
+  uElement: OoxmlElement | undefined,
+): FontProperties["underline"] {
+  if (!uElement) return undefined;
+  const style = getAttribute(uElement, "w:val");
+  const colorChild = uElement.children?.find(
+    (c) => is(c, "element") && c.name === "w:color",
+  ) as OoxmlElement | undefined;
+  const color = parseColor(colorChild);
+  if (!style || style === "none") return undefined;
+  const underlineProp: { style?: string; color?: ColorDefinition } = { style };
+  if (color) underlineProp.color = color;
+  return underlineProp;
+}
+
+// --- Placeholder Parsing Helpers for TODOs ---
+function parseIndentation(
+  indElement: OoxmlElement | undefined,
+): IndentationProperties | undefined {
+  console.warn("Indentation parsing skipped, needs parseIndentation utility.");
+  return undefined;
+}
+function parseSpacing(
+  spacingElement: OoxmlElement | undefined,
+): SpacingProperties | undefined {
+  console.warn("Spacing parsing skipped, needs parseSpacing utility.");
+  return undefined;
+}
+function parseShading(
+  shdElement: OoxmlElement | undefined,
+): ShadingProperties | undefined {
+  console.warn("Shading parsing skipped, needs parseShading utility.");
+  return undefined;
+}
+function parseBorders(
+  bdrElement: OoxmlElement | undefined,
+): TableBorderProperties | ParagraphBorderProperties | undefined {
+  console.warn("Border parsing skipped, needs parseBorders utility.");
+  return undefined;
+}
+function parseTabs(
+  tabsElement: OoxmlElement | undefined,
+): TabStop[] | undefined {
+  console.warn("Tabs parsing skipped, needs parseTabs utility.");
+  return undefined;
+}
+function parseTableLayout(
+  layoutElement: OoxmlElement | undefined,
+): WmlTableProperties["layout"] {
+  return undefined;
+}
+function parseCellMargins(marElement: OoxmlElement | undefined): any {
+  return undefined;
+}
+function parseHeight(
+  heightElement: OoxmlElement | undefined,
+): Measurement | undefined {
+  return undefined;
+}
+function parseWidth(
+  widthElement: OoxmlElement | undefined,
+): MeasurementOrPercent | MeasurementOrAuto | undefined {
+  return undefined;
+}
+function parseVAlign(
+  valignElement: OoxmlElement | undefined,
+): WmlTableCellProperties["verticalAlign"] {
+  return undefined;
+}
 
 // Context for transformation functions
 interface TransformContext {
@@ -62,25 +180,7 @@ interface TransformContext {
   relationships: RelationshipMap;
 }
 
-// --- Utility Functions ---
-
-// Function to safely get Ooxml properties from data field
-function getOoxmlDataProps<T extends XastNode | OoxmlNode>(
-  node: T,
-): Record<string, any> | undefined {
-  // Use type assertion to clarify the expected structure of data
-  return (node?.data as OoxmlData | undefined)?.properties;
-}
-
-// Function to safely get specific Ooxml type from data field
-function getOoxmlType<T extends XastNode | OoxmlNode>(
-  node: T,
-): string | undefined {
-  // Use type assertion to clarify the expected structure of data
-  return (node?.data as OoxmlData | undefined)?.ooxmlType;
-}
-
-// Helper to merge properties (Restored and kept as is)
+// Helper to merge properties (Keep as is)
 function mergeProps<T extends object>(...objects: (T | undefined | null)[]): T {
   const result: Partial<T> = {};
   for (const obj of objects) {
@@ -98,18 +198,15 @@ function mergeProps<T extends object>(...objects: (T | undefined | null)[]): T {
   return result as T;
 }
 
-// Helper to recursively resolve style inheritance (Needs further adaptation)
+// Helper to resolve style inheritance (Keep as is)
 function resolveStyleChain(
   styleId: string | undefined,
   styles: Record<string, SharedStyleDefinition> | undefined,
   type: "paragraph" | "character",
   depth = 0,
 ): any {
-  console.warn(
-    "resolveStyleChain needs adaptation for data properties and SharedStyleDefinition structure.",
-  );
+  // Return type 'any' might need refinement later
   if (!styleId || !styles?.[styleId] || depth > 10) {
-    // Added check for styles object
     return {};
   }
   const style = styles[styleId];
@@ -121,381 +218,302 @@ function resolveStyleChain(
   );
 
   let currentStyleProps = {};
-  if (type === "paragraph" && style.paragraphProps) {
-    currentStyleProps = style.paragraphProps;
-  } else if (type === "character" && style.runProps) {
-    currentStyleProps = style.runProps;
+  if (type === "paragraph" && style.paragraphProperties) {
+    currentStyleProps = style.paragraphProperties;
+  } else if (type === "character" && style.runProperties) {
+    currentStyleProps = style.runProperties;
   } else if (
     type === "character" &&
     style.type === "paragraph" &&
-    style.runProps
+    style.runProperties
   ) {
-    currentStyleProps = style.runProps;
+    // Paragraph style might define default run properties
+    currentStyleProps = style.runProperties;
   }
 
   return mergeProps(baseStyleProps, currentStyleProps);
 }
 
-// --- Style Parsing Logic ---
-
 // Helper to parse <w:rPr> into FontProperties
-function parseRPr(rPrElement: XastElement | undefined): FontProperties {
-  if (
-    !rPrElement ||
-    rPrElement.type !== "element" ||
-    rPrElement.name !== "w:rPr"
-  )
-    return {};
+function parseRPr(rPrElement: OoxmlElement | undefined): FontProperties {
+  if (!rPrElement || !is(rPrElement, { name: "w:rPr" })) return {};
   const props: FontProperties = {};
 
-  // Font Name
-  const rFonts = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:rFonts",
-  ) as XastElement | undefined;
-  if (rFonts?.attributes) {
-    props.name = String(
-      rFonts.attributes["w:ascii"] ||
-        rFonts.attributes["w:hAnsi"] ||
-        rFonts.attributes["w:eastAsia"] ||
-        rFonts.attributes["w:cs"] ||
-        "",
-    );
-  }
+  for (const child of rPrElement.children || []) {
+    if (!is(child, "element")) continue;
 
-  // Bold
-  const boldElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:b",
-  ) as XastElement | undefined;
-  if (
-    boldElement &&
-    boldElement.attributes?.["w:val"] !== "false" &&
-    boldElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.bold = true;
-  }
-
-  // Italic
-  const italicElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:i",
-  ) as XastElement | undefined;
-  if (
-    italicElement &&
-    italicElement.attributes?.["w:val"] !== "false" &&
-    italicElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.italic = true;
-  }
-
-  // Underline
-  const underlineElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:u",
-  ) as XastElement | undefined;
-  if (underlineElement?.attributes?.["w:val"]) {
-    props.underline = String(
-      underlineElement.attributes["w:val"],
-    ) as FontProperties["underline"];
-  }
-
-  // Strikethrough
-  const strikeElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:strike",
-  ) as XastElement | undefined;
-  if (
-    strikeElement &&
-    strikeElement.attributes?.["w:val"] !== "false" &&
-    strikeElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.strike = true;
-  }
-  const dstrikeElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:dstrike",
-  ) as XastElement | undefined;
-  if (
-    dstrikeElement &&
-    dstrikeElement.attributes?.["w:val"] !== "false" &&
-    dstrikeElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.doubleStrike = true;
-  }
-
-  // Font Size (typically in half-points)
-  const szElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:sz",
-  ) as XastElement | undefined;
-  const szVal = szElement?.attributes?.["w:val"];
-  if (szVal !== undefined) {
-    const sizeHalfPoints = Number(szVal);
-    if (!Number.isNaN(sizeHalfPoints)) {
-      props.size = sizeHalfPoints; // Store as half-points for now, may convert later
+    switch (child.name) {
+      case "w:rFonts":
+        props.name = String(
+          getAttribute(child, "w:ascii") ||
+            getAttribute(child, "w:hAnsi") ||
+            getAttribute(child, "w:eastAsia") ||
+            getAttribute(child, "w:cs") ||
+            "",
+        );
+        break;
+      case "w:b":
+        props.bold = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:i":
+        props.italic = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:u":
+        props.underline = parseUnderline(child);
+        break;
+      case "w:strike":
+        props.strike = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:dstrike":
+        props.doubleStrike = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:sz":
+      case "w:szCs": {
+        // Consider complex script size too
+        const szVal = getAttribute(child, "w:val");
+        const szMeasure = parseMeasurement(szVal, "pt"); // size is in half-points
+        if (szMeasure) props.size = szMeasure;
+        break;
+      }
+      case "w:color":
+        props.color = parseColor(child);
+        break;
+      case "w:vertAlign": {
+        const vertAlignVal = getAttribute(child, "w:val");
+        if (vertAlignVal === "superscript" || vertAlignVal === "subscript") {
+          props.vertAlign = vertAlignVal;
+        }
+        break;
+      }
+      case "w:highlight": {
+        const highlightVal = getAttribute(child, "w:val");
+        if (highlightVal && highlightVal !== "none")
+          props.highlight = highlightVal;
+        break;
+      }
+      case "w:rStyle": {
+        const styleId = getAttribute(child, "w:val");
+        if (styleId) props.styleId = styleId;
+        break;
+      }
+      case "w:spacing":
+        props.spacing = parseMeasurement(getAttribute(child, "w:val"), "dxa");
+        break;
+      case "w:kern": {
+        const kernVal = getAttribute(child, "w:val");
+        const kernHalfPoints = kernVal
+          ? Number.parseInt(kernVal, 10)
+          : Number.NaN;
+        if (!Number.isNaN(kernHalfPoints)) {
+          props.kerning = { value: kernHalfPoints / 2, unit: "pt" };
+        }
+        break;
+      }
+      case "w:position": {
+        const posVal = getAttribute(child, "w:val");
+        const posHalfPoints = posVal ? Number.parseInt(posVal, 10) : Number.NaN;
+        if (!Number.isNaN(posHalfPoints)) {
+          props.position = { value: posHalfPoints / 2, unit: "pt" };
+        }
+        break;
+      }
     }
   }
-
-  // Font Color
-  const colorElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:color",
-  ) as XastElement | undefined;
-  if (
-    colorElement?.attributes?.["w:val"] &&
-    colorElement.attributes["w:val"] !== "auto"
-  ) {
-    props.color = String(colorElement.attributes["w:val"]);
-    // TODO: Handle theme colors (w:themeColor)
-  }
-
-  // Vertical Align (Superscript/Subscript)
-  const vertAlignElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:vertAlign",
-  ) as XastElement | undefined;
-  const vertAlignVal = vertAlignElement?.attributes?.["w:val"];
-  if (vertAlignVal === "superscript" || vertAlignVal === "subscript") {
-    props.verticalAlign = vertAlignVal;
-  }
-
-  // Highlight
-  const highlightElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:highlight",
-  ) as XastElement | undefined;
-  const highlightVal = highlightElement?.attributes?.["w:val"];
-  if (highlightVal && highlightVal !== "none") {
-    props.highlight = String(highlightVal);
-  }
-
-  // Character Style
-  const rStyleElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:rStyle",
-  ) as XastElement | undefined;
-  if (rStyleElement?.attributes?.["w:val"]) {
-    props.styleId = String(rStyleElement.attributes["w:val"]);
-  }
-
-  // console.warn("parseRPr needs implementation for ..., etc.");
   return props;
 }
 
 // Helper to parse <w:pPr> into ParagraphFormatting
-function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
-  if (
-    !pPrElement ||
-    pPrElement.type !== "element" ||
-    pPrElement.name !== "w:pPr"
-  )
-    return {};
+function parsePPr(pPrElement: OoxmlElement | undefined): ParagraphFormatting {
+  if (!pPrElement || !is(pPrElement, { name: "w:pPr" })) return {};
   const props: ParagraphFormatting = {};
 
-  // Paragraph Style
-  const pStyleElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:pStyle",
-  ) as XastElement | undefined;
-  if (pStyleElement?.attributes?.["w:val"]) {
-    props.styleId = String(pStyleElement.attributes["w:val"]);
-  }
+  for (const child of pPrElement.children || []) {
+    if (!is(child, "element")) continue;
 
-  // Justification/Alignment
-  const jcElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:jc",
-  ) as XastElement | undefined;
-  if (jcElement?.attributes?.["w:val"]) {
-    props.alignment = String(
-      jcElement.attributes["w:val"],
-    ) as ParagraphFormatting["alignment"];
-  }
-
-  // Numbering Properties
-  const numPrElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:numPr",
-  ) as XastElement | undefined;
-  if (numPrElement) {
-    const ilvlElement = numPrElement.children?.find(
-      (child) => child.type === "element" && child.name === "w:ilvl",
-    ) as XastElement | undefined;
-    const numIdElement = numPrElement.children?.find(
-      (child) => child.type === "element" && child.name === "w:numId",
-    ) as XastElement | undefined;
-    const ilvlVal = ilvlElement?.attributes?.["w:val"];
-    const numIdVal = numIdElement?.attributes?.["w:val"];
-    if (ilvlVal !== undefined && numIdVal !== undefined) {
-      const level = Number(ilvlVal);
-      if (!Number.isNaN(level)) {
-        props.numbering = {
-          level: level,
-          id: String(numIdVal),
-        };
+    switch (child.name) {
+      case "w:pStyle": {
+        const styleId = getAttribute(child, "w:val");
+        if (styleId) props.styleId = styleId;
+        break;
       }
+      case "w:jc": {
+        const alignVal = getAttribute(child, "w:val");
+        if (alignVal)
+          props.alignment = alignVal as ParagraphFormatting["alignment"];
+        break;
+      }
+      case "w:numPr":
+        if (is(child, "element")) {
+          const ilvlElement = child.children?.find((c) =>
+            is(c, { name: "w:ilvl" }),
+          ) as OoxmlElement | undefined;
+          const numIdElement = child.children?.find((c) =>
+            is(c, { name: "w:numId" }),
+          ) as OoxmlElement | undefined;
+          const ilvlVal = getAttribute(ilvlElement, "w:val");
+          const numIdVal = getAttribute(numIdElement, "w:val");
+          if (ilvlVal !== undefined && numIdVal !== undefined) {
+            const level = Number(ilvlVal);
+            if (!Number.isNaN(level)) {
+              props.numbering = { level: level, id: numIdVal };
+            }
+          }
+        }
+        break;
+      case "w:ind":
+        props.indentation = parseIndentation(child);
+        break;
+      case "w:spacing":
+        props.spacing = parseSpacing(child);
+        break;
+      case "w:shd":
+        props.shading = parseShading(child);
+        break;
+      case "w:pBdr":
+        props.borders = parseBorders(child);
+        break;
+      case "w:tabs":
+        props.tabs = parseTabs(child);
+        break;
+      case "w:keepNext":
+        props.keepNext = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:keepLines":
+        props.keepLines = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:widowControl":
+        props.widowControl = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:pageBreakBefore":
+        props.pageBreakBefore =
+          parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:rPr": // Default run properties for the paragraph
+        props.runProperties = parseRPr(child);
+        break;
     }
   }
-
-  // Indentation
-  const indElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:ind",
-  ) as XastElement | undefined;
-  if (indElement?.attributes) {
-    props.indentation = {};
-    if (indElement.attributes.left)
-      props.indentation.left = String(indElement.attributes.left);
-    if (indElement.attributes.right)
-      props.indentation.right = String(indElement.attributes.right);
-    if (indElement.attributes.firstLine)
-      props.indentation.firstLine = String(indElement.attributes.firstLine);
-    if (indElement.attributes.hanging)
-      props.indentation.hanging = String(indElement.attributes.hanging);
-    // TODO: Consider parsing units (dxa, etc.) into a structured format later
-  }
-
-  // Spacing
-  const spacingElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:spacing",
-  ) as XastElement | undefined;
-  if (spacingElement?.attributes) {
-    props.spacing = {};
-    if (spacingElement.attributes.before)
-      props.spacing.before = String(spacingElement.attributes.before);
-    if (spacingElement.attributes.after)
-      props.spacing.after = String(spacingElement.attributes.after);
-    if (spacingElement.attributes.line)
-      props.spacing.line = String(spacingElement.attributes.line);
-    if (spacingElement.attributes.lineRule) {
-      props.spacing.lineRule = String(
-        spacingElement.attributes.lineRule,
-      ) as SpacingProperties["lineRule"];
-    }
-    // TODO: Consider parsing units (dxa, etc.)
-  }
-
-  // Keep Lines / Keep Next / Widow Control / Page Break Before
-  const keepNextElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:keepNext",
-  ) as XastElement | undefined;
-  if (
-    keepNextElement &&
-    keepNextElement.attributes?.["w:val"] !== "false" &&
-    keepNextElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.keepNext = true;
-  }
-  const keepLinesElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:keepLines",
-  ) as XastElement | undefined;
-  if (
-    keepLinesElement &&
-    keepLinesElement.attributes?.["w:val"] !== "false" &&
-    keepLinesElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.keepLines = true;
-  }
-  const widowControlElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:widowControl",
-  ) as XastElement | undefined;
-  if (
-    widowControlElement &&
-    widowControlElement.attributes?.["w:val"] !== "false" &&
-    widowControlElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.widowControl = true;
-  }
-  const pageBreakBeforeElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:pageBreakBefore",
-  ) as XastElement | undefined;
-  if (
-    pageBreakBeforeElement &&
-    pageBreakBeforeElement.attributes?.["w:val"] !== "false" &&
-    pageBreakBeforeElement.attributes?.["w:val"] !== "0"
-  ) {
-    props.pageBreakBefore = true;
-  }
-
-  // console.warn("parsePPr needs implementation for borders, fill, etc.");
   return props;
 }
 
-// Helper to parse <w:tblPr>
+// Helper to parse <w:tblPr> into WmlTableProperties
 function parseTblPr(
-  tblPrElement: XastElement | undefined,
-): Record<string, any> {
-  // Basic placeholder - add actual parsing logic as needed
-  if (
-    !tblPrElement ||
-    tblPrElement.type !== "element" ||
-    tblPrElement.name !== "w:tblPr"
-  )
-    return {};
-  console.log("Parsing w:tblPr (basic)...");
-  // Example: Parse table style
-  const tblStyle = tblPrElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:tblStyle",
-  ) as XastElement | undefined;
-  return {
-    styleId: tblStyle?.attributes?.["w:val"]
-      ? String(tblStyle.attributes["w:val"])
-      : undefined,
-    // Add other table properties here
-  };
+  tblPrElement: OoxmlElement | undefined,
+): WmlTableProperties {
+  if (!tblPrElement || !is(tblPrElement, { name: "w:tblPr" })) return {};
+  const props: WmlTableProperties = {};
+
+  for (const child of tblPrElement.children || []) {
+    if (!is(child, "element")) continue;
+    switch (child.name) {
+      case "w:tblStyle":
+        props.styleId = getAttribute(child, "w:val");
+        break;
+      case "w:tblW":
+        break;
+      case "w:jc":
+        props.alignment = getAttribute(
+          child,
+          "w:val",
+        ) as WmlTableProperties["alignment"];
+        break;
+      case "w:tblInd":
+        props.indentation = parseMeasurement(
+          getAttribute(child, "w:val"),
+          "dxa",
+        );
+        break;
+      case "w:tblBorders":
+        break;
+      case "w:shd":
+        break;
+      case "w:tblLayout":
+        break;
+      case "w:tblCellMar":
+        break;
+      case "w:tblCellSpacing":
+        props.cellSpacing = parseMeasurement(
+          getAttribute(child, "w:val"),
+          "dxa",
+        );
+        break;
+      case "w:tblLook":
+        props.look = getAttribute(child, "w:val");
+        break;
+    }
+  }
+  return props;
 }
 
-// Helper to parse <w:trPr>
-function parseTrPr(trPrElement: XastElement | undefined): Record<string, any> {
-  // Basic placeholder
-  if (
-    !trPrElement ||
-    trPrElement.type !== "element" ||
-    trPrElement.name !== "w:trPr"
-  )
-    return {};
-  console.log("Parsing w:trPr (basic)...");
-  return {};
+// Helper to parse <w:trPr> into WmlTableRowProperties
+function parseTrPr(
+  trPrElement: OoxmlElement | undefined,
+): WmlTableRowProperties {
+  if (!trPrElement || !is(trPrElement, { name: "w:trPr" })) return {};
+  const props: WmlTableRowProperties = {};
+  for (const child of trPrElement.children || []) {
+    if (!is(child, "element")) continue;
+    switch (child.name) {
+      case "w:trHeight":
+        break;
+      case "w:cantSplit":
+        props.cantSplit = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:tblHeader":
+        props.isHeader = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+      case "w:vAlign":
+        break;
+    }
+  }
+  return props;
 }
 
-// Helper to parse <w:tcPr>
-function parseTcPr(tcPrElement: XastElement | undefined): Record<string, any> {
-  // Basic placeholder
-  if (
-    !tcPrElement ||
-    tcPrElement.type !== "element" ||
-    tcPrElement.name !== "w:tcPr"
-  )
-    return {};
-  console.log("Parsing w:tcPr (basic)...");
-  // Example: Parse vertical alignment
-  const vAlign = tcPrElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:vAlign",
-  ) as XastElement | undefined;
-  return {
-    verticalAlign: vAlign?.attributes?.["w:val"]
-      ? String(vAlign.attributes["w:val"])
-      : undefined,
-    // Add other cell properties here
-  };
+// Helper to parse <w:tcPr> into WmlTableCellProperties
+function parseTcPr(
+  tcPrElement: OoxmlElement | undefined,
+): WmlTableCellProperties {
+  if (!tcPrElement || !is(tcPrElement, { name: "w:tcPr" })) return {};
+  const props: WmlTableCellProperties = {};
+  for (const child of tcPrElement.children || []) {
+    if (!is(child, "element")) continue;
+    switch (child.name) {
+      case "w:tcW":
+        break;
+      case "w:tcBorders":
+        break;
+      case "w:shd":
+        break;
+      case "w:tcMar":
+        break;
+      case "w:vAlign":
+        break;
+      case "w:textDirection":
+        props.textDirection = getAttribute(
+          child,
+          "w:val",
+        ) as WmlTableCellProperties["textDirection"];
+        break;
+      case "w:gridSpan": {
+        const span = getAttribute(child, "w:val");
+        if (span) props.gridSpan = Number.parseInt(span, 10);
+        break;
+      }
+      case "w:vMerge":
+        props.vMerge = getAttribute(
+          child,
+          "w:val",
+        ) as WmlTableCellProperties["vMerge"];
+        break;
+      case "w:noWrap":
+        props.noWrap = parseOnOff(getAttribute(child, "w:val")) ?? true;
+        break;
+    }
+  }
+  return props;
 }
 
-// Generic property parser
-function parseProperties(
-  propElement: XastElement | undefined,
-): Record<string, any> {
-  if (!propElement || propElement.type !== "element") return {};
-
-  if (propElement.name === "w:pPr") {
-    return parsePPr(propElement);
-  }
-  if (propElement.name === "w:rPr") {
-    return parseRPr(propElement);
-  }
-  // TODO: Add cases for w:tblPr, w:trPr, w:tcPr, etc.
-  if (propElement.name === "w:tblPr") {
-    return parseTblPr(propElement);
-  }
-  if (propElement.name === "w:trPr") {
-    return parseTrPr(propElement);
-  }
-  if (propElement.name === "w:tcPr") {
-    return parseTcPr(propElement);
-  }
-
-  console.warn(
-    `Property parsing not implemented for element: ${propElement.name}`,
-  );
-  return {};
-}
-
-// --- Resource Parsing (Adapted for xast) ---
+// --- Resource Parsing (Adapted for xast -> Ooxml*) ---
 
 async function parseStylesXml(
   files: Record<string, Uint8Array>,
@@ -513,29 +531,29 @@ async function parseStylesXml(
   }
   try {
     const xmlContent = strFromU8(files[stylesPath]);
-    const parsedStylesData = fromXml(xmlContent);
+    const parsedStylesData = fromXml(xmlContent) as OoxmlRoot;
 
     const stylesElement = parsedStylesData.children?.find(
-      (node) => node.type === "element" && node.name === "w:styles",
-    ) as XastElement | undefined;
+      (node): node is OoxmlElement => is(node, { name: "w:styles" }),
+    );
     if (!stylesElement) return resources;
 
     const docDefaultsElement = stylesElement.children?.find(
-      (node) => node.type === "element" && node.name === "w:docDefaults",
-    ) as XastElement | undefined;
+      (node): node is OoxmlElement => is(node, { name: "w:docDefaults" }),
+    );
     if (docDefaultsElement) {
       const pPrDefaultContainer = docDefaultsElement.children?.find(
-        (node) => node.type === "element" && node.name === "w:pPrDefault",
-      ) as XastElement | undefined;
+        (node): node is OoxmlElement => is(node, { name: "w:pPrDefault" }),
+      );
       const pPrDefaultElement = pPrDefaultContainer?.children?.find(
-        (node) => node.type === "element" && node.name === "w:pPr",
-      ) as XastElement | undefined;
+        (node): node is OoxmlElement => is(node, { name: "w:pPr" }),
+      );
       const rPrDefaultContainer = docDefaultsElement.children?.find(
-        (node) => node.type === "element" && node.name === "w:rPrDefault",
-      ) as XastElement | undefined;
+        (node): node is OoxmlElement => is(node, { name: "w:rPrDefault" }),
+      );
       const rPrDefaultElement = rPrDefaultContainer?.children?.find(
-        (node) => node.type === "element" && node.name === "w:rPr",
-      ) as XastElement | undefined;
+        (node): node is OoxmlElement => is(node, { name: "w:rPr" }),
+      );
       resources.defaults = {
         paragraph: parsePPr(pPrDefaultElement),
         run: parseRPr(rPrDefaultElement),
@@ -544,37 +562,39 @@ async function parseStylesXml(
 
     if (stylesElement.children) {
       for (const node of stylesElement.children) {
-        if (node.type === "element" && node.name === "w:style") {
-          const styleEl = node as XastElement;
-          const styleId = String(styleEl.attributes?.["w:styleId"] || "");
-          const type = String(
-            styleEl.attributes?.["w:type"] || "",
-          ) as SharedStyleDefinition["type"];
+        if (is(node, { name: "w:style" })) {
+          const styleEl = node as OoxmlElement;
+          const styleId = getAttribute(styleEl, "w:styleId") || "";
+          const type =
+            (getAttribute(
+              styleEl,
+              "w:type",
+            ) as SharedStyleDefinition["type"]) || "";
           if (!styleId || !type) continue;
 
           const nameElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:name",
-          ) as XastElement | undefined;
+            (child): child is OoxmlElement => is(child, { name: "w:name" }),
+          );
           const basedOnElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:basedOn",
-          ) as XastElement | undefined;
+            (child): child is OoxmlElement => is(child, { name: "w:basedOn" }),
+          );
           const pPrElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:pPr",
-          ) as XastElement | undefined;
+            (child): child is OoxmlElement => is(child, { name: "w:pPr" }),
+          );
           const rPrElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:rPr",
-          ) as XastElement | undefined;
+            (child): child is OoxmlElement => is(child, { name: "w:rPr" }),
+          );
 
           const definition: SharedStyleDefinition = {
             styleId,
             type,
-            name: String(nameElement?.attributes?.["w:val"] || ""),
-            basedOn: String(basedOnElement?.attributes?.["w:val"] || ""),
-            isDefault:
-              styleEl.attributes?.["w:default"] === "1" ||
-              styleEl.attributes?.["w:default"] === "true",
-            paragraphProps: pPrElement ? parsePPr(pPrElement) : undefined,
-            runProps: rPrElement ? parseRPr(rPrElement) : undefined,
+            name: nameElement ? getAttribute(nameElement, "w:val") || "" : "",
+            basedOn: basedOnElement
+              ? getAttribute(basedOnElement, "w:val") || ""
+              : "",
+            isDefault: parseOnOff(getAttribute(styleEl, "w:default")) === true,
+            paragraphProperties: pPrElement ? parsePPr(pPrElement) : undefined,
+            runProperties: rPrElement ? parseRPr(rPrElement) : undefined,
           };
           if (resources.styles) {
             resources.styles[styleId] = definition;
@@ -582,57 +602,58 @@ async function parseStylesXml(
         }
       }
     }
-    console.log("parseStylesXml adapted for xast (basic structure).");
   } catch (error) {
     console.error("Error parsing word/styles.xml with xast:", error);
   }
   return resources;
 }
 
-// Helper for parseNumberingXml
+// Helper for parseNumberingXml (Use OoxmlElement)
 function parseNumberingLevel(
-  lvlElement: XastElement,
+  lvlElement: OoxmlElement | undefined,
 ): SharedNumberingLevelDefinition | null {
-  if (
-    !lvlElement ||
-    lvlElement.type !== "element" ||
-    lvlElement.name !== "w:lvl"
-  )
-    return null;
-  const ilvlVal = lvlElement.attributes?.["w:ilvl"];
+  if (!lvlElement || !is(lvlElement, { name: "w:lvl" })) return null;
+
+  const ilvlVal = getAttribute(lvlElement, "w:ilvl");
   const level = ilvlVal !== undefined ? Number(ilvlVal) : Number.NaN;
   if (Number.isNaN(level)) return null;
 
   const definition: SharedNumberingLevelDefinition = { level };
-  const startElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:start",
-  ) as XastElement | undefined;
-  const numFmtElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:numFmt",
-  ) as XastElement | undefined;
-  const lvlTextElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:lvlText",
-  ) as XastElement | undefined;
-  const lvlJcElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:lvlJc",
-  ) as XastElement | undefined;
-  const pPrElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:pPr",
-  ) as XastElement | undefined;
-  const rPrElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:rPr",
-  ) as XastElement | undefined;
+  const startElement = lvlElement.children?.find((c): c is OoxmlElement =>
+    is(c, { name: "w:start" }),
+  );
+  const numFmtElement = lvlElement.children?.find((c): c is OoxmlElement =>
+    is(c, { name: "w:numFmt" }),
+  );
+  const lvlTextElement = lvlElement.children?.find((c): c is OoxmlElement =>
+    is(c, { name: "w:lvlText" }),
+  );
+  const lvlJcElement = lvlElement.children?.find((c): c is OoxmlElement =>
+    is(c, { name: "w:lvlJc" }),
+  );
+  const pPrElement = lvlElement.children?.find((c): c is OoxmlElement =>
+    is(c, { name: "w:pPr" }),
+  );
+  const rPrElement = lvlElement.children?.find((c): c is OoxmlElement =>
+    is(c, { name: "w:rPr" }),
+  );
 
-  const startVal = startElement?.attributes?.["w:val"];
-  if (startVal !== undefined) definition.start = Number(startVal);
-  if (numFmtElement?.attributes?.["w:val"])
-    definition.format = String(numFmtElement.attributes["w:val"]);
-  if (lvlTextElement?.attributes?.["w:val"])
-    definition.text = String(lvlTextElement.attributes["w:val"]);
-  if (lvlJcElement?.attributes?.["w:val"])
-    definition.jc = String(
-      lvlJcElement.attributes["w:val"],
-    ) as ParagraphFormatting["alignment"];
+  if (startElement) {
+    const startVal = getAttribute(startElement, "w:val");
+    if (startVal !== undefined) definition.start = Number(startVal);
+  }
+  if (numFmtElement) {
+    const numFmtVal = getAttribute(numFmtElement, "w:val");
+    if (numFmtVal) definition.format = numFmtVal;
+  }
+  if (lvlTextElement) {
+    const lvlTextVal = getAttribute(lvlTextElement, "w:val");
+    if (lvlTextVal) definition.text = lvlTextVal;
+  }
+  if (lvlJcElement) {
+    const lvlJcVal = getAttribute(lvlJcElement, "w:val");
+    if (lvlJcVal) definition.jc = lvlJcVal as ParagraphFormatting["alignment"];
+  }
   if (pPrElement) definition.pPr = parsePPr(pPrElement);
   if (rPrElement) definition.rPr = parseRPr(rPrElement);
 
@@ -656,62 +677,62 @@ async function parseNumberingXml(
 
   try {
     const xmlContent = strFromU8(files[numberingPath]);
-    const parsedNumberingData = fromXml(xmlContent);
+    const parsedNumberingData = fromXml(xmlContent) as OoxmlRoot;
     const numberingElement = parsedNumberingData.children?.find(
-      (node) => node.type === "element" && node.name === "w:numbering",
-    ) as XastElement | undefined;
+      (node): node is OoxmlElement => is(node, { name: "w:numbering" }),
+    );
     if (!numberingElement || !numberingElement.children) return;
 
     for (const node of numberingElement.children) {
-      if (node.type === "element" && node.name === "w:abstractNum") {
-        const abstractNumEl = node as XastElement;
-        const abstractNumIdVal = abstractNumEl.attributes?.["w:abstractNumId"];
-        const abstractNumId =
-          abstractNumIdVal !== undefined ? String(abstractNumIdVal) : "";
+      if (is(node, { name: "w:abstractNum" })) {
+        const abstractNumEl = node as OoxmlElement;
+        const abstractNumIdVal = getAttribute(abstractNumEl, "w:abstractNumId");
+        const abstractNumId = abstractNumIdVal || "";
         if (!abstractNumId) continue;
 
         const nameElement = abstractNumEl.children?.find(
-          (c) => c.type === "element" && c.name === "w:name",
-        ) as XastElement | undefined;
+          (c): c is OoxmlElement => is(c, { name: "w:name" }),
+        );
         const multiLevelTypeElement = abstractNumEl.children?.find(
-          (c) => c.type === "element" && c.name === "w:multiLevelType",
-        ) as XastElement | undefined;
+          (c): c is OoxmlElement => is(c, { name: "w:multiLevelType" }),
+        );
 
         const definition: SharedAbstractNumDefinition = {
           abstractNumId: abstractNumId,
-          name: String(nameElement?.attributes?.["w:val"] || ""),
-          multiLevelType: String(
-            multiLevelTypeElement?.attributes?.["w:val"] || "",
-          ),
+          name: nameElement ? getAttribute(nameElement, "w:val") || "" : "",
+          multiLevelType: multiLevelTypeElement
+            ? getAttribute(multiLevelTypeElement, "w:val") || ""
+            : "",
           levels: {},
         };
 
         if (abstractNumEl.children) {
           for (const lvlNode of abstractNumEl.children) {
-            if (lvlNode.type === "element" && lvlNode.name === "w:lvl") {
-              const levelDef = parseNumberingLevel(lvlNode as XastElement);
+            if (is(lvlNode, { name: "w:lvl" })) {
+              const levelDef = parseNumberingLevel(lvlNode as OoxmlElement);
               if (levelDef && !Number.isNaN(levelDef.level)) {
                 definition.levels[levelDef.level] = levelDef;
               }
             }
           }
         }
-        abstractNums[abstractNumId] = definition;
+        if (abstractNums) {
+          abstractNums[abstractNumId] = definition;
+        }
       }
     }
 
     for (const node of numberingElement.children) {
-      if (node.type === "element" && node.name === "w:num") {
-        const numInstEl = node as XastElement;
-        const numIdVal = numInstEl.attributes?.["w:numId"];
+      if (is(node, { name: "w:num" })) {
+        const numInstEl = node as OoxmlElement;
+        const numIdVal = getAttribute(numInstEl, "w:numId");
         const abstractNumIdRefEl = numInstEl.children?.find(
-          (c) => c.type === "element" && c.name === "w:abstractNumId",
-        ) as XastElement | undefined;
-        const abstractNumIdRefVal = abstractNumIdRefEl?.attributes?.["w:val"];
+          (c): c is OoxmlElement => is(c, { name: "w:abstractNumId" }),
+        );
+        const abstractNumIdRefVal = getAttribute(abstractNumIdRefEl, "w:val");
 
-        const numId = numIdVal !== undefined ? String(numIdVal) : "";
-        const abstractNumIdRef =
-          abstractNumIdRefVal !== undefined ? String(abstractNumIdRefVal) : "";
+        const numId = numIdVal || "";
+        const abstractNumIdRef = abstractNumIdRefVal || "";
         if (!numId || !abstractNumIdRef) continue;
 
         const instance: SharedNumInstanceDefinition = {
@@ -722,16 +743,13 @@ async function parseNumberingXml(
 
         if (numInstEl.children) {
           const lvlOverrideContainer = numInstEl.children.find(
-            (c) => c.type === "element" && c.name === "w:lvlOverride",
-          ) as XastElement | undefined;
+            (c): c is OoxmlElement => is(c, { name: "w:lvlOverride" }),
+          );
           if (lvlOverrideContainer?.children) {
             for (const overrideNode of lvlOverrideContainer.children) {
-              if (
-                overrideNode.type === "element" &&
-                overrideNode.name === "w:lvl"
-              ) {
-                const overrideEl = overrideNode as XastElement;
-                const levelIndexVal = overrideEl.attributes?.["w:ilvl"];
+              if (is(overrideNode, { name: "w:lvl" })) {
+                const overrideEl = overrideNode as OoxmlElement;
+                const levelIndexVal = getAttribute(overrideEl, "w:ilvl");
                 const levelIndex =
                   levelIndexVal !== undefined
                     ? Number(levelIndexVal)
@@ -741,15 +759,21 @@ async function parseNumberingXml(
                 const levelDefOverride: Partial<SharedNumberingLevelDefinition> =
                   {};
                 const startOverrideElement = overrideEl.children?.find(
-                  (c) => c.type === "element" && c.name === "w:startOverride",
-                ) as XastElement | undefined;
-                const lvlElement = overrideEl;
+                  (c): c is OoxmlElement => is(c, { name: "w:startOverride" }),
+                );
+                const lvlElement = overrideEl; // Refers to the <w:lvl> inside override
 
-                const startVal = startOverrideElement?.attributes?.["w:val"];
+                const startVal = startOverrideElement
+                  ? getAttribute(startOverrideElement, "w:val")
+                  : undefined;
                 if (startVal !== undefined) {
+                  // Type for startOverride is different, handle carefully
+                  // We might need a different structure or field.
+                  // For now, let's assume start can be overridden.
                   levelDefOverride.start = Number(startVal);
                 }
 
+                // Parse the rest of the <w:lvl> as potential overrides
                 const fullLevelOverride = parseNumberingLevel(lvlElement);
                 if (fullLevelOverride) {
                   Object.assign(levelDefOverride, fullLevelOverride);
@@ -759,6 +783,12 @@ async function parseNumberingXml(
                   Object.keys(levelDefOverride).length > 0 &&
                   instance.levelOverrides
                 ) {
+                  // Add the startOverride value if present
+                  if (startVal !== undefined) {
+                    // This assumes SharedNumberingLevelDefinition can hold startOverride
+                    // Need to verify/adjust SharedNumInstanceDefinition structure if necessary
+                    (levelDefOverride as any).startOverride = Number(startVal);
+                  }
                   instance.levelOverrides[levelIndex] = levelDefOverride;
                 }
               }
@@ -768,7 +798,6 @@ async function parseNumberingXml(
         numInstances[numId] = instance;
       }
     }
-    console.log("parseNumberingXml adapted for xast (basic structure).");
   } catch (error) {
     console.error("Error parsing word/numbering.xml with xast:", error);
   }
@@ -786,29 +815,32 @@ async function parseRelationshipsXml(
 
   try {
     const xmlContent = strFromU8(files[relsPath]);
-    const relParser = fromXml(xmlContent);
+    const relParser = fromXml(xmlContent) as OoxmlRoot;
     const relationshipsElement = relParser.children?.find(
-      (node) => node.type === "element" && node.name === "Relationships",
-    ) as XastElement | undefined;
+      (node): node is OoxmlElement => is(node, { name: "Relationships" }),
+    );
 
     if (relationshipsElement?.children) {
       for (const node of relationshipsElement.children) {
-        if (node.type === "element" && node.name === "Relationship") {
-          const relEl = node as XastElement;
-          const id = String(relEl.attributes?.Id || "");
-          const type = String(relEl.attributes?.Type || "");
-          const target = String(relEl.attributes?.Target || "");
-          const targetModeAttr = relEl.attributes?.TargetMode;
-          const targetMode = targetModeAttr
-            ? String(targetModeAttr)
-            : undefined;
+        if (is(node, { name: "Relationship" })) {
+          const relEl = node as OoxmlElement;
+          const id = getAttribute(relEl, "Id") || "";
+          const type = getAttribute(relEl, "Type") || "";
+          const target = getAttribute(relEl, "Target") || "";
+          const targetModeAttr = getAttribute(relEl, "TargetMode");
+          // Fix Linter Error L791: Ensure targetMode is one of the allowed literals or undefined
+          const targetMode =
+            targetModeAttr === "External" || targetModeAttr === "Internal"
+              ? targetModeAttr
+              : undefined;
+
           if (id && type && target) {
-            relationships[id] = { type, target, targetMode };
+            // Assuming RelationshipMap value type matches { type: string; target: string; targetMode?: 'External' | 'Internal' }
+            relationships[id] = { id, type, target, targetMode };
           }
         }
       }
     }
-    console.log("parseRelationshipsXml adapted for xast.");
   } catch (error) {
     console.error(
       "Error parsing word/_rels/document.xml.rels with xast:",
@@ -818,505 +850,435 @@ async function parseRelationshipsXml(
   return relationships;
 }
 
-// --- Comment Parsing (Adapted for XAST) ---
+// --- Comment Parsing (Use OoxmlElement, SharedCommentDefinition) ---
 async function parseCommentsXml(
   files: Record<string, Uint8Array>,
-  context: TransformContext, // Pass the full context for traverse
-): Promise<Record<string, OoxmlComment>> {
+  context: TransformContext,
+): Promise<Record<string, SharedCommentDefinition>> {
+  // Return SharedCommentDefinition
   const commentsPath = "word/comments.xml";
-  const commentsMap: Record<string, OoxmlComment> = {};
-  if (!files[commentsPath]) {
-    console.warn("word/comments.xml not found.");
-    return commentsMap;
-  }
+  const commentsMap: Record<string, SharedCommentDefinition> = {};
+  if (!files[commentsPath]) return commentsMap;
 
   try {
     const xmlContent = strFromU8(files[commentsPath]);
-    const parsedCommentsData = fromXml(xmlContent);
+    const parsedCommentsData = fromXml(xmlContent) as OoxmlRoot;
     const commentsRootElement = parsedCommentsData.children?.find(
-      (node) => node.type === "element" && node.name === "w:comments",
-    ) as XastElement | undefined;
-
+      (node): node is OoxmlElement => is(node, { name: "w:comments" }),
+    );
     if (!commentsRootElement?.children) return commentsMap;
 
     const commentEls = commentsRootElement.children.filter(
-      (node): node is XastElement =>
-        node.type === "element" && node.name === "w:comment",
+      (node): node is OoxmlElement => is(node, { name: "w:comment" }),
     );
 
-    console.error(`Found ${commentEls.length} w:comment elements.`); // New log 1
-
     for (const commentEl of commentEls) {
-      // Changed from forEach for clarity
-      const idVal = commentEl.attributes?.["w:id"];
-      const id = idVal !== undefined ? String(idVal) : "";
+      const id = getAttribute(commentEl, "w:id") || "";
       if (!id) continue;
+      const author = getAttribute(commentEl, "w:author");
+      const initials = getAttribute(commentEl, "w:initials");
+      const dateStr = getAttribute(commentEl, "w:date");
 
-      const author = String(commentEl.attributes?.["w:author"] || "");
-      const initials = String(commentEl.attributes?.["w:initials"] || "");
-      const dateStr = String(commentEl.attributes?.["w:date"] || "");
-      // Note: date parsing can be complex due to potential timezone issues
-      // const date = dateStr ? new Date(dateStr) : undefined; // Basic parsing
-
-      const commentChildren: OoxmlBlockContent[] = [];
-      if (commentEl.children && commentEl.children.length > 0) {
-        for (const childNode of commentEl.children) {
-          const processedNode = traverse(childNode, context, commentEl);
-
-          if (Array.isArray(processedNode)) {
-            commentChildren.push(
-              ...(processedNode.filter(
-                isOoxmlBlockContent,
-              ) as OoxmlBlockContent[]),
-            );
-          } else if (processedNode && isOoxmlBlockContent(processedNode)) {
-            commentChildren.push(processedNode as OoxmlBlockContent);
+      // Use visit to process children instead of manual traversal
+      const commentChildren: OoxmlElementContent[] = [];
+      // Temporarily using map for structure, visit is better for side effects
+      visit(commentEl, (node) => {
+        if (node !== commentEl) {
+          // Avoid processing the root comment element itself here
+          // Here, node is OoxmlNode from visit
+          if (
+            is(node, ["element", "text", "comment", "instruction", "cdata"])
+          ) {
+            // We need to enrich this node similar to the main traversal
+            // This requires passing context and handling recursively, or a simplified enrichment
+            // For now, just push the compatible node type (enrichment missing)
+            commentChildren.push(node as OoxmlElementContent);
+            return SKIP; // Avoid traversing children of pushed nodes here?
           }
         }
-      }
+        return CONTINUE;
+      });
 
-      const commentData: OoxmlComment = {
-        type: "comment",
+      commentsMap[id] = {
         id: id,
         author: author,
         initials: initials,
-        date: dateStr, // Store as string for now
-        children: commentChildren, // Assign the processed children
+        date: dateStr,
+        children: commentChildren, // Content needs enrichment
       };
-      commentsMap[id] = commentData;
     }
-    console.log(
-      `Parsed ${Object.keys(commentsMap).length} comments from comments.xml`,
-    );
   } catch (error) {
-    console.error("Error parsing word/comments.xml with xast:", error);
+    console.error("Error parsing comments.xml:", error);
   }
   return commentsMap;
 }
 
-// --- Standalone Traverse Function ---
-/**
- * Recursively traverses an XAST node, enriching it with OOXML semantics
- * and transforming its structure based on the context.
- */
-function traverse(
-  node: XastNode,
-  context: TransformContext, // Added context parameter
-  parent?: XastElement,
-): XastNode | XastNode[] | null {
-  if (!node) return null;
+// --- List Grouping Function (Modified to operate on parentElement.children) ---
+function groupListItems(
+  parentElement: OoxmlElement,
+  context: TransformContext,
+): void {
+  const groupedChildren: OoxmlElementContent[] = [];
+  let currentListElement: OoxmlElement | null = null;
 
-  // Ensure data object exists
-  if (!node.data) {
-    node.data = {};
-  }
-  const nodeData = node.data as OoxmlData;
+  // Operate on the children of the passed parent element (e.g., w:body)
+  for (const node of parentElement.children || []) {
+    let isListItemParagraph = false;
+    let numberingProps: NumberingProperties | undefined = undefined;
 
-  // Extract context needed within traverse
-  const { resources, relationships } = context;
-  const defaultParaProps = resources.defaults?.paragraph || {};
-  const defaultRunProps = resources.defaults?.run || {};
-  const styles = resources.styles || {};
-
-  if (node.type === "element") {
-    const element = node as XastElement;
-    const elementName = element.name;
-    nodeData.ooxmlType = elementName; // Initial assignment
-
-    // --- Property Parsing ---
-    let directProps: Record<string, any> = {};
-    const propElement = element.children?.find(
-      (child) =>
-        child.type === "element" &&
-        ["w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr"].includes(child.name),
-    ) as XastElement | undefined;
-
-    if (propElement) {
-      directProps = parseProperties(propElement);
+    if (
+      is(node, "element") &&
+      (node.data as OoxmlData | undefined)?.ooxmlType === "paragraph"
+    ) {
+      const paragraphProps = (node.data as OoxmlData)?.properties as
+        | ParagraphFormatting
+        | undefined;
+      if (paragraphProps?.numbering) {
+        numberingProps = paragraphProps.numbering;
+        isListItemParagraph = true;
+      }
     }
 
-    // --- Element-Specific Logic & Typing ---
-    if (elementName === "w:p") {
-      nodeData.ooxmlType = "paragraph";
-      const paragraphProps = directProps as ParagraphFormatting;
-      const styleId =
-        paragraphProps?.styleId || defaultParaProps.styleId || "Normal";
-      const resolvedParaStyle = resolveStyleChain(styleId, styles, "paragraph");
-      const finalParaProps = mergeProps(
-        defaultParaProps,
-        resolvedParaStyle,
-        paragraphProps,
-      );
-      finalParaProps.styleId = styleId;
-      nodeData.properties = finalParaProps;
-    } else if (elementName === "w:r") {
-      // Handle w:r - Enrich the node, process children, keep w:r structure
-      nodeData.ooxmlType = "run"; // Mark as a run container
-      // Explicitly capture properties for THIS run element
-      const currentRunDirectProps = parseProperties(
-        element.children?.find(
-          (c) => c.type === "element" && c.name === "w:rPr",
-        ) as XastElement | undefined,
-      ) as FontProperties;
-      // Store direct properties on the run node itself for potential later use/reference
-      // The final effective properties are on the OoxmlTextRun children.
-      nodeData.properties = currentRunDirectProps;
+    if (isListItemParagraph && numberingProps) {
+      const abstractNumId =
+        context.resources.numberingInstances?.[numberingProps.id]
+          ?.abstractNumId;
 
-      const newChildren: XastNode[] = [];
-
-      if (element.children) {
-        for (const child of element.children) {
-          if (child.type === "element" && child.name === "w:t") {
-            const tValue = xastToString(child);
-            // Style Resolution
-            let parentParaProps: ParagraphFormatting | undefined;
-            if (
-              parent &&
-              (parent.data as OoxmlData | undefined)?.ooxmlType === "paragraph"
-            ) {
-              parentParaProps = (parent.data as OoxmlData)
-                .properties as ParagraphFormatting;
-            }
-            const charStyleId = currentRunDirectProps.styleId; // Use props from THIS run
-            const resolvedCharStyle = resolveStyleChain(
-              charStyleId || undefined,
-              styles,
-              "character",
-            );
-            const paraStyleId =
-              parentParaProps?.styleId || defaultParaProps.styleId || "Normal";
-            const resolvedParaStyleForRun = resolveStyleChain(
-              paraStyleId,
-              styles,
-              "paragraph",
-            );
-            const paraDefaultRunProps = resolvedParaStyleForRun?.runProps || {};
-
-            // Ensure merge starts clean and uses only properties relevant to this specific w:t context
-            const finalRunProps = mergeProps(
-              defaultRunProps,
-              paraDefaultRunProps,
-              resolvedCharStyle,
-              currentRunDirectProps, // Explicitly use properties derived ONLY from this run's <w:rPr>
-            );
-
-            const textRunNode: OoxmlTextRun = {
-              type: "text", // Use 'text' type, but data identifies it as OoxmlTextRun
-              value: tValue,
-              data: { ooxmlType: "textRun", properties: finalRunProps },
-            };
-            newChildren.push(textRunNode);
-          } else if (child.type === "element" && child.name === "w:br") {
-            const processedChild = traverse(child, context, element); // Pass context
-            if (processedChild) {
-              // traverse for w:br should return a single enriched node
-              if (!Array.isArray(processedChild)) {
-                newChildren.push(processedChild);
-              } else {
-                console.warn(
-                  "Traverse returned an array for w:br, expected single node.",
-                );
-                newChildren.push(...processedChild); // Handle unexpected array
-              }
-            }
-          } else if (child.type === "element" && child.name === "w:rPr") {
-            // Skip rPr element itself - properties already captured in currentRunDirectProps
-          } else if (
-            child.type === "element" ||
-            child.type === "text" ||
-            child.type === "instruction" ||
-            child.type === "comment"
-          ) {
-            // Handle other potential inline elements like drawing, symbols etc.
-            const currentChild = child as ElementContent; // Cast needed?
-            const processedChild = traverse(currentChild, context, element); // Pass context
-            if (processedChild) {
-              // Traverse for other inline elements might return single node or array
-              if (Array.isArray(processedChild)) {
-                newChildren.push(...processedChild);
-              } else {
-                newChildren.push(processedChild);
-              }
-            }
-          }
-        }
-      }
-      // Replace the original children with the processed ones (e.g., w:t -> OoxmlTextRun)
-      element.children = newChildren as ElementContent[];
-      // Return the enriched w:r node itself, not the children
-      // return element; // Fall through to default return
-    } else if (elementName === "w:t") {
-      // Orphan w:t found outside w:r - log and remove
-      nodeData.ooxmlType = "orphanText";
-      console.warn("Encountered w:t element outside of w:r context:", element);
-      return null;
-    } else if (elementName === "w:tbl") {
-      nodeData.ooxmlType = "table";
-      nodeData.properties = directProps;
-    } else if (elementName === "w:tr") {
-      nodeData.ooxmlType = "tableRow";
-      nodeData.properties = directProps;
-    } else if (elementName === "w:tc") {
-      nodeData.ooxmlType = "tableCell";
-      nodeData.properties = directProps;
-    } else if (elementName === "w:hyperlink") {
-      nodeData.ooxmlType = "hyperlink";
-      const rId = String(element.attributes?.["r:id"] || "");
-      const rel = rId ? relationships[rId] : undefined;
-      const url = rel?.targetMode === "External" ? rel.target : `rels://${rId}`;
-      const tooltip = String(element.attributes?.["w:tooltip"] || "");
-      nodeData.properties = { url, tooltip };
-      (nodeData as any).url = url;
-    } else if (elementName === "w:drawing") {
-      nodeData.ooxmlType = "drawing";
-      let relationId = "";
-      function findBlipEmbed(n: XastNode): string | undefined {
-        if (n.type === "element") {
-          if (n.name === "a:blip" && n.attributes?.["r:embed"]) {
-            return String(n.attributes["r:embed"]);
-          }
-          if (n.children) {
-            for (const child of n.children) {
-              const found = findBlipEmbed(child);
-              if (found) return found;
-            }
-          }
-        }
-        return undefined;
-      }
-      relationId = findBlipEmbed(element) || "";
-      nodeData.properties = { relationId, size: { width: 0, height: 0 } };
-      (nodeData as any).relationId = relationId;
-    } else if (elementName === "w:br") {
-      nodeData.ooxmlType = "break";
-      const breakTypeAttr = element.attributes?.["w:type"];
-      const breakType = breakTypeAttr ? String(breakTypeAttr) : "line";
-      nodeData.properties = { breakType };
-    } else if (elementName === "w:bookmarkStart") {
-      nodeData.ooxmlType = "bookmarkStart";
-      nodeData.properties = {
-        id: String(element.attributes?.["w:id"] || ""),
-        name: String(element.attributes?.["w:name"] || ""),
+      const listItemElement: OoxmlElement = {
+        type: "element",
+        name: "listItem", // Abstract name
+        attributes: {},
+        children: [node], // Contains the original paragraph element
+        data: {
+          ooxmlType: "listItem",
+          properties: { level: numberingProps.level, numId: numberingProps.id },
+        },
       };
-    } else if (elementName === "w:bookmarkEnd") {
-      nodeData.ooxmlType = "bookmarkEnd";
-      nodeData.properties = {
-        id: String(element.attributes?.["w:id"] || ""),
-      };
-    } else if (elementName === "w:commentReference") {
-      nodeData.ooxmlType = "commentReference";
-      nodeData.properties = {
-        id: String(element.attributes?.["w:id"] || ""),
-      };
-    }
 
-    // --- Child Traversal (for elements NOT early returning like w:r) ---
-    if (element.children) {
-      const originalChildren = [...element.children];
-      const newChildren: ElementContent[] = [];
-      for (const child of originalChildren) {
-        // Skip property elements
-        if (
-          child.type === "element" &&
-          [
-            "w:pPr",
-            "w:rPr",
-            "w:tblPr",
-            "w:trPr",
-            "w:tcPr",
-            "w:sectPr",
-          ].includes(child.name)
-        ) {
-          continue;
-        }
-        // Skip the specific property element already parsed for this node
-        if (child === propElement) {
-          continue;
-        }
+      // Add explicit type annotation for currentListNumId and simplify access
+      const currentListData: OoxmlData | undefined =
+        currentListElement?.data as OoxmlData | undefined;
+      const currentListNumId: string | undefined = currentListData
+        ? (currentListData.properties as any)?.numId
+        : undefined;
 
-        const processedChild = traverse(child, context, element); // Pass context
-
-        if (processedChild) {
-          if (Array.isArray(processedChild)) {
-            newChildren.push(...(processedChild as ElementContent[]));
-          } else {
-            newChildren.push(processedChild as ElementContent);
-          }
-        }
-      }
-      element.children = newChildren;
-    }
-    // Fall through to return the modified element node
-  } else if (node.type === "text") {
-    // Handle loose text nodes if necessary (e.g., mark as orphan)
-    // nodeData.ooxmlType = "orphanText";
-    return node; // Return text node as is
-  } else if (node.type === "comment") {
-    nodeData.ooxmlType = "comment"; // XML comment, not OOXML logical comment
-    return node;
-  } else if (node.type === "instruction") {
-    nodeData.ooxmlType = "instruction";
-    return node;
-  }
-
-  // Return the processed node by default
-  return node;
-}
-
-// --- Transformation Function (Main Entry Point) ---
-/**
- * Transforms the raw XAST tree (from document body) into an enriched OOXML AST,
- * handling structure like list grouping.
- */
-function transformXastToOoxmlAst(
-  bodyContentRoot: XastRoot,
-  context: TransformContext, // Context is passed in
-): OoxmlRoot {
-  console.warn(
-    "transformXastToOoxmlAst needs further implementation and testing.",
-  );
-
-  // Start traversal of the main body content
-  if (bodyContentRoot.children) {
-    // Use a temporary array for new children as traverse might modify the array in place
-    const initialChildren = [...bodyContentRoot.children];
-    const traversedChildren: XastNode[] = [];
-    for (const child of initialChildren) {
-      const processed = traverse(child, context, undefined); // Call standalone traverse
-      if (processed) {
-        if (Array.isArray(processed)) {
-          traversedChildren.push(...processed);
-        } else {
-          traversedChildren.push(processed);
-        }
-      }
-    }
-    bodyContentRoot.children = traversedChildren as ElementContent[]; // Update root with traversed children
-  }
-
-  // --- Post-processing: List Grouping & Top-Level Element Filtering ---
-  console.warn("List grouping logic needs careful implementation and testing.");
-  const processedChildren: OoxmlBlockContent[] = [];
-  let currentList: OoxmlList | null = null;
-
-  if (bodyContentRoot.children) {
-    for (const node of bodyContentRoot.children) {
-      if (node.type !== "element") continue;
-
-      let isListItem = false;
-      let numberingProps: { level: number; id: string } | undefined = undefined;
-
-      const nodeData = node.data as OoxmlData | undefined;
-      if (nodeData?.ooxmlType === "paragraph") {
-        const paragraphProps = nodeData.properties as
-          | ParagraphFormatting
-          | undefined;
-        const potentialNumbering = paragraphProps?.numbering;
-        if (
-          potentialNumbering?.id !== undefined &&
-          potentialNumbering?.level !== undefined
-        ) {
-          numberingProps = {
-            level: potentialNumbering.level,
-            id: String(potentialNumbering.id),
-          };
-          isListItem = true;
-        }
-      }
-
-      if (isListItem && numberingProps) {
-        const abstractNumId =
-          context.resources.numberingInstances?.[numberingProps.id]
-            ?.abstractNumId;
-        const listItem: OoxmlListItem = {
-          type: "listItem",
-          children:
-            nodeData?.ooxmlType === "paragraph" ? [node as OoxmlParagraph] : [],
+      if (currentListNumId === numberingProps.id) {
+        if (currentListElement)
+          currentListElement.children.push(listItemElement);
+      } else {
+        if (currentListElement) groupedChildren.push(currentListElement);
+        currentListElement = {
+          type: "element",
+          name: "list", // Abstract name
+          attributes: {},
+          children: [listItemElement],
           data: {
-            ooxmlType: "listItem",
-            properties: {
-              level: numberingProps.level,
-              numId: numberingProps.id,
-            },
+            ooxmlType: "list",
+            properties: { numId: numberingProps.id, abstractNumId },
           },
         };
-        if (
-          currentList &&
-          currentList.data?.properties?.numId === numberingProps.id
-        ) {
-          currentList.children.push(listItem);
-        } else {
-          if (currentList) processedChildren.push(currentList);
-          currentList = {
-            type: "list",
-            children: [listItem],
-            data: {
-              ooxmlType: "list",
-              properties: { numId: numberingProps.id, abstractNumId },
-            },
-          };
-        }
-      } else {
-        if (currentList) {
-          processedChildren.push(currentList);
-          currentList = null;
-        }
-        // Add other valid block-level Ooxml nodes
-        if (
-          ["w:p", "w:tbl", "w:bookmarkStart", "w:bookmarkEnd"].includes(
-            node.name,
-          )
-        ) {
-          // Basic check, push potentially OoxmlBlockContent compatible nodes
-          // More robust type checking might be needed based on exact OoxmlBlockContent definition
-          processedChildren.push(node as OoxmlBlockContent);
-        } else {
-          console.warn(`Skipping non-block element at top level: ${node.name}`);
-        }
+      }
+    } else {
+      if (currentListElement) {
+        groupedChildren.push(currentListElement);
+        currentListElement = null;
+      }
+      // Add node if it's a valid content type (already filtered in visit? No, this is post-visit)
+      if (is(node, ["element", "text", "comment", "instruction", "cdata"])) {
+        groupedChildren.push(node);
       }
     }
-    if (currentList) processedChildren.push(currentList);
   }
+  if (currentListElement) groupedChildren.push(currentListElement);
 
-  // --- Final Root Construction ---
-  const finalRoot: OoxmlRoot = {
-    type: "root",
-    children: processedChildren, // Use the list-grouped and filtered children
-    data: {
-      ooxmlType: "root",
-      metadata: {
-        relationships: context.relationships,
-        numbering: {
-          instances: context.resources.numberingInstances,
-          abstracts: context.resources.abstractNumbering,
-        },
-        styles: context.resources.styles,
-        comments: undefined, // Comments will be added later by the main plugin function
-      },
-    },
-  };
+  // Replace parent element's children with the grouped list
+  parentElement.children = groupedChildren;
+}
 
-  console.log("OOXML AST transformation completed.");
-  return finalRoot;
+// --- Main Transformation Function using visit --- //
+function transformXastToOoxmlAst(
+  root: OoxmlRoot,
+  context: TransformContext,
+): void {
+  const { resources, relationships } = context;
+  const { styles, defaults } = resources;
+  const defaultParaProps = defaults?.paragraph || {};
+  const defaultRunProps = defaults?.run || {};
+
+  // Store parent paragraph properties temporarily when visiting runs
+  let currentParagraphProps: ParagraphFormatting | undefined = undefined;
+
+  visit(root, (node, index, parent) => {
+    if (!node.data) node.data = {};
+    const nodeData = node.data as OoxmlData;
+    const parentElement = is(parent, "element") ? parent : undefined;
+
+    if (is(node, "element")) {
+      const element = node;
+      const tagName = element.name;
+      const propElement = element.children?.find(
+        (child) => is(child, "element") && child.name.endsWith("Pr"),
+      ) as OoxmlElement | undefined;
+
+      if (tagName === "w:p") {
+        const directProps = parsePPr(propElement);
+        nodeData.ooxmlType = "paragraph";
+        const styleId =
+          directProps?.styleId || defaultParaProps.styleId || "Normal";
+        const resolvedParaStyle = resolveStyleChain(
+          styleId,
+          styles,
+          "paragraph",
+        );
+        const finalParaProps = mergeProps(
+          defaultParaProps,
+          resolvedParaStyle,
+          directProps,
+        );
+        finalParaProps.styleId = styleId;
+        nodeData.properties = finalParaProps;
+        currentParagraphProps = finalParaProps; // Store props for child runs/text
+      } else if (tagName === "w:r") {
+        const directProps = parseRPr(propElement);
+        nodeData.ooxmlType = "textRun";
+        nodeData.properties = directProps;
+        // Pass paragraph context to run data for text nodes to use
+        (nodeData as any).parentParagraphProps = currentParagraphProps;
+      } else if (tagName === "w:drawing") {
+        nodeData.ooxmlType = "drawing";
+        let embedId: string | undefined;
+        // Use visit with explicit element check for attributes
+        visit(element, (child) => {
+          if (is(child, "element")) {
+            // Explicit element check
+            if (
+              is(child, { name: "a:blip" }) &&
+              child.attributes?.["r:embed"]
+            ) {
+              embedId = String(child.attributes["r:embed"]);
+              return EXIT;
+            }
+            if (
+              is(child, { name: "v:imagedata" }) &&
+              child.attributes?.["r:id"]
+            ) {
+              embedId = String(child.attributes["r:id"]);
+              return EXIT;
+            }
+          }
+          return CONTINUE;
+        });
+        const rel = embedId ? relationships[embedId] : undefined;
+        nodeData.properties = { relationId: embedId, fileName: rel?.target };
+      } else if (tagName === "w:t") {
+        // Handled by text visitor below
+        nodeData.ooxmlType = "textContentWrapper";
+      } else if (tagName === "w:br") {
+        nodeData.ooxmlType = "break";
+        const breakTypeAttr = getAttribute(element, "w:type");
+        const clearAttr = getAttribute(element, "w:clear");
+        nodeData.properties = {
+          breakType: breakTypeAttr ? String(breakTypeAttr) : "line",
+          clear: clearAttr ? String(clearAttr) : undefined,
+        } as WmlBreakProperties;
+      } else if (tagName === "w:tab") {
+        nodeData.ooxmlType = "tabChar"; // Correct type
+      } else if (tagName === "w:sym") {
+        nodeData.ooxmlType = "symbol";
+        nodeData.properties = {
+          charCode: getAttribute(element, "w:char") || "", // Renamed to charCode
+          font: getAttribute(element, "w:font") || "",
+        }; // as WmlSymbolProperties - Check interface
+      } else if (tagName === "w:tbl") {
+        const directProps = parseTblPr(propElement);
+        nodeData.ooxmlType = "table";
+        nodeData.properties = directProps;
+      } else if (tagName === "w:tr") {
+        const directProps = parseTrPr(propElement);
+        nodeData.ooxmlType = "tableRow";
+        nodeData.properties = directProps;
+      } else if (tagName === "w:tc") {
+        const directProps = parseTcPr(propElement);
+        nodeData.ooxmlType = "tableCell";
+        nodeData.properties = directProps;
+      } else if (tagName === "w:tblGrid") {
+        nodeData.ooxmlType = "tableGrid";
+        // Parse grid cols? Usually done by children
+      } else if (tagName === "w:gridCol") {
+        nodeData.ooxmlType = "tableGridCol";
+        nodeData.properties = {
+          width: parseMeasurement(getAttribute(element, "w:w"), "dxa"),
+        }; // as WmlTableGridColProperties;
+      } else if (tagName === "w:hyperlink") {
+        nodeData.ooxmlType = "hyperlink";
+        const rId = getAttribute(element, "r:id") || "";
+        const anchor = getAttribute(element, "w:anchor") || "";
+        const rel = rId ? relationships[rId] : undefined;
+        nodeData.properties = {
+          relationId: rId,
+          url: rel?.targetMode === "External" ? rel.target : undefined,
+          anchor:
+            anchor ||
+            (rel?.targetMode !== "External" ? rel?.target : undefined),
+          tooltip: getAttribute(element, "w:tooltip") || "",
+        } as WmlHyperlinkProperties;
+      } else if (tagName === "w:pict") {
+        nodeData.ooxmlType = "picture"; // VML picture
+        // TODO: Parse VML content / relation ID
+      } else if (tagName === "w:bookmarkStart") {
+        nodeData.ooxmlType = "bookmarkStart";
+        nodeData.properties = {
+          id: getAttribute(element, "w:id") || "",
+          bookmarkName: getAttribute(element, "w:name") || "",
+        } as WmlBookmarkStartProperties;
+      } else if (tagName === "w:bookmarkEnd") {
+        nodeData.ooxmlType = "bookmarkEnd";
+        nodeData.properties = {
+          id: getAttribute(element, "w:id") || "",
+        } as WmlBookmarkEndProperties;
+      } else if (tagName === "w:commentReference") {
+        nodeData.ooxmlType = "commentReference";
+        nodeData.properties = {
+          id: getAttribute(element, "w:id") || "",
+        } as WmlCommentRefProperties;
+      } else if (tagName === "w:footnoteReference") {
+        nodeData.ooxmlType = "footnoteReference";
+        nodeData.properties = { id: getAttribute(element, "w:id") || "" }; // as WmlFootnoteReferenceProperties;
+      } else if (tagName === "w:endnoteReference") {
+        nodeData.ooxmlType = "endnoteReference";
+        nodeData.properties = { id: getAttribute(element, "w:id") || "" }; // as WmlEndnoteReferenceProperties;
+      } else if (tagName.endsWith("Pr")) {
+        // Remove property elements
+        if (
+          parentElement &&
+          Array.isArray(parentElement.children) &&
+          index !== undefined
+        ) {
+          parentElement.children.splice(index, 1);
+          return index; // Adjust index
+        }
+      } else if (
+        [
+          "mc:AlternateContent",
+          "w:proofErr",
+          "w:lastRenderedPageBreak",
+        ].includes(tagName)
+      ) {
+        // Remove unsupported/unnecessary elements
+        if (
+          parentElement &&
+          Array.isArray(parentElement.children) &&
+          index !== undefined
+        ) {
+          parentElement.children.splice(index, 1);
+          return index; // Adjust index for visitor
+        }
+      } else {
+        // Keep other elements but log them
+        console.warn(`Unhandled element tag during enrichment: ${tagName}`);
+        nodeData.ooxmlType = tagName; // Keep original tag name as type
+      }
+    } else if (is(node, "text")) {
+      const textNode = node as OoxmlText;
+      const shouldPreserve =
+        parentElement?.attributes?.["xml:space"] === "preserve";
+
+      if (textNode.value.trim() === "" && !shouldPreserve) {
+        if (
+          parentElement &&
+          Array.isArray(parentElement.children) &&
+          index !== undefined
+        ) {
+          parentElement.children.splice(index, 1);
+          return index;
+        }
+      }
+
+      nodeData.ooxmlType = "text";
+      if (shouldPreserve)
+        nodeData.properties = { ...nodeData.properties, preserveSpace: true };
+
+      // Apply properties from parent run, using context stored in run's data
+      if (
+        parentElement &&
+        (parentElement.data as OoxmlData | undefined)?.ooxmlType === "textRun"
+      ) {
+        const runData = parentElement.data as OoxmlData & {
+          parentParagraphProps?: ParagraphFormatting;
+        }; // Keep this for type hint
+        const runProps = runData.properties as FontProperties | undefined;
+        const parentParaPropsContext = (runData as any).parentParagraphProps as
+          | ParagraphFormatting
+          | undefined; // Assert as any to read
+        const runStyleId = runProps?.styleId;
+        const paraStyleId =
+          parentParaPropsContext?.styleId ||
+          defaultParaProps.styleId ||
+          "Normal";
+
+        const resolvedCharStyle = resolveStyleChain(
+          runStyleId,
+          styles,
+          "character",
+        );
+        const resolvedParaStyleForRun = resolveStyleChain(
+          paraStyleId,
+          styles,
+          "paragraph",
+        );
+        const paraDefaultRunProps =
+          resolvedParaStyleForRun?.runProperties || {};
+
+        const finalRunProps = mergeProps(
+          defaultRunProps,
+          paraDefaultRunProps,
+          resolvedCharStyle,
+          runProps,
+        );
+        nodeData.properties = finalRunProps; // Assign merged props
+      }
+    } else if (is(node, ["comment", "instruction", "cdata", "doctype"])) {
+      // Keep these node types
+      return CONTINUE;
+    } else if (is(node, "root")) {
+      // Continue into the root node
+      return CONTINUE;
+    } else {
+      console.warn(`Discarding node of unhandled type: ${node.type}`);
+      if (
+        parentElement &&
+        Array.isArray(parentElement.children) &&
+        index !== undefined
+      ) {
+        parentElement.children.splice(index, 1);
+        return index; // Adjust index for visitor
+      }
+      return null; // Remove other node types
+    }
+
+    return CONTINUE; // Continue traversal by default
+  });
 }
 
 /**
- * Async Unified plugin for DOCX parsing based on XAST.
+ * Async Unified plugin for DOCX parsing based on Ooxml* enrichment.
  */
 export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
   return async (
-    tree: Node | undefined,
+    _tree: OoxmlNode | undefined, // Input tree is ignored, we parse from VFile
     file: VFile,
   ): Promise<OoxmlRoot | undefined> => {
-    console.log("Plugin: docxToOoxmlAst running (XAST-based).");
+    console.log(
+      "Plugin: docxToOoxmlAst running (unist-util-visit based enrichment).",
+    );
 
-    // --- 0. Setup & Unzip ---
     if (!file.value || !(file.value instanceof Uint8Array)) {
       file.message(
         new Error("VFile value must be a Uint8Array for OOXML parsing."),
       );
       return undefined;
     }
+
     let decompressedFiles: Record<string, Uint8Array>;
     try {
       decompressedFiles = await new Promise((resolve, reject) => {
@@ -1335,12 +1297,20 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       return undefined;
     }
 
-    // --- 1. Parse Shared Resources ---
+    // --- Resource Parsing --- (Needs similar refactor for error handling/guards)
     const resources = await parseStylesXml(decompressedFiles);
-    await parseNumberingXml(decompressedFiles, resources);
+    await parseNumberingXml(decompressedFiles, resources); // Assuming this is adjusted
     const relationships = await parseRelationshipsXml(decompressedFiles);
+    const transformContext: TransformContext = { resources, relationships };
+    const comments = await parseCommentsXml(
+      decompressedFiles,
+      transformContext,
+    ); // Assuming this is adjusted
+    if (transformContext.resources)
+      transformContext.resources.comments = comments;
+    // TODO: Parse other resources like headers, footers, footnotes, endnotes
 
-    // --- 2. Parse Main Document XML to XAST ---
+    // --- Main Document Parsing --- (Remains the same)
     const mainPartPath = "word/document.xml";
     if (!decompressedFiles[mainPartPath]) {
       file.message(
@@ -1349,11 +1319,12 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       return undefined;
     }
     const mainXmlContent = strFromU8(decompressedFiles[mainPartPath]);
-    let parsedXast: XastRoot;
+    let parsedXastRoot: OoxmlRoot;
     try {
-      parsedXast = fromXml(mainXmlContent);
-      file.data.rawXast = parsedXast;
+      parsedXastRoot = fromXml(mainXmlContent) as OoxmlRoot;
+      file.data.rawXast = parsedXastRoot;
     } catch (error: unknown) {
+      // ... (Error handling) ...
       console.error(`Error parsing XML with fromXml (${mainPartPath}):`, error);
       file.message(
         new Error(
@@ -1363,68 +1334,51 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       return undefined;
     }
 
-    // --- 3. Transform Raw XAST into Enriched OOXML AST ---
-    const transformContext: TransformContext = { resources, relationships }; // Now visible
-    let ooxmlAstRoot: OoxmlRoot;
+    // --- Find the w:body element ---
+    const documentElement = parsedXastRoot.children?.find(
+      (node): node is OoxmlElement => is(node, { name: "w:document" }),
+    );
+    const bodyElement = documentElement?.children?.find(
+      (node): node is OoxmlElement => is(node, { name: "w:body" }),
+    );
+
+    if (!bodyElement) {
+      file.message(
+        new Error("Could not find <w:body> element in document.xml."),
+      );
+      return undefined;
+    }
+    // Ensure bodyElement has a children array
+    if (!bodyElement.children) bodyElement.children = [];
+
+    // --- Transformation using visit (on the original full tree) --- //
     try {
-      const documentElement = parsedXast.children?.find(
-        (node) => node.type === "element" && node.name === "w:document",
-      ) as XastElement | undefined;
-      const bodyElement = documentElement?.children?.find(
-        (node) => node.type === "element" && node.name === "w:body",
-      ) as XastElement | undefined;
+      transformXastToOoxmlAst(parsedXastRoot, transformContext);
 
-      if (!bodyElement) {
-        console.warn(
-          "Could not find expected w:body structure in parsed xast tree.",
-        );
-        return undefined;
-      }
+      // --- List Grouping (Operate on bodyElement's children) --- //
+      groupListItems(bodyElement, transformContext);
 
-      const bodyContentRoot: XastRoot = {
-        type: "root",
-        children: bodyElement.children || [],
-      };
-
-      // Call the main transformation function
-      ooxmlAstRoot = transformXastToOoxmlAst(bodyContentRoot, transformContext);
-
-      // Parse comments using the same context AFTER main body transformation
-      const comments = await parseCommentsXml(
-        decompressedFiles,
-        transformContext,
+      // --- Filter out Instructions from Body Children --- //
+      bodyElement.children = bodyElement.children.filter(
+        (node) => !is(node, "instruction"),
       );
 
-      // --- Safely initialize data and metadata before assignment ---
-      // Ensure ooxmlAstRoot.data exists and has the correct type
-      if (!ooxmlAstRoot.data) {
-        ooxmlAstRoot.data = { ooxmlType: "root" };
-      }
-      // Ensure ooxmlAstRoot.data.metadata exists
-      if (!ooxmlAstRoot.data.metadata) {
-        ooxmlAstRoot.data.metadata = {};
-      }
+      // --- Create the Final Root with Body's Children --- //
+      const finalRoot: OoxmlRoot = {
+        type: "root",
+        children: bodyElement.children, // Assign processed body children
+        data: {
+          ooxmlType: "root",
+          sharedResources: transformContext.resources,
+          // Copy other relevant data if needed, e.g., from parsedXastRoot.data
+        } as OoxmlRootData,
+      };
 
-      // Assign comments
-      ooxmlAstRoot.data.metadata.comments = comments || {};
-
-      // Find and parse section properties (if they exist)
-      const finalSectPrElement = bodyElement.children?.find(
-        (node) => node.type === "element" && node.name === "w:sectPr",
-      ) as XastElement | undefined;
-      if (finalSectPrElement) {
-        console.warn("Parsing of <w:sectPr> needs implementation.");
-        // Example of assignment after parsing:
-        // const sectionProps = parseSectPr(finalSectPrElement); // Assuming parseSectPr exists
-        // ooxmlAstRoot.data.metadata.sectionProperties = sectionProps;
-      }
-
-      // TODO: Parse Headers/Footers and add to metadata
-
-      console.log("OOXML AST transformation completed.");
-      return ooxmlAstRoot;
+      console.log("OOXML AST enrichment and list grouping completed.");
+      return finalRoot; // Return the new root with processed body children
     } catch (transformError: unknown) {
-      console.error("Error during Ooxml AST transformation:", transformError);
+      // ... (Error handling) ...
+      console.error("Error during OOXML AST transformation:", transformError);
       file.message(
         new Error(
           `AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`,

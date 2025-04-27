@@ -5,17 +5,19 @@ import type { TextItem } from "unpdf/types/src/display/api";
 import type { PageViewport } from "unpdf/types/src/display/display_utils";
 import type { VFile } from "vfile";
 import type {
-  FontProperties, // Import FontProperties for styling
-  OoxmlBlockContent,
-  OoxmlDrawing, // Assuming image maps to drawing
-  OoxmlHyperlink, // Import for hyperlink creation
-  OoxmlImage, // Import OoxmlImage for image handling
-  OoxmlInlineContent,
-  OoxmlParagraph,
+  ColorDefinition,
+  FontProperties,
+  Measurement,
+  OoxmlData,
+  OoxmlElement,
+  OoxmlElementContent,
   OoxmlRoot,
-  OoxmlTextRun,
-  PositionalProperties, // For image positioning
-  XastElement, // Import XastElement for placeholder creation
+  OoxmlText,
+  PdfDrawingData,
+  PdfDrawingElement,
+  PdfTextRunData,
+  PdfTextRunElement,
+  PositionalProperties,
 } from "../ast";
 
 // Local alias for TransformMatrix to avoid import issues
@@ -27,11 +29,8 @@ type Rect = { x1: number; y1: number; x2: number; y2: number };
 // Structure to hold raw content items before sorting and processing links
 interface RawPdfContentItem {
   type: "text" | "imagePlaceholder";
-  // For text: contains a preliminary OoxmlTextRun
-  // For images: contains a placeholder XastElement for the drawing
-  node: OoxmlTextRun | XastElement;
-  bbox: { x1: number; y1: number; x2: number; y2: number }; // Bounding box in PDF coords
-  // Store original TextItem for link processing
+  node: OoxmlElement; // Both text runs and drawing placeholders are OoxmlElements
+  bbox: { x1: number; y1: number; x2: number; y2: number };
   originalItem?: TextItem;
 }
 
@@ -121,7 +120,7 @@ function isPointInsideRect(x: number, y: number, rect: Rect): boolean {
  */
 export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
   return async (
-    tree: OoxmlRoot | undefined,
+    _tree: OoxmlRoot | undefined, // Input tree is ignored, but type should match return
     file: VFile,
   ): Promise<OoxmlRoot | undefined> => {
     console.log(
@@ -161,18 +160,20 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       console.warn("Could not retrieve PDF metadata:", metaError);
     }
 
+    // Ensure newRoot is OoxmlRoot and use type assertion for data
     const newRoot: OoxmlRoot = {
       type: "root",
       children: [],
+      // Assert data as any to allow metadata property
       data: {
-        ooxmlType: "root",
+        ooxmlType: "root", // Use generic 'root' or specific 'wmlRoot' if preferred
         metadata: {
           source: "unpdf/pdfjs",
           totalPages: numPages,
           info: pdfInfo || {},
           metadata: pdfMetadata || {},
         },
-      },
+      } as any,
     };
 
     try {
@@ -257,15 +258,26 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
           const fontSize = approximateFontSize(item.transform);
           const fontProps: FontProperties = {
             name: item.fontName,
-            size: fontSize,
-            color: lastFillColorHex, // Apply approximate color
+            size: { value: fontSize, unit: "pt" } as Measurement,
+            color: { value: lastFillColorHex } as ColorDefinition,
             ...fontStyles,
           };
 
-          // --- Text Run Creation ---
-          const textRun: OoxmlTextRun = {
+          // --- Text Node Creation (Use OoxmlText) ---
+          const textNode: OoxmlText = {
             type: "text",
             value: item.str,
+            data: {
+              ooxmlType: "text", // Mark as plain text node
+            },
+          };
+
+          // --- Text Run Container Creation (Use PdfTextRunElement) ---
+          const textRun: PdfTextRunElement = {
+            type: "element",
+            name: "textRun",
+            attributes: {},
+            children: [textNode],
             data: {
               ooxmlType: "textRun",
               properties: fontProps,
@@ -275,14 +287,14 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
                 height: item.height,
                 fontName: item.fontName,
               },
-            },
+            } as PdfTextRunData,
           };
 
           pageContentItems.push({
             type: "text",
             node: textRun,
             bbox: bbox,
-            originalItem: item, // Keep original item for link matching
+            originalItem: item,
           });
         }
 
@@ -335,7 +347,8 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
                   wrap: null,
                 };
 
-                const drawingPlaceholder: XastElement = {
+                // Use PdfDrawingElement for the placeholder
+                const drawingPlaceholder: PdfDrawingElement = {
                   type: "element",
                   name: "drawingPlaceholder",
                   attributes: {},
@@ -349,7 +362,7 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
                       width: pdfImage.width,
                       height: pdfImage.height,
                     },
-                  },
+                  } as PdfDrawingData,
                 };
 
                 const imgBbox: RawPdfContentItem["bbox"] = {
@@ -384,51 +397,49 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
         });
 
         // --- 4. Process Links and Group into Paragraphs ---
-        const finalPageContent: OoxmlBlockContent[] = [];
-        let currentParagraph: OoxmlParagraph | null = null;
+        const finalPageContent: OoxmlElementContent[] = [];
+        let currentParagraph: OoxmlElement | null = null;
         let lastItemY2 = Number.POSITIVE_INFINITY;
         const PARA_Y_THRESHOLD = 5; // Threshold to group items into same paragraph
 
         for (const item of pageContentItems) {
-          let nodeToAdd: OoxmlInlineContent | XastElement = item.node;
-          // Check for link intersection only for text items
+          let nodeToAdd: OoxmlElementContent = item.node;
+
           if (item.type === "text" && item.originalItem) {
             // Use text item's origin point for intersection check
             const textOriginX = item.originalItem.transform[4];
             const textOriginY = item.originalItem.transform[5];
-            // const textBbox = item.bbox; // Keep bbox for potential future use
 
             for (const link of links) {
-              // Use isPointInsideRect instead of doRectanglesIntersect
               if (isPointInsideRect(textOriginX, textOriginY, link.rect)) {
-                // Wrap the text run (or part of it) in a hyperlink
-                const linkNode: OoxmlHyperlink = {
+                // Wrap the text run in a hyperlink (Use OoxmlElement)
+                const linkNode: OoxmlElement = {
                   type: "element",
-                  name: "hyperlink", // Use a standard name
+                  name: "hyperlink",
                   attributes: {},
-                  children: [item.node as OoxmlTextRun], // Wrap the existing text run
+                  children: [item.node as OoxmlElementContent],
                   data: {
                     ooxmlType: "hyperlink",
-                    url: link.url.endsWith("/")
-                      ? link.url.slice(0, -1)
-                      : link.url, // Trim trailing slash
-                    // Inherit/copy properties from text run if needed?
-                    properties: (item.node.data as any)?.properties,
+                    properties: {
+                      ...(item.node as OoxmlElement).data?.properties,
+                      url: link.url.endsWith("/")
+                        ? link.url.slice(0, -1)
+                        : link.url,
+                    },
                   },
                 };
                 nodeToAdd = linkNode;
-                break; // Apply first matching link
+                break;
               }
             }
           }
 
-          // Group into paragraphs (simplified logic)
-          // If item's top is significantly below last item's top, start new para
+          // Group into paragraphs (Use OoxmlElement)
           if (
             currentParagraph === null ||
             lastItemY2 - item.bbox.y2 > PARA_Y_THRESHOLD
           ) {
-            // Start new paragraph
+            // Start new paragraph (Ensure type is OoxmlElement)
             currentParagraph = {
               type: "element",
               name: "paragraph",
@@ -438,10 +449,11 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
             };
             finalPageContent.push(currentParagraph);
           }
+          if (currentParagraph) {
+            currentParagraph.children.push(nodeToAdd);
+          }
 
-          // Add the node (potentially wrapped in a link) to the current paragraph
-          currentParagraph.children.push(nodeToAdd as XastElement); // Assert as XastElement for now
-          lastItemY2 = item.bbox.y2; // Update last Y position for grouping
+          lastItemY2 = item.bbox.y2;
         }
 
         // Add content for this page to the root

@@ -115,3 +115,19 @@ export function createCollaborativeNode(
   };
   return node;
 }
+
+// --- Re-exported unist utilities ---
+
+export { visit, SKIP, EXIT, CONTINUE } from "unist-util-visit";
+export { visitParents } from "unist-util-visit-parents"; // Note: visitParents also exports SKIP, EXIT, CONTINUE
+export { filter } from "unist-util-filter";
+export { map } from "unist-util-map";
+export { remove } from "unist-util-remove";
+export { select, selectAll } from "unist-util-select";
+export { is } from "unist-util-is";
+export { assert, parent, literal, wrap } from "unist-util-assert";
+
+// Re-export specific types if needed, though usually direct usage from unist/xast is preferred
+// export type { Node, Parent, Literal, Point, Position } from 'unist';
+// export type { Test } from 'unist-util-is';
+// export type { Visitor, BuildVisitor } from 'unist-util-visit';

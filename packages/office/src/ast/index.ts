@@ -1,4 +1,10 @@
-// Barrel file for AST definitions
-export * from "./common-types";
-export * from "./ooxml-ast"; // Exports OoxmlNode, OoxmlRoot, specific nodes, OoxmlContent, OoxmlBlockContent, OoxmlInlineContent etc.
-export * from "./type-guards";
+// Export shared base types, properties, and utilities
+export * from "./shared";
+
+// Export schema-specific types
+export * from "./wml"; // WordprocessingML
+export * from "./sml"; // SpreadsheetML
+export * from "./pml"; // PresentationML
+export * from "./dml"; // DrawingML
+export * from "./vml"; // VML
+export * from "./pdf"; // PDF
