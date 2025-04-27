@@ -1,0 +1,16 @@
+This is a placeholder DOCX buffer for:
+
+
+# Sample Markdown Document
+
+This is a paragraph with **bold** and *italic* text.
+
+- Item 1
+- Item 2
+  - Sub-item 2.1
+
+```javascript
+function greet() {
+  console.log('Hello, DOCX!');
+}
+```

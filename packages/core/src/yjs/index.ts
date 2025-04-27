@@ -36,7 +36,7 @@ import type { YjsResolvedNode, YjsSyncConflict, YjsSyncHandler } from "./types";
  */
 export function createYjsAdapter(
   doc: YDoc = new Y.Doc(),
-  options: YjsAdapterOptions = {}
+  options: YjsAdapterOptions = {},
 ): YjsAdapter {
   const rootMap = doc.getMap<any>("content");
 
@@ -44,7 +44,7 @@ export function createYjsAdapter(
   const undoManagerOptions = options.undoManagerOptions ?? {};
   const undoEnabled = undoManagerOptions.enabled !== false; // Default to true
   const trackedOrigins = new Set(
-    undoManagerOptions.trackedOrigins ?? ["local-update"]
+    undoManagerOptions.trackedOrigins ?? ["local-update"],
   ); // Default origin
   const captureTimeout = undoManagerOptions.captureTimeout ?? 500; // Default timeout
 
@@ -81,7 +81,7 @@ export function createYjsAdapter(
       observe(
         node: Node,
         yType: Y.AbstractType<any>,
-        callback: (event: Y.YEvent<any>) => void
+        callback: (event: Y.YEvent<any>) => void,
       ): () => void {
         if (!(yType instanceof YText)) {
           throw new Error("Expected Y.Text for observation");
@@ -128,7 +128,7 @@ export function createYjsAdapter(
                     console.warn(
                       `Skipping potentially problematic value for key ${key}:`,
                       value,
-                      e
+                      e,
                     );
                   }
                 }
@@ -172,7 +172,7 @@ export function createYjsAdapter(
       observe(
         node: Node,
         yType: Y.AbstractType<any>,
-        callback: (event: Y.YEvent<any>) => void
+        callback: (event: Y.YEvent<any>) => void,
       ): () => void {
         if (!(yType instanceof YMap)) {
           throw new Error("Expected Y.Map for observation");
@@ -224,7 +224,7 @@ export function createYjsAdapter(
       observe(
         node: Node,
         yType: Y.AbstractType<any>,
-        callback: (event: Y.YEvent<any>) => void
+        callback: (event: Y.YEvent<any>) => void,
       ): () => void {
         if (!(yType instanceof YArray)) {
           throw new Error("Expected YArray for array node observation");
@@ -232,7 +232,7 @@ export function createYjsAdapter(
         // Use observeDeep for arrays
         const handler = (
           events: Array<YEvent<any>>,
-          transaction: Transaction
+          transaction: Transaction,
         ) => {
           // Process each event in the deep observation
           // Use for...of instead of forEach
@@ -273,10 +273,10 @@ export function createYjsAdapter(
       console.error(
         `No valid 'fromYjs' binding strategy found for Yjs type:`,
         data,
-        `(TypeKey: ${typeKey}, Fallback: ${defaultStrategyKey})`
+        `(TypeKey: ${typeKey}, Fallback: ${defaultStrategyKey})`,
       );
       throw new Error(
-        `No valid 'fromYjs' strategy for ${typeKey || "unknown type"}`
+        `No valid 'fromYjs' strategy for ${typeKey || "unknown type"}`,
       );
     }
     try {
@@ -286,7 +286,7 @@ export function createYjsAdapter(
       console.error(
         `Error in fromYjs for strategy '${typeKey}':`,
         error.message,
-        data
+        data,
       );
       throw new Error(`Conversion failed for ${typeKey}: ${error.message}`);
     }
@@ -294,7 +294,7 @@ export function createYjsAdapter(
 
   // Default timestamp-based conflict resolution - MODIFIED
   function defaultTimestampStrategy(
-    conflict: YjsSyncConflict
+    conflict: YjsSyncConflict,
   ): YjsResolvedNode {
     // Use timestamps directly from the conflict object as provided
     const localTimestamp = conflict.localTimestamp;
@@ -345,7 +345,7 @@ export function createYjsAdapter(
   const adapterInternal: YjsAdapter & {
     _observeNode: <N extends Node>(
       node: N,
-      callback: (event: Y.YEvent<any>) => void
+      callback: (event: Y.YEvent<any>) => void,
     ) => () => void;
   } = {
     doc,
@@ -360,7 +360,7 @@ export function createYjsAdapter(
       if (!nodeId) {
         console.warn(
           "Attempted to bind a node without an ID. Returning original node.",
-          node
+          node,
         );
         // Return the node cast to the expected type, but without binding
         return node as Node & CollaborativeNode;
@@ -377,7 +377,7 @@ export function createYjsAdapter(
       const strategy = bindingStrategies[node.type] || fallbackStrategy;
       if (!strategy || !strategy.toYjs) {
         console.warn(
-          `No valid 'toYjs' binding strategy found for node type: ${node.type}. Using fallback: ${defaultStrategyKey}. Skipping bind.`
+          `No valid 'toYjs' binding strategy found for node type: ${node.type}. Using fallback: ${defaultStrategyKey}. Skipping bind.`,
         );
         return node as Node & CollaborativeNode;
       }
@@ -414,7 +414,7 @@ export function createYjsAdapter(
           // Implement update logic based on yType, wrap in transaction
           console.warn(
             "Binding update function called (Implementation needed)",
-            { nodeId, newValue }
+            { nodeId, newValue },
           );
           adapterInternal.transact(() => {
             // Example: Update logic for YText (needs robust implementation for others)
@@ -424,7 +424,7 @@ export function createYjsAdapter(
             } else {
               console.error(
                 "Update logic not implemented for this Yjs type in binding.",
-                yType
+                yType,
               );
             }
           }, "local-update");
@@ -472,13 +472,13 @@ export function createYjsAdapter(
     observeChanges(
       callback: (
         events: Array<Y.YEvent<any>>,
-        transaction: Y.Transaction
-      ) => void
+        transaction: Y.Transaction,
+      ) => void,
     ): () => void {
       // Wrap the callback to ensure it's stored correctly in the map
       const handler = (
         events: Array<YEvent<any>>,
-        transaction: Transaction
+        transaction: Transaction,
       ) => {
         try {
           callback(events, transaction);
@@ -508,7 +508,7 @@ export function createYjsAdapter(
     // Internal helper method for observing specific nodes (not part of public API)
     _observeNode<N extends Node>(
       node: N,
-      callback: (event: Y.YEvent<any>) => void
+      callback: (event: Y.YEvent<any>) => void,
     ): () => void {
       const nodeId = (node as DocenNode)?.id;
       let yType = nodeId ? nodeBindingCache.get(nodeId) : undefined;
@@ -519,13 +519,13 @@ export function createYjsAdapter(
           nodeBindingCache.set(nodeId, yType);
         } else {
           console.warn(
-            `Cannot observe node: Yjs type not found in cache or rootMap for node ID: ${nodeId}`
+            `Cannot observe node: Yjs type not found in cache or rootMap for node ID: ${nodeId}`,
           );
           return () => {}; // No-op unsubscribe
         }
       } else if (!yType) {
         console.warn(
-          "Cannot observe node: No Yjs type found (no node ID or not in cache/rootMap)."
+          "Cannot observe node: No Yjs type found (no node ID or not in cache/rootMap).",
         );
         return () => {}; // No-op unsubscribe
       }
@@ -541,7 +541,7 @@ export function createYjsAdapter(
       const strategy = bindingStrategies[typeKey] || fallbackStrategy;
       if (!strategy || !strategy.observe) {
         console.warn(
-          `No observe implementation in strategy for type: ${typeKey}. Cannot observe.`
+          `No observe implementation in strategy for type: ${typeKey}. Cannot observe.`,
         );
         return () => {}; // No-op unsubscribe
       }
@@ -552,7 +552,7 @@ export function createYjsAdapter(
       } catch (e) {
         console.error(
           `Error calling observe on strategy for type ${typeKey}:`,
-          e
+          e,
         );
         return () => {}; // No-op unsubscribe on error
       }

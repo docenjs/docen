@@ -125,7 +125,7 @@ describe("Utils", () => {
 
       expect(result.collaborationMetadata).toBeDefined();
       expect(result.collaborationMetadata?.lastModifiedTimestamp).toBe(
-        timestamp
+        timestamp,
       );
       expect(result.collaborationMetadata?.modifiedAt).toBe(timestamp);
     });
@@ -139,7 +139,7 @@ describe("Utils", () => {
 
       expect(result.collaborationMetadata).toBeDefined();
       expect(typeof result.collaborationMetadata?.lastModifiedTimestamp).toBe(
-        "number"
+        "number",
       );
       expect(typeof result.collaborationMetadata?.modifiedAt).toBe("number");
     });
@@ -195,7 +195,7 @@ describe("Utils", () => {
         (node) => ({
           ...node,
           data: { transformed: true },
-        })
+        }),
       );
 
       expect(result.type).toBe("root");

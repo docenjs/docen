@@ -98,7 +98,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     // Find the specific <w:r> elements and check their <w:t> children
     const boldRunElement = paragraph?.children?.[1] as XastElement | undefined;
     const boldTextNode = boldRunElement?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(boldTextNode?.value).toBe("bold");
     expect(boldTextNode?.data?.ooxmlType).toBe("textRun");
@@ -109,7 +109,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       | XastElement
       | undefined;
     const italicTextNode = italicRunElement?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(italicTextNode?.value).toBe("italic");
     expect(italicTextNode?.data?.ooxmlType).toBe("textRun");
@@ -121,7 +121,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       | XastElement
       | undefined;
     const normalText1Node = normalRun1Element?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(normalText1Node?.data?.properties?.bold).toBeUndefined(); // Correct access
     expect(normalText1Node?.data?.properties?.italic).toBeUndefined(); // Correct access
@@ -130,7 +130,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       | XastElement
       | undefined;
     const normalText2Node = normalRun2Element?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(normalText2Node?.data?.properties?.bold).toBeUndefined(); // Correct access
     expect(normalText2Node?.data?.properties?.italic).toBeUndefined(); // Correct access
@@ -140,7 +140,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       | XastElement
       | undefined;
     const normalText3Node = normalRun3Element?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(normalText3Node?.data?.properties?.bold).toBeUndefined(); // Correct access
     expect(normalText3Node?.data?.properties?.italic).toBeUndefined(); // Correct access
@@ -148,7 +148,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     // Check the FINAL normal run (index 8: ".")
     const finalRunElement = paragraph?.children?.[8] as XastElement | undefined;
     const finalTextNode = finalRunElement?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(finalTextNode?.value).toBe(".");
     expect(finalTextNode?.data?.properties?.bold).toBeUndefined(); // Check final node bold
@@ -177,7 +177,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     // Remove non-null assertions, rely on optional chaining
     expect(para1?.data?.properties?.numbering).toBeDefined(); // Check if numbering exists
     expect(para1?.data?.properties?.numbering?.id).toEqual(
-      list?.data?.properties?.numId
+      list?.data?.properties?.numId,
     );
     expect(para1?.data?.properties?.numbering?.level).toBe(0);
     // Check text content if needed
@@ -204,7 +204,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     // Remove non-null assertions, rely on optional chaining
     expect(para1?.data?.properties?.numbering).toBeDefined(); // Check if numbering exists
     expect(para1?.data?.properties?.numbering?.id).toEqual(
-      list?.data?.properties?.numId
+      list?.data?.properties?.numId,
     );
     expect(para1?.data?.properties?.numbering?.level).toBe(0);
   });
@@ -222,7 +222,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(table?.children).toBeDefined();
     // Use XastElement from common-types
     const tableRows = table?.children?.filter(
-      (c): c is OoxmlTableRow => c.type === "element" && c.name === "w:tr"
+      (c): c is OoxmlTableRow => c.type === "element" && c.name === "w:tr",
     ) as OoxmlTableRow[] | undefined;
     expect(tableRows).toHaveLength(2);
 
@@ -232,7 +232,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(row1?.data?.ooxmlType).toBe("tableRow");
     // Use XastElement from common-types
     const row1Cells = row1?.children?.filter(
-      (c): c is OoxmlTableCell => c.type === "element" && c.name === "w:tc"
+      (c): c is OoxmlTableCell => c.type === "element" && c.name === "w:tc",
     ) as OoxmlTableCell[] | undefined;
     expect(row1Cells).toHaveLength(2);
 
@@ -242,24 +242,24 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(cell1_1?.data?.ooxmlType).toBe("tableCell");
     // Use XastElement from common-types
     const cell1_1Paras = cell1_1?.children?.filter(
-      (c): c is OoxmlParagraph => c.type === "element" && c.name === "w:p"
+      (c): c is OoxmlParagraph => c.type === "element" && c.name === "w:p",
     ) as OoxmlParagraph[] | undefined;
     expect(cell1_1Paras).toHaveLength(1);
     const para1_1 = cell1_1Paras?.[0];
     expect(para1_1?.data?.ooxmlType).toBe("paragraph");
     const run1_1 = para1_1?.children?.find(
-      (c) => c.type === "element" && c.name === "w:r"
+      (c) => c.type === "element" && c.name === "w:r",
     ) as XastElement | undefined;
     // Use XastNode from common-types
     const text1_1 = run1_1?.children?.find(
-      (c: XastNode) => c.type === "text"
+      (c: XastNode) => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(text1_1?.value).toBe("Cell A1");
 
     const cell1_2 = row1Cells?.[1];
     expect(cell1_2?.data?.ooxmlType).toBe("tableCell");
     const cell1_2Paras = cell1_2?.children?.filter(
-      (c): c is OoxmlParagraph => c.type === "element" && c.name === "w:p"
+      (c): c is OoxmlParagraph => c.type === "element" && c.name === "w:p",
     ) as OoxmlParagraph[] | undefined;
     expect(cell1_2Paras).toHaveLength(1);
   });
@@ -274,7 +274,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const hyperlinkElement = paragraph?.children?.find(
       (child): child is OoxmlHyperlink =>
-        child.type === "element" && child.name === "w:hyperlink"
+        child.type === "element" && child.name === "w:hyperlink",
     ) as OoxmlHyperlink | undefined;
 
     expect(hyperlinkElement).toBeDefined();
@@ -294,7 +294,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     // Find the OoxmlTextRun node inside the <w:r> element
     const linkTextNode = linkRunElement?.children?.find(
-      (c: XastNode): c is OoxmlTextRun => c.type === "text"
+      (c: XastNode): c is OoxmlTextRun => c.type === "text",
     ) as OoxmlTextRun | undefined;
     expect(linkTextNode).toBeDefined();
     expect(linkTextNode?.type).toBe("text"); // OoxmlTextRun extends XastText
@@ -307,7 +307,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
   // Recursive helper to find the first node matching a semantic type
   function findNodeByTypeRecursively(
     nodes: OoxmlContent[] | undefined,
-    type: string
+    type: string,
   ): OoxmlNode | undefined {
     if (!nodes) {
       return undefined;
@@ -357,7 +357,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     // Search recursively within the paragraph's children
     const drawingNode = findNodeByTypeRecursively(
       paragraph?.children,
-      "drawing"
+      "drawing",
     ) as OoxmlDrawing | undefined;
 
     expect(drawingNode).toBeDefined();
@@ -377,7 +377,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const bookmarkStartElement = findNodeByTypeRecursively(
       paragraph?.children,
-      "bookmarkStart"
+      "bookmarkStart",
     ) as OoxmlBookmarkStart | undefined;
 
     expect(bookmarkStartElement).toBeDefined();
@@ -389,7 +389,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const bookmarkEndElement = findNodeByTypeRecursively(
       paragraph?.children,
-      "bookmarkEnd"
+      "bookmarkEnd",
     ) as OoxmlBookmarkEnd | undefined;
 
     expect(bookmarkEndElement).toBeDefined();
@@ -397,7 +397,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(bookmarkEndElement?.data?.ooxmlType).toBe("bookmarkEnd");
     expect(bookmarkEndElement?.data?.properties?.id).toBeDefined(); // Fixed: Access via data.properties
     expect(bookmarkStartElement?.data?.properties?.id).toEqual(
-      bookmarkEndElement?.data?.properties?.id
+      bookmarkEndElement?.data?.properties?.id,
     ); // Fixed: Access via data.properties
   });
 
@@ -410,7 +410,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const commentRefElement = findNodeByTypeRecursively(
       paragraph?.children,
-      "commentReference"
+      "commentReference",
     ) as OoxmlCommentReference | undefined;
 
     expect(commentRefElement).toBeDefined();
@@ -421,9 +421,9 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(typeof commentId).toBe("string");
 
     expect(root?.data?.metadata?.comments).toBeDefined();
-    const commentData = root?.data?.metadata?.comments?.[commentId as string] as
-      | OoxmlComment
-      | undefined;
+    const commentData = root?.data?.metadata?.comments?.[
+      commentId as string
+    ] as OoxmlComment | undefined;
     expect(commentData).toBeDefined();
     expect(commentData?.type).toBe("comment");
     expect(commentData?.id).toBe(commentId);

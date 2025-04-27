@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createProcessor } from "@docen/core";
@@ -9,8 +9,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const samplesDir = join(__dirname, "../samples");
+const draftsDir = join(__dirname, "../../drafts");
 const inputFile = join(samplesDir, "sample.html");
-const outputFile = join(__dirname, "html-to-markdown.draft.md"); // Output in examples dir
+mkdirSync(draftsDir, { recursive: true });
+const outputFile = join(draftsDir, "html-to-markdown.draft.md"); // Output in examples dir
 
 async function convertHtmlToMarkdown() {
   console.log("\nRunning: HTML -> Markdown Example (Using docenHtml)");
@@ -26,7 +28,7 @@ async function convertHtmlToMarkdown() {
 
     console.log(`Conversion result type: ${typeof result.value}`);
     console.log(
-      `Conversion result value (first 100 chars): ${(result.value as string)?.substring(0, 100)}...`
+      `Conversion result value (first 100 chars): ${(result.value as string)?.substring(0, 100)}...`,
     );
 
     writeFileSync(outputFile, result.value as string);

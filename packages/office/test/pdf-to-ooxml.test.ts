@@ -19,7 +19,7 @@ async function processPdf(filePath: string): Promise<OoxmlRoot | undefined> {
   const fileUint8Array = new Uint8Array(
     fileBuffer.buffer,
     fileBuffer.byteOffset,
-    fileBuffer.byteLength
+    fileBuffer.byteLength,
   );
   const vfile = new VFile({ value: fileUint8Array, path: filePath });
 
@@ -108,7 +108,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     // Table parsing is not implemented, expect text runs corresponding to cells
     // TODO: Add assertions based on expected paragraph/text run output
     console.warn(
-      "PDF Table test: Only checks for extracted text, not table structure."
+      "PDF Table test: Only checks for extracted text, not table structure.",
     );
   });
 
@@ -126,21 +126,21 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     // --- Debugging Log ---
     console.log(
       "Hyperlink Test - Paragraph Children:",
-      JSON.stringify(paragraph?.children, null, 2)
+      JSON.stringify(paragraph?.children, null, 2),
     );
     // ---------------------
 
     // Find the hyperlink node
     const hyperlinkNode = paragraph?.children?.find(
       (node: any) =>
-        node.name === "hyperlink" && node.data?.ooxmlType === "hyperlink"
+        node.name === "hyperlink" && node.data?.ooxmlType === "hyperlink",
     ) as OoxmlHyperlink | undefined;
 
     expect(hyperlinkNode).toBeDefined();
     expect(hyperlinkNode?.data?.url).toBe("https://example.com");
     expect(hyperlinkNode?.children?.[0]?.type).toBe("text");
     expect((hyperlinkNode?.children?.[0] as OoxmlTextRun)?.value).toBe(
-      "hyperlink"
+      "hyperlink",
     );
     // Check for blue color if implemented precisely
     // expect(hyperlinkNode?.data?.properties?.color).toBe('0000ff'); // Or similar
@@ -174,12 +174,12 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
         console.log("Image test: Found drawing placeholder.");
       } else {
         console.warn(
-          "Image test: Drawing placeholder not found, likely due to PDF.js image loading error."
+          "Image test: Drawing placeholder not found, likely due to PDF.js image loading error.",
         );
       }
     } else {
       console.warn(
-        "Image test: No content generated, likely due to PDF.js image loading error."
+        "Image test: No content generated, likely due to PDF.js image loading error.",
       );
     }
   });
@@ -193,7 +193,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     // Add checks for the specific text content
     // Find the paragraph and text run containing the bookmark text
     const para = ast?.children?.find(
-      (p) => p.type === "element" && p.name === "paragraph"
+      (p) => p.type === "element" && p.name === "paragraph",
     ) as OoxmlParagraph | undefined;
     const textRun = para?.children?.find((t) => t.type === "text") as
       | OoxmlTextRun
@@ -209,7 +209,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     expect(ast?.type).toBe("root");
     // Add checks for the specific text content
     const para = ast?.children?.find(
-      (p) => p.type === "element" && p.name === "paragraph"
+      (p) => p.type === "element" && p.name === "paragraph",
     ) as OoxmlParagraph | undefined;
     const textRun = para?.children?.find((t) => t.type === "text") as
       | OoxmlTextRun

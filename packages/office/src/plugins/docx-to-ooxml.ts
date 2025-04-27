@@ -66,7 +66,7 @@ interface TransformContext {
 
 // Function to safely get Ooxml properties from data field
 function getOoxmlDataProps<T extends XastNode | OoxmlNode>(
-  node: T
+  node: T,
 ): Record<string, any> | undefined {
   // Use type assertion to clarify the expected structure of data
   return (node?.data as OoxmlData | undefined)?.properties;
@@ -74,7 +74,7 @@ function getOoxmlDataProps<T extends XastNode | OoxmlNode>(
 
 // Function to safely get specific Ooxml type from data field
 function getOoxmlType<T extends XastNode | OoxmlNode>(
-  node: T
+  node: T,
 ): string | undefined {
   // Use type assertion to clarify the expected structure of data
   return (node?.data as OoxmlData | undefined)?.ooxmlType;
@@ -103,10 +103,10 @@ function resolveStyleChain(
   styleId: string | undefined,
   styles: Record<string, SharedStyleDefinition> | undefined,
   type: "paragraph" | "character",
-  depth = 0
+  depth = 0,
 ): any {
   console.warn(
-    "resolveStyleChain needs adaptation for data properties and SharedStyleDefinition structure."
+    "resolveStyleChain needs adaptation for data properties and SharedStyleDefinition structure.",
   );
   if (!styleId || !styles?.[styleId] || depth > 10) {
     // Added check for styles object
@@ -117,7 +117,7 @@ function resolveStyleChain(
     style.basedOn,
     styles,
     type,
-    depth + 1
+    depth + 1,
   );
 
   let currentStyleProps = {};
@@ -150,7 +150,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Font Name
   const rFonts = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:rFonts"
+    (child) => child.type === "element" && child.name === "w:rFonts",
   ) as XastElement | undefined;
   if (rFonts?.attributes) {
     props.name = String(
@@ -158,13 +158,13 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
         rFonts.attributes["w:hAnsi"] ||
         rFonts.attributes["w:eastAsia"] ||
         rFonts.attributes["w:cs"] ||
-        ""
+        "",
     );
   }
 
   // Bold
   const boldElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:b"
+    (child) => child.type === "element" && child.name === "w:b",
   ) as XastElement | undefined;
   if (
     boldElement &&
@@ -176,7 +176,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Italic
   const italicElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:i"
+    (child) => child.type === "element" && child.name === "w:i",
   ) as XastElement | undefined;
   if (
     italicElement &&
@@ -188,17 +188,17 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Underline
   const underlineElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:u"
+    (child) => child.type === "element" && child.name === "w:u",
   ) as XastElement | undefined;
   if (underlineElement?.attributes?.["w:val"]) {
     props.underline = String(
-      underlineElement.attributes["w:val"]
+      underlineElement.attributes["w:val"],
     ) as FontProperties["underline"];
   }
 
   // Strikethrough
   const strikeElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:strike"
+    (child) => child.type === "element" && child.name === "w:strike",
   ) as XastElement | undefined;
   if (
     strikeElement &&
@@ -208,7 +208,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
     props.strike = true;
   }
   const dstrikeElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:dstrike"
+    (child) => child.type === "element" && child.name === "w:dstrike",
   ) as XastElement | undefined;
   if (
     dstrikeElement &&
@@ -220,7 +220,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Font Size (typically in half-points)
   const szElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:sz"
+    (child) => child.type === "element" && child.name === "w:sz",
   ) as XastElement | undefined;
   const szVal = szElement?.attributes?.["w:val"];
   if (szVal !== undefined) {
@@ -232,7 +232,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Font Color
   const colorElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:color"
+    (child) => child.type === "element" && child.name === "w:color",
   ) as XastElement | undefined;
   if (
     colorElement?.attributes?.["w:val"] &&
@@ -244,7 +244,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Vertical Align (Superscript/Subscript)
   const vertAlignElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:vertAlign"
+    (child) => child.type === "element" && child.name === "w:vertAlign",
   ) as XastElement | undefined;
   const vertAlignVal = vertAlignElement?.attributes?.["w:val"];
   if (vertAlignVal === "superscript" || vertAlignVal === "subscript") {
@@ -253,7 +253,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Highlight
   const highlightElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:highlight"
+    (child) => child.type === "element" && child.name === "w:highlight",
   ) as XastElement | undefined;
   const highlightVal = highlightElement?.attributes?.["w:val"];
   if (highlightVal && highlightVal !== "none") {
@@ -262,7 +262,7 @@ function parseRPr(rPrElement: XastElement | undefined): FontProperties {
 
   // Character Style
   const rStyleElement = rPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:rStyle"
+    (child) => child.type === "element" && child.name === "w:rStyle",
   ) as XastElement | undefined;
   if (rStyleElement?.attributes?.["w:val"]) {
     props.styleId = String(rStyleElement.attributes["w:val"]);
@@ -284,7 +284,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
 
   // Paragraph Style
   const pStyleElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:pStyle"
+    (child) => child.type === "element" && child.name === "w:pStyle",
   ) as XastElement | undefined;
   if (pStyleElement?.attributes?.["w:val"]) {
     props.styleId = String(pStyleElement.attributes["w:val"]);
@@ -292,24 +292,24 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
 
   // Justification/Alignment
   const jcElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:jc"
+    (child) => child.type === "element" && child.name === "w:jc",
   ) as XastElement | undefined;
   if (jcElement?.attributes?.["w:val"]) {
     props.alignment = String(
-      jcElement.attributes["w:val"]
+      jcElement.attributes["w:val"],
     ) as ParagraphFormatting["alignment"];
   }
 
   // Numbering Properties
   const numPrElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:numPr"
+    (child) => child.type === "element" && child.name === "w:numPr",
   ) as XastElement | undefined;
   if (numPrElement) {
     const ilvlElement = numPrElement.children?.find(
-      (child) => child.type === "element" && child.name === "w:ilvl"
+      (child) => child.type === "element" && child.name === "w:ilvl",
     ) as XastElement | undefined;
     const numIdElement = numPrElement.children?.find(
-      (child) => child.type === "element" && child.name === "w:numId"
+      (child) => child.type === "element" && child.name === "w:numId",
     ) as XastElement | undefined;
     const ilvlVal = ilvlElement?.attributes?.["w:val"];
     const numIdVal = numIdElement?.attributes?.["w:val"];
@@ -326,7 +326,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
 
   // Indentation
   const indElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:ind"
+    (child) => child.type === "element" && child.name === "w:ind",
   ) as XastElement | undefined;
   if (indElement?.attributes) {
     props.indentation = {};
@@ -343,7 +343,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
 
   // Spacing
   const spacingElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:spacing"
+    (child) => child.type === "element" && child.name === "w:spacing",
   ) as XastElement | undefined;
   if (spacingElement?.attributes) {
     props.spacing = {};
@@ -355,7 +355,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
       props.spacing.line = String(spacingElement.attributes.line);
     if (spacingElement.attributes.lineRule) {
       props.spacing.lineRule = String(
-        spacingElement.attributes.lineRule
+        spacingElement.attributes.lineRule,
       ) as SpacingProperties["lineRule"];
     }
     // TODO: Consider parsing units (dxa, etc.)
@@ -363,7 +363,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
 
   // Keep Lines / Keep Next / Widow Control / Page Break Before
   const keepNextElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:keepNext"
+    (child) => child.type === "element" && child.name === "w:keepNext",
   ) as XastElement | undefined;
   if (
     keepNextElement &&
@@ -373,7 +373,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     props.keepNext = true;
   }
   const keepLinesElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:keepLines"
+    (child) => child.type === "element" && child.name === "w:keepLines",
   ) as XastElement | undefined;
   if (
     keepLinesElement &&
@@ -383,7 +383,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     props.keepLines = true;
   }
   const widowControlElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:widowControl"
+    (child) => child.type === "element" && child.name === "w:widowControl",
   ) as XastElement | undefined;
   if (
     widowControlElement &&
@@ -393,7 +393,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
     props.widowControl = true;
   }
   const pageBreakBeforeElement = pPrElement.children?.find(
-    (child) => child.type === "element" && child.name === "w:pageBreakBefore"
+    (child) => child.type === "element" && child.name === "w:pageBreakBefore",
   ) as XastElement | undefined;
   if (
     pageBreakBeforeElement &&
@@ -409,7 +409,7 @@ function parsePPr(pPrElement: XastElement | undefined): ParagraphFormatting {
 
 // Helper to parse <w:tblPr>
 function parseTblPr(
-  tblPrElement: XastElement | undefined
+  tblPrElement: XastElement | undefined,
 ): Record<string, any> {
   // Basic placeholder - add actual parsing logic as needed
   if (
@@ -421,7 +421,7 @@ function parseTblPr(
   console.log("Parsing w:tblPr (basic)...");
   // Example: Parse table style
   const tblStyle = tblPrElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:tblStyle"
+    (c) => c.type === "element" && c.name === "w:tblStyle",
   ) as XastElement | undefined;
   return {
     styleId: tblStyle?.attributes?.["w:val"]
@@ -456,7 +456,7 @@ function parseTcPr(tcPrElement: XastElement | undefined): Record<string, any> {
   console.log("Parsing w:tcPr (basic)...");
   // Example: Parse vertical alignment
   const vAlign = tcPrElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:vAlign"
+    (c) => c.type === "element" && c.name === "w:vAlign",
   ) as XastElement | undefined;
   return {
     verticalAlign: vAlign?.attributes?.["w:val"]
@@ -468,7 +468,7 @@ function parseTcPr(tcPrElement: XastElement | undefined): Record<string, any> {
 
 // Generic property parser
 function parseProperties(
-  propElement: XastElement | undefined
+  propElement: XastElement | undefined,
 ): Record<string, any> {
   if (!propElement || propElement.type !== "element") return {};
 
@@ -490,7 +490,7 @@ function parseProperties(
   }
 
   console.warn(
-    `Property parsing not implemented for element: ${propElement.name}`
+    `Property parsing not implemented for element: ${propElement.name}`,
   );
   return {};
 }
@@ -498,7 +498,7 @@ function parseProperties(
 // --- Resource Parsing (Adapted for xast) ---
 
 async function parseStylesXml(
-  files: Record<string, Uint8Array>
+  files: Record<string, Uint8Array>,
 ): Promise<SharedResources> {
   const stylesPath = "word/styles.xml";
   const resources: SharedResources = {
@@ -516,25 +516,25 @@ async function parseStylesXml(
     const parsedStylesData = fromXml(xmlContent);
 
     const stylesElement = parsedStylesData.children?.find(
-      (node) => node.type === "element" && node.name === "w:styles"
+      (node) => node.type === "element" && node.name === "w:styles",
     ) as XastElement | undefined;
     if (!stylesElement) return resources;
 
     const docDefaultsElement = stylesElement.children?.find(
-      (node) => node.type === "element" && node.name === "w:docDefaults"
+      (node) => node.type === "element" && node.name === "w:docDefaults",
     ) as XastElement | undefined;
     if (docDefaultsElement) {
       const pPrDefaultContainer = docDefaultsElement.children?.find(
-        (node) => node.type === "element" && node.name === "w:pPrDefault"
+        (node) => node.type === "element" && node.name === "w:pPrDefault",
       ) as XastElement | undefined;
       const pPrDefaultElement = pPrDefaultContainer?.children?.find(
-        (node) => node.type === "element" && node.name === "w:pPr"
+        (node) => node.type === "element" && node.name === "w:pPr",
       ) as XastElement | undefined;
       const rPrDefaultContainer = docDefaultsElement.children?.find(
-        (node) => node.type === "element" && node.name === "w:rPrDefault"
+        (node) => node.type === "element" && node.name === "w:rPrDefault",
       ) as XastElement | undefined;
       const rPrDefaultElement = rPrDefaultContainer?.children?.find(
-        (node) => node.type === "element" && node.name === "w:rPr"
+        (node) => node.type === "element" && node.name === "w:rPr",
       ) as XastElement | undefined;
       resources.defaults = {
         paragraph: parsePPr(pPrDefaultElement),
@@ -548,21 +548,21 @@ async function parseStylesXml(
           const styleEl = node as XastElement;
           const styleId = String(styleEl.attributes?.["w:styleId"] || "");
           const type = String(
-            styleEl.attributes?.["w:type"] || ""
+            styleEl.attributes?.["w:type"] || "",
           ) as SharedStyleDefinition["type"];
           if (!styleId || !type) continue;
 
           const nameElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:name"
+            (child) => child.type === "element" && child.name === "w:name",
           ) as XastElement | undefined;
           const basedOnElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:basedOn"
+            (child) => child.type === "element" && child.name === "w:basedOn",
           ) as XastElement | undefined;
           const pPrElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:pPr"
+            (child) => child.type === "element" && child.name === "w:pPr",
           ) as XastElement | undefined;
           const rPrElement = styleEl.children?.find(
-            (child) => child.type === "element" && child.name === "w:rPr"
+            (child) => child.type === "element" && child.name === "w:rPr",
           ) as XastElement | undefined;
 
           const definition: SharedStyleDefinition = {
@@ -591,7 +591,7 @@ async function parseStylesXml(
 
 // Helper for parseNumberingXml
 function parseNumberingLevel(
-  lvlElement: XastElement
+  lvlElement: XastElement,
 ): SharedNumberingLevelDefinition | null {
   if (
     !lvlElement ||
@@ -605,22 +605,22 @@ function parseNumberingLevel(
 
   const definition: SharedNumberingLevelDefinition = { level };
   const startElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:start"
+    (c) => c.type === "element" && c.name === "w:start",
   ) as XastElement | undefined;
   const numFmtElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:numFmt"
+    (c) => c.type === "element" && c.name === "w:numFmt",
   ) as XastElement | undefined;
   const lvlTextElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:lvlText"
+    (c) => c.type === "element" && c.name === "w:lvlText",
   ) as XastElement | undefined;
   const lvlJcElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:lvlJc"
+    (c) => c.type === "element" && c.name === "w:lvlJc",
   ) as XastElement | undefined;
   const pPrElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:pPr"
+    (c) => c.type === "element" && c.name === "w:pPr",
   ) as XastElement | undefined;
   const rPrElement = lvlElement.children?.find(
-    (c) => c.type === "element" && c.name === "w:rPr"
+    (c) => c.type === "element" && c.name === "w:rPr",
   ) as XastElement | undefined;
 
   const startVal = startElement?.attributes?.["w:val"];
@@ -631,7 +631,7 @@ function parseNumberingLevel(
     definition.text = String(lvlTextElement.attributes["w:val"]);
   if (lvlJcElement?.attributes?.["w:val"])
     definition.jc = String(
-      lvlJcElement.attributes["w:val"]
+      lvlJcElement.attributes["w:val"],
     ) as ParagraphFormatting["alignment"];
   if (pPrElement) definition.pPr = parsePPr(pPrElement);
   if (rPrElement) definition.rPr = parseRPr(rPrElement);
@@ -641,7 +641,7 @@ function parseNumberingLevel(
 
 async function parseNumberingXml(
   files: Record<string, Uint8Array>,
-  resources: SharedResources
+  resources: SharedResources,
 ): Promise<void> {
   const numberingPath = "word/numbering.xml";
   if (!files[numberingPath]) {
@@ -658,7 +658,7 @@ async function parseNumberingXml(
     const xmlContent = strFromU8(files[numberingPath]);
     const parsedNumberingData = fromXml(xmlContent);
     const numberingElement = parsedNumberingData.children?.find(
-      (node) => node.type === "element" && node.name === "w:numbering"
+      (node) => node.type === "element" && node.name === "w:numbering",
     ) as XastElement | undefined;
     if (!numberingElement || !numberingElement.children) return;
 
@@ -671,17 +671,17 @@ async function parseNumberingXml(
         if (!abstractNumId) continue;
 
         const nameElement = abstractNumEl.children?.find(
-          (c) => c.type === "element" && c.name === "w:name"
+          (c) => c.type === "element" && c.name === "w:name",
         ) as XastElement | undefined;
         const multiLevelTypeElement = abstractNumEl.children?.find(
-          (c) => c.type === "element" && c.name === "w:multiLevelType"
+          (c) => c.type === "element" && c.name === "w:multiLevelType",
         ) as XastElement | undefined;
 
         const definition: SharedAbstractNumDefinition = {
           abstractNumId: abstractNumId,
           name: String(nameElement?.attributes?.["w:val"] || ""),
           multiLevelType: String(
-            multiLevelTypeElement?.attributes?.["w:val"] || ""
+            multiLevelTypeElement?.attributes?.["w:val"] || "",
           ),
           levels: {},
         };
@@ -705,7 +705,7 @@ async function parseNumberingXml(
         const numInstEl = node as XastElement;
         const numIdVal = numInstEl.attributes?.["w:numId"];
         const abstractNumIdRefEl = numInstEl.children?.find(
-          (c) => c.type === "element" && c.name === "w:abstractNumId"
+          (c) => c.type === "element" && c.name === "w:abstractNumId",
         ) as XastElement | undefined;
         const abstractNumIdRefVal = abstractNumIdRefEl?.attributes?.["w:val"];
 
@@ -722,7 +722,7 @@ async function parseNumberingXml(
 
         if (numInstEl.children) {
           const lvlOverrideContainer = numInstEl.children.find(
-            (c) => c.type === "element" && c.name === "w:lvlOverride"
+            (c) => c.type === "element" && c.name === "w:lvlOverride",
           ) as XastElement | undefined;
           if (lvlOverrideContainer?.children) {
             for (const overrideNode of lvlOverrideContainer.children) {
@@ -741,7 +741,7 @@ async function parseNumberingXml(
                 const levelDefOverride: Partial<SharedNumberingLevelDefinition> =
                   {};
                 const startOverrideElement = overrideEl.children?.find(
-                  (c) => c.type === "element" && c.name === "w:startOverride"
+                  (c) => c.type === "element" && c.name === "w:startOverride",
                 ) as XastElement | undefined;
                 const lvlElement = overrideEl;
 
@@ -775,7 +775,7 @@ async function parseNumberingXml(
 }
 
 async function parseRelationshipsXml(
-  files: Record<string, Uint8Array>
+  files: Record<string, Uint8Array>,
 ): Promise<RelationshipMap> {
   const relsPath = "word/_rels/document.xml.rels";
   const relationships: RelationshipMap = {};
@@ -788,7 +788,7 @@ async function parseRelationshipsXml(
     const xmlContent = strFromU8(files[relsPath]);
     const relParser = fromXml(xmlContent);
     const relationshipsElement = relParser.children?.find(
-      (node) => node.type === "element" && node.name === "Relationships"
+      (node) => node.type === "element" && node.name === "Relationships",
     ) as XastElement | undefined;
 
     if (relationshipsElement?.children) {
@@ -812,7 +812,7 @@ async function parseRelationshipsXml(
   } catch (error) {
     console.error(
       "Error parsing word/_rels/document.xml.rels with xast:",
-      error
+      error,
     );
   }
   return relationships;
@@ -821,7 +821,7 @@ async function parseRelationshipsXml(
 // --- Comment Parsing (Adapted for XAST) ---
 async function parseCommentsXml(
   files: Record<string, Uint8Array>,
-  context: TransformContext // Pass the full context for traverse
+  context: TransformContext, // Pass the full context for traverse
 ): Promise<Record<string, OoxmlComment>> {
   const commentsPath = "word/comments.xml";
   const commentsMap: Record<string, OoxmlComment> = {};
@@ -834,14 +834,14 @@ async function parseCommentsXml(
     const xmlContent = strFromU8(files[commentsPath]);
     const parsedCommentsData = fromXml(xmlContent);
     const commentsRootElement = parsedCommentsData.children?.find(
-      (node) => node.type === "element" && node.name === "w:comments"
+      (node) => node.type === "element" && node.name === "w:comments",
     ) as XastElement | undefined;
 
     if (!commentsRootElement?.children) return commentsMap;
 
     const commentEls = commentsRootElement.children.filter(
       (node): node is XastElement =>
-        node.type === "element" && node.name === "w:comment"
+        node.type === "element" && node.name === "w:comment",
     );
 
     console.error(`Found ${commentEls.length} w:comment elements.`); // New log 1
@@ -866,8 +866,8 @@ async function parseCommentsXml(
           if (Array.isArray(processedNode)) {
             commentChildren.push(
               ...(processedNode.filter(
-                isOoxmlBlockContent
-              ) as OoxmlBlockContent[])
+                isOoxmlBlockContent,
+              ) as OoxmlBlockContent[]),
             );
           } else if (processedNode && isOoxmlBlockContent(processedNode)) {
             commentChildren.push(processedNode as OoxmlBlockContent);
@@ -886,7 +886,7 @@ async function parseCommentsXml(
       commentsMap[id] = commentData;
     }
     console.log(
-      `Parsed ${Object.keys(commentsMap).length} comments from comments.xml`
+      `Parsed ${Object.keys(commentsMap).length} comments from comments.xml`,
     );
   } catch (error) {
     console.error("Error parsing word/comments.xml with xast:", error);
@@ -902,7 +902,7 @@ async function parseCommentsXml(
 function traverse(
   node: XastNode,
   context: TransformContext, // Added context parameter
-  parent?: XastElement
+  parent?: XastElement,
 ): XastNode | XastNode[] | null {
   if (!node) return null;
 
@@ -928,7 +928,7 @@ function traverse(
     const propElement = element.children?.find(
       (child) =>
         child.type === "element" &&
-        ["w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr"].includes(child.name)
+        ["w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr"].includes(child.name),
     ) as XastElement | undefined;
 
     if (propElement) {
@@ -945,7 +945,7 @@ function traverse(
       const finalParaProps = mergeProps(
         defaultParaProps,
         resolvedParaStyle,
-        paragraphProps
+        paragraphProps,
       );
       finalParaProps.styleId = styleId;
       nodeData.properties = finalParaProps;
@@ -955,8 +955,8 @@ function traverse(
       // Explicitly capture properties for THIS run element
       const currentRunDirectProps = parseProperties(
         element.children?.find(
-          (c) => c.type === "element" && c.name === "w:rPr"
-        ) as XastElement | undefined
+          (c) => c.type === "element" && c.name === "w:rPr",
+        ) as XastElement | undefined,
       ) as FontProperties;
       // Store direct properties on the run node itself for potential later use/reference
       // The final effective properties are on the OoxmlTextRun children.
@@ -981,14 +981,14 @@ function traverse(
             const resolvedCharStyle = resolveStyleChain(
               charStyleId || undefined,
               styles,
-              "character"
+              "character",
             );
             const paraStyleId =
               parentParaProps?.styleId || defaultParaProps.styleId || "Normal";
             const resolvedParaStyleForRun = resolveStyleChain(
               paraStyleId,
               styles,
-              "paragraph"
+              "paragraph",
             );
             const paraDefaultRunProps = resolvedParaStyleForRun?.runProps || {};
 
@@ -997,7 +997,7 @@ function traverse(
               defaultRunProps,
               paraDefaultRunProps,
               resolvedCharStyle,
-              currentRunDirectProps // Explicitly use properties derived ONLY from this run's <w:rPr>
+              currentRunDirectProps, // Explicitly use properties derived ONLY from this run's <w:rPr>
             );
 
             const textRunNode: OoxmlTextRun = {
@@ -1014,7 +1014,7 @@ function traverse(
                 newChildren.push(processedChild);
               } else {
                 console.warn(
-                  "Traverse returned an array for w:br, expected single node."
+                  "Traverse returned an array for w:br, expected single node.",
                 );
                 newChildren.push(...processedChild); // Handle unexpected array
               }
@@ -1170,10 +1170,10 @@ function traverse(
  */
 function transformXastToOoxmlAst(
   bodyContentRoot: XastRoot,
-  context: TransformContext // Context is passed in
+  context: TransformContext, // Context is passed in
 ): OoxmlRoot {
   console.warn(
-    "transformXastToOoxmlAst needs further implementation and testing."
+    "transformXastToOoxmlAst needs further implementation and testing.",
   );
 
   // Start traversal of the main body content
@@ -1264,7 +1264,7 @@ function transformXastToOoxmlAst(
         // Add other valid block-level Ooxml nodes
         if (
           ["w:p", "w:tbl", "w:bookmarkStart", "w:bookmarkEnd"].includes(
-            node.name
+            node.name,
           )
         ) {
           // Basic check, push potentially OoxmlBlockContent compatible nodes
@@ -1306,14 +1306,14 @@ function transformXastToOoxmlAst(
 export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
   return async (
     tree: Node | undefined,
-    file: VFile
+    file: VFile,
   ): Promise<OoxmlRoot | undefined> => {
     console.log("Plugin: docxToOoxmlAst running (XAST-based).");
 
     // --- 0. Setup & Unzip ---
     if (!file.value || !(file.value instanceof Uint8Array)) {
       file.message(
-        new Error("VFile value must be a Uint8Array for OOXML parsing.")
+        new Error("VFile value must be a Uint8Array for OOXML parsing."),
       );
       return undefined;
     }
@@ -1329,8 +1329,8 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       console.error("Error unzipping OOXML file with fflate:", error);
       file.message(
         new Error(
-          `fflate unzip failed: ${error instanceof Error ? error.message : String(error)}`
-        )
+          `fflate unzip failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       return undefined;
     }
@@ -1344,7 +1344,7 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
     const mainPartPath = "word/document.xml";
     if (!decompressedFiles[mainPartPath]) {
       file.message(
-        new Error("Could not locate main document part (word/document.xml).")
+        new Error("Could not locate main document part (word/document.xml)."),
       );
       return undefined;
     }
@@ -1357,8 +1357,8 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       console.error(`Error parsing XML with fromXml (${mainPartPath}):`, error);
       file.message(
         new Error(
-          `XML parsing failed with fromXml for ${mainPartPath}: ${error instanceof Error ? error.message : String(error)}`
-        )
+          `XML parsing failed with fromXml for ${mainPartPath}: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       return undefined;
     }
@@ -1368,15 +1368,15 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
     let ooxmlAstRoot: OoxmlRoot;
     try {
       const documentElement = parsedXast.children?.find(
-        (node) => node.type === "element" && node.name === "w:document"
+        (node) => node.type === "element" && node.name === "w:document",
       ) as XastElement | undefined;
       const bodyElement = documentElement?.children?.find(
-        (node) => node.type === "element" && node.name === "w:body"
+        (node) => node.type === "element" && node.name === "w:body",
       ) as XastElement | undefined;
 
       if (!bodyElement) {
         console.warn(
-          "Could not find expected w:body structure in parsed xast tree."
+          "Could not find expected w:body structure in parsed xast tree.",
         );
         return undefined;
       }
@@ -1392,7 +1392,7 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       // Parse comments using the same context AFTER main body transformation
       const comments = await parseCommentsXml(
         decompressedFiles,
-        transformContext
+        transformContext,
       );
 
       // --- Safely initialize data and metadata before assignment ---
@@ -1410,7 +1410,7 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
 
       // Find and parse section properties (if they exist)
       const finalSectPrElement = bodyElement.children?.find(
-        (node) => node.type === "element" && node.name === "w:sectPr"
+        (node) => node.type === "element" && node.name === "w:sectPr",
       ) as XastElement | undefined;
       if (finalSectPrElement) {
         console.warn("Parsing of <w:sectPr> needs implementation.");
@@ -1427,8 +1427,8 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       console.error("Error during Ooxml AST transformation:", transformError);
       file.message(
         new Error(
-          `AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`
-        )
+          `AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`,
+        ),
       );
       return undefined;
     }

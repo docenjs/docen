@@ -73,7 +73,7 @@ export function isOoxmlBreak(node: Node): node is OoxmlBreak {
 
 // Type guard for OoxmlBlockContent union type
 export function isOoxmlBlockContent(
-  node: Node | XastNode | null | undefined
+  node: Node | XastNode | null | undefined,
 ): node is OoxmlBlockContent {
   if (!node || typeof node !== "object" || !node.type) return false;
 

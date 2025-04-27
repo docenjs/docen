@@ -29,7 +29,7 @@ export function collaborativePlugin(): Plugin {
 
       if (!adapter) {
         console.warn(
-          "collaborativePlugin: YjsAdapter not found on processor context. Collaboration features might be disabled or not initialized."
+          "collaborativePlugin: YjsAdapter not found on processor context. Collaboration features might be disabled or not initialized.",
         );
         return tree;
       }
@@ -71,7 +71,7 @@ export function fragmentationPlugin(
     threshold?: number;
     maxFragments?: number;
     nodeTypes?: string[];
-  } = {}
+  } = {},
 ): Plugin {
   return () =>
     function transformer(tree: Node, file: VFile) {
