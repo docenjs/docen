@@ -19,7 +19,7 @@ export type DocxProcessor = Processor<OoxmlRoot>;
  * potentially with collaboration enabled via @docen/core.
  */
 export function createDocxProcessor(
-  options: DocxProcessorOptions = {},
+  options: DocxProcessorOptions = {}
 ): DocxProcessor {
   // Use the core processor factory
   const processor = createProcessor({
@@ -31,7 +31,7 @@ export function createDocxProcessor(
 
   // Stringification handled separately or via core mechanisms if applicable
   console.warn(
-    "DOCX Compiler/Stringify logic is not yet implemented within createDocxProcessor.",
+    "DOCX Compiler/Stringify logic is not yet implemented within createDocxProcessor."
   );
 
   return processor;

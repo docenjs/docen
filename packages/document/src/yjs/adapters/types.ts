@@ -20,7 +20,7 @@ export interface HastYjsMapping {
   yjsType: typeof Y.XmlElement | typeof Y.XmlText | typeof Y.XmlHook; // Target Yjs type
   yjsTagName?: string | ((node: any) => string); // Tag name or function to get it for XmlElement
   attributes?: (
-    node: any,
+    node: any
   ) => Record<
     string,
     string | number | boolean | null | undefined | Array<string | number>

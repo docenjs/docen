@@ -54,7 +54,7 @@ interface ExtendedProcessor extends DocenProcessor {
  * Factory function to create a Docen processor
  */
 export function createProcessor(
-  options: DocenProcessorOptions = {},
+  options: DocenProcessorOptions = {}
 ): DocenProcessor {
   const baseProcessor = unified() as unknown as ExtendedProcessor;
 
@@ -68,7 +68,7 @@ export function createProcessor(
     } catch (e) {
       console.error(
         "Failed to initialize YjsAdapter during processor creation:",
-        e,
+        e
       );
       // Decide handling: throw error, or proceed without adapter?
       // Proceeding without adapter for now, collaboration will be disabled.
@@ -131,7 +131,7 @@ export function createProcessor(
   // --- Attach Docen Methods to Processor ---
 
   baseProcessor.observeChanges = (
-    callback: (changes: Array<ChangeEvent>) => void,
+    callback: (changes: Array<ChangeEvent>) => void
   ): (() => void) => {
     context.observers.add(callback);
     return () => {
@@ -200,7 +200,7 @@ export function createProcessor(
         const relPos = createRelativePositionFromPath(
           this.context.ydoc,
           position.path,
-          position.offset,
+          position.offset
         );
         const cursorState: CursorPosition = {
           relativePosition: relPos,
@@ -220,12 +220,12 @@ export function createProcessor(
         const anchorRelPos = createRelativePositionFromPath(
           this.context.ydoc,
           range.anchor.path,
-          range.anchor.offset,
+          range.anchor.offset
         );
         const headRelPos = createRelativePositionFromPath(
           this.context.ydoc,
           range.head.path,
-          range.head.offset,
+          range.head.offset
         );
         const selectionState: CursorPosition = {
           relativePosition: headRelPos,

@@ -6,9 +6,9 @@ import type {
   Doctype,
   Element,
   Instruction,
+  Parent,
   Root,
   Text,
-  Parent as XastParentType,
 } from "xast";
 
 /**
@@ -27,7 +27,7 @@ export type {
   Doctype as XastDoctype,
   Comment as XastComment,
   Cdata as XastCdata,
-  XastParentType as XastParent, // Re-export the xast Parent type
+  Parent as XastParent, // Re-export the xast Parent type
 };
 
 // Define the XastNode union type locally using imported types (use original names)

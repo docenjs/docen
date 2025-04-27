@@ -32,7 +32,7 @@ export function createDocument(
       threshold?: number;
       nodeTypes?: string[];
     };
-  },
+  }
 ) {
   const ydoc = new Y.Doc();
   const id =

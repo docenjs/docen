@@ -15,7 +15,7 @@ export interface AwarenessChanges {
  */
 export type AwarenessCallback = (
   changes: AwarenessChanges,
-  origin: unknown,
+  origin: unknown
 ) => void;
 
 /**
@@ -98,8 +98,8 @@ export class Awareness extends YAwareness {
     event: string,
     callback: (
       changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: unknown,
-    ) => void,
+      origin: unknown
+    ) => void
   ): void {
     // Cast to any for compatibility with super.on which might expect a generic Function type internally
     super.on(event, callback as any);
@@ -112,8 +112,8 @@ export class Awareness extends YAwareness {
     event: string,
     callback: (
       changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: unknown,
-    ) => void,
+      origin: unknown
+    ) => void
   ): void {
     // Cast to any for compatibility with super.off
     super.off(event, callback as any);

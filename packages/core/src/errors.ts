@@ -15,7 +15,7 @@ export class DocenError extends Error {
 
   constructor(
     message: string,
-    options: { error?: Error; context?: unknown } = {},
+    options: { error?: Error; context?: unknown } = {}
   ) {
     const { error, context } = options;
 
@@ -42,7 +42,7 @@ export class ParseError extends DocenError {
           offset: number;
         };
       };
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -61,7 +61,7 @@ export class TransformError extends DocenError {
         path?: (string | number)[];
         pluginName?: string;
       };
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -79,7 +79,7 @@ export class CompileError extends DocenError {
         node?: Node;
         format?: string;
       };
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -99,7 +99,7 @@ export class CollaborationError extends DocenError {
         localUpdate?: Uint8Array;
         remoteUpdate?: Uint8Array;
       };
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -119,7 +119,7 @@ export class SyncConflictError extends DocenError {
         path?: (string | number)[];
         strategy?: string;
       };
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -137,7 +137,7 @@ export class PluginError extends DocenError {
         pluginName?: string;
         phase?: "parse" | "transform" | "compile";
       };
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -209,7 +209,7 @@ export function addFileContext(
     path?: string;
     contents?: string;
     position?: { line: number; column: number; offset: number };
-  },
+  }
 ): DocenError {
   // Create a combined context with file information
   const combinedContext = error.context
@@ -226,7 +226,7 @@ export function addFileContext(
  * Convert unified-style errors to DocenErrors
  */
 export function fromUnifiedError(
-  error: Error & { name?: string; position?: unknown },
+  error: Error & { name?: string; position?: unknown }
 ): DocenError {
   if (error.name === "ParseError") {
     return new ParseError(error.message, {

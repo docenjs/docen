@@ -1,5 +1,4 @@
-import type { Node } from "unist";
-import type { ElementData, RootData, TextData } from "xast";
+import type { ElementData, TextData } from "xast";
 import type {
   BorderProperties,
   FillProperties,
@@ -11,7 +10,6 @@ import type {
   SharedResources,
   XastElement,
   XastNode,
-  XastParent,
   XastRoot,
   XastText,
 } from "./common-types";

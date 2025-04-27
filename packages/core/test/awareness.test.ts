@@ -77,7 +77,7 @@ describe("Awareness", () => {
         updated: [localClientId],
         removed: [],
       },
-      "local",
+      "local"
     );
   });
 
@@ -103,7 +103,7 @@ describe("Awareness", () => {
         updated: [localClientId],
         removed: [],
       },
-      "local",
+      "local"
     );
   });
 
@@ -128,7 +128,7 @@ describe("Awareness", () => {
         updated: [],
         removed: [localClientId],
       }),
-      "local",
+      "local"
     );
   });
 
@@ -263,7 +263,7 @@ describe("Awareness", () => {
 
       if (retrievedState?.cursor) {
         expect(
-          Y.relativePositionToJSON(retrievedState.cursor.relativePosition),
+          Y.relativePositionToJSON(retrievedState.cursor.relativePosition)
         ).toEqual(relPosJson0);
       } else {
         throw new Error("Cursor should not be null");
@@ -287,7 +287,7 @@ describe("Awareness", () => {
       expect(retrievedState?.cursor).toEqual(cursorPosition5);
       if (retrievedState?.cursor) {
         expect(
-          Y.relativePositionToJSON(retrievedState.cursor.relativePosition),
+          Y.relativePositionToJSON(retrievedState.cursor.relativePosition)
         ).toEqual(relPosJson5);
       } else {
         throw new Error("Cursor should not be null after update");

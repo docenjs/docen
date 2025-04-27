@@ -112,7 +112,7 @@ export class DocenCollabDocument implements CollaborativeDocument {
       (this.adapter as any).setSyncStrategy(strategy, handler);
     } else {
       console.warn(
-        "Setting sync strategy after document creation is not supported by the current adapter.",
+        "Setting sync strategy after document creation is not supported by the current adapter."
       );
       // Or potentially throw an error
     }

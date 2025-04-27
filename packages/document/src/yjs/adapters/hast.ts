@@ -10,7 +10,7 @@ import type { HastYjsMapping } from "./types"; // Import from the new types file
 
 // Helper function to stringify HAST properties to Yjs attributes
 function stringifyProperties(
-  properties: Properties | undefined,
+  properties: Properties | undefined
 ): Record<string, string> {
   const attrs: Record<string, string> = {};
   if (!properties) {
