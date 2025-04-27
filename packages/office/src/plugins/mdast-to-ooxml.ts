@@ -9,6 +9,9 @@ import type {
   RootContent as MdastContent,
   Paragraph as MdastParagraph,
   Root as MdastRoot,
+  Table as MdastTable,
+  TableCell as MdastTableCell,
+  TableRow as MdastTableRow,
   Text as MdastText,
   ThematicBreak as MdastThematicBreak,
   PhrasingContent,
@@ -18,6 +21,7 @@ import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import type {
+  BorderStyleProperties,
   FontProperties,
   OoxmlElement,
   OoxmlElementContent,
@@ -25,6 +29,8 @@ import type {
   OoxmlRoot,
   OoxmlText,
   ParagraphFormatting,
+  WmlTableCellProperties,
+  WmlTableProperties,
 } from "../ast";
 
 // Define interface for formatting state used during inline processing
@@ -125,7 +131,7 @@ export const mdastToOoxml: Plugin<[], MdastRoot, OoxmlRoot> = () => {
   return (tree: MdastRoot, file: VFile): void => {
     const ooxmlChildren: OoxmlElementContent[] = [];
 
-    visit(tree, (node) => {
+    visit(tree, (node, index, parent) => {
       if (node.type === "paragraph") {
         const mdastParagraph = node as MdastParagraph;
         const paragraphContent = processInlineContent(mdastParagraph.children);
@@ -180,7 +186,131 @@ export const mdastToOoxml: Plugin<[], MdastRoot, OoxmlRoot> = () => {
         // TODO: Handle Lists
         return SKIP;
       }
-      if (!["root", "text"].includes(node.type)) {
+      if (node.type === "table") {
+        const mdastTable = node as MdastTable;
+        const ooxmlTableRows: OoxmlElement[] = [];
+        let columnCount = 0;
+
+        // Iterate through MDAST rows to build OOXML rows and find max column count
+        for (const mdastRow of mdastTable.children) {
+          if (mdastRow.type === "tableRow") {
+            const ooxmlCells: OoxmlElement[] = [];
+            let currentRowCellCount = 0;
+            // Iterate through MDAST cells
+            mdastRow.children.forEach((mdastCell, cellIndex) => {
+              if (mdastCell.type === "tableCell") {
+                currentRowCellCount++;
+                const align = mdastTable.align?.[cellIndex];
+                const cellContent = processInlineContent(mdastCell.children);
+                const cellParagraph: OoxmlElement = {
+                  type: "element",
+                  name: "w:p",
+                  attributes: {},
+                  children: cellContent,
+                  data: {
+                    ooxmlType: "paragraph",
+                    properties: {
+                      alignment: align ?? undefined,
+                    } as ParagraphFormatting,
+                  },
+                };
+                const ooxmlCell: OoxmlElement = {
+                  type: "element",
+                  name: "w:tc",
+                  attributes: {},
+                  children: [cellParagraph],
+                  data: { ooxmlType: "tableCell" },
+                };
+                ooxmlCells.push(ooxmlCell);
+              }
+            });
+            columnCount = Math.max(columnCount, currentRowCellCount); // Update max column count
+
+            if (ooxmlCells.length > 0) {
+              const ooxmlRow: OoxmlElement = {
+                type: "element",
+                name: "w:tr",
+                attributes: {},
+                children: ooxmlCells,
+                data: { ooxmlType: "tableRow" },
+              };
+              ooxmlTableRows.push(ooxmlRow);
+            }
+          }
+        }
+
+        // Create OOXML table if it has rows and columns
+        if (ooxmlTableRows.length > 0 && columnCount > 0) {
+          // --- Create Table Grid ---
+          const gridCols: OoxmlElement[] = [];
+          for (let i = 0; i < columnCount; i++) {
+            gridCols.push({
+              type: "element",
+              name: "w:gridCol",
+              attributes: {},
+              children: [],
+              data: { ooxmlType: "tableGridCol" },
+            });
+          }
+          const tableGrid: OoxmlElement = {
+            type: "element",
+            name: "w:tblGrid",
+            attributes: {},
+            children: gridCols,
+            data: { ooxmlType: "tableGrid" },
+          };
+          // --- End Table Grid ---
+
+          // --- Define Basic Table Borders (Example) ---
+          // Use Measurement object for size and ColorDefinition for color
+          const basicBorderStyle: BorderStyleProperties = {
+            style: "single",
+            size: { value: 0.5, unit: "pt" }, // 4/8 pt = 0.5pt
+            color: { value: "auto" }, // Use ColorDefinition object
+          };
+          const tableBorders: WmlTableProperties["borders"] = {
+            top: basicBorderStyle,
+            bottom: basicBorderStyle,
+            left: basicBorderStyle,
+            right: basicBorderStyle,
+            insideH: basicBorderStyle,
+            insideV: basicBorderStyle,
+          };
+          // --- End Table Borders ---
+
+          const ooxmlTable: OoxmlElement = {
+            type: "element",
+            name: "w:tbl",
+            attributes: {},
+            // Grid must come BEFORE rows
+            children: [tableGrid, ...ooxmlTableRows],
+            data: {
+              ooxmlType: "table",
+              properties: {
+                borders: tableBorders,
+                // TODO: Add width based on percentage?
+                width: { value: 100, unit: "pct" }, // Add default width property
+              } as WmlTableProperties,
+            },
+          };
+          ooxmlChildren.push(ooxmlTable);
+        }
+        return SKIP; // Finished processing the table
+      }
+      if (["tableRow", "tableCell"].includes(node.type)) {
+        return SKIP;
+      }
+      if (
+        parent?.type === "root" &&
+        ![
+          "text",
+          "paragraph",
+          "heading",
+          "thematicBreak",
+          "list",
+          "table",
+        ].includes(node.type)
+      ) {
         console.warn(
           `Unhandled block node type during conversion: ${node.type}`,
         );

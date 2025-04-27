@@ -5,6 +5,7 @@
 import { unified } from "unified";
 import * as Y from "yjs";
 import type {
+  AwarenessState,
   ChangeEvent,
   CollaborativeDocument as CoreCollaborativeDocument,
   CursorPosition,
@@ -56,7 +57,7 @@ interface ExtendedProcessor extends DocenProcessor {
 export function createProcessor(
   options: DocenProcessorOptions = {},
 ): DocenProcessor {
-  const baseProcessor = unified() as unknown as ExtendedProcessor;
+  const baseProcessor = unified() as ExtendedProcessor;
 
   const ydoc = options?.collaborative ? options.ydoc || new Y.Doc() : undefined;
 
@@ -239,14 +240,37 @@ export function createProcessor(
     return this;
   };
 
+  // Directly build the expected cursor info structure from awareness states
   baseProcessor.getCursors = function () {
+    const cursors: {
+      clientId: number;
+      user: {
+        [key: string]: unknown;
+        id: string;
+        name?: string;
+        color?: string;
+        avatar?: string;
+      };
+      cursor: CursorPosition | null;
+    }[] = [];
     if (this.context.awareness) {
-      return getAwarenessCursors(this.context.awareness);
+      this.context.awareness
+        .getStates()
+        .forEach((state: AwarenessState, clientId: number) => {
+          // Ensure user info exists, as it's required in the target type
+          if (state.user) {
+            cursors.push({
+              clientId: clientId,
+              user: state.user, // Assume state.user fits the expected structure
+              cursor: state.cursor || null, // Use state.cursor or null
+            });
+          }
+        });
     }
-    return [];
+    return cursors;
   };
 
   // Ensure final return type matches DocenProcessor from ./types
   // Cast to DocenProcessor, relying on structural typing
-  return baseProcessor as any as DocenProcessor;
+  return baseProcessor;
 }

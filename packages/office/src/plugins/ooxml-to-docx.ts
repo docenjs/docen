@@ -252,47 +252,155 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
             console.log(`${indent}[processNode] Handling table...`);
             const tableProps = properties as TableProperties;
             const tableRows: TableRow[] = [];
+            let columnCount = 0;
+            let tableGridElement: OoxmlElement | undefined;
+
+            // First pass: Find the table grid and process rows
             for (const child of element.children || []) {
-              if (
-                child.type === "element" &&
-                (child.data as OoxmlData)?.ooxmlType === "tableRow"
-              ) {
-                const rowElement = child as OoxmlElement;
-                const tableCells: TableCell[] = [];
-                for (const cellChild of rowElement.children || []) {
-                  if (
-                    cellChild.type === "element" &&
-                    (cellChild.data as OoxmlData)?.ooxmlType === "tableCell"
-                  ) {
-                    const cellElement = cellChild as OoxmlElement;
-                    const cellProps = (cellElement.data?.properties ||
-                      {}) as TableCellProperties;
-                    const cellContent: (Paragraph | Table)[] = [];
-                    for (const contentNode of cellElement.children || []) {
-                      cellContent.push(...processNode(contentNode, {}));
-                    }
-                    const docxCellProps: any = { children: cellContent };
-                    if (cellProps.gridSpan !== undefined) {
-                      const span = cellProps.gridSpan;
-                      if (!Number.isNaN(span)) {
-                        docxCellProps.columnSpan = span;
+              if (child.type === "element") {
+                const childData = child.data as OoxmlData | undefined;
+                if (childData?.ooxmlType === "tableGrid") {
+                  tableGridElement = child as OoxmlElement;
+                  // Count columns from gridCol children
+                  columnCount =
+                    tableGridElement.children?.filter(
+                      (gc) =>
+                        gc.type === "element" &&
+                        (gc.data as OoxmlData)?.ooxmlType === "tableGridCol",
+                    ).length ?? 0;
+                  console.log(
+                    `${indent}  Found tableGrid with ${columnCount} columns.`,
+                  );
+                } else if (childData?.ooxmlType === "tableRow") {
+                  // Process row (same logic as before)
+                  const rowElement = child as OoxmlElement;
+                  const tableCells: TableCell[] = [];
+                  for (const cellChild of rowElement.children || []) {
+                    if (
+                      cellChild.type === "element" &&
+                      (cellChild.data as OoxmlData)?.ooxmlType === "tableCell"
+                    ) {
+                      const cellElement = cellChild as OoxmlElement;
+                      const cellProps = (cellElement.data?.properties ||
+                        {}) as TableCellProperties;
+                      const cellContent: (Paragraph | Table)[] = [];
+                      for (const contentNode of cellElement.children || []) {
+                        cellContent.push(...processNode(contentNode, {}));
                       }
+                      const docxCellProps: any = { children: cellContent };
+                      if (cellProps.gridSpan !== undefined) {
+                        const span = cellProps.gridSpan;
+                        if (!Number.isNaN(span)) {
+                          docxCellProps.columnSpan = span;
+                        }
+                      }
+                      // TODO: Add cell border/shading/valign mapping from cellProps
+                      tableCells.push(new TableCell(docxCellProps));
                     }
-                    tableCells.push(new TableCell(docxCellProps));
                   }
-                }
-                if (tableCells.length > 0) {
-                  tableRows.push(new TableRow({ children: tableCells }));
+                  if (tableCells.length > 0) {
+                    tableRows.push(new TableRow({ children: tableCells }));
+                  }
                 }
               }
             }
-            if (tableRows.length > 0) {
+
+            if (tableRows.length > 0 && columnCount > 0) {
+              // --- Prepare docx.Table properties ---
               const docxTableProps: any = { rows: tableRows };
-              docxTableProps.width = { size: 100, type: WidthType.PERCENTAGE };
+
+              // 1. Calculate column widths (example: equal percentage)
+              const columnWidths = Array(columnCount).fill(100 / columnCount);
+              docxTableProps.columnWidths = columnWidths;
+              console.log(`${indent}  Calculated columnWidths:`, columnWidths);
+
+              // 2. Apply width property from AST if available
+              if (tableProps.width) {
+                if (tableProps.width === "auto") {
+                  docxTableProps.width = { size: 0, type: WidthType.AUTO }; // Use 0 for AUTO size
+                  console.log(`${indent}  Applied width from props: auto`);
+                } else if (
+                  typeof tableProps.width === "object" &&
+                  tableProps.width !== null
+                ) {
+                  // Now we are sure it's an object (Measurement or { value, unit: 'pct' })
+                  if (
+                    "unit" in tableProps.width &&
+                    tableProps.width.unit === "pct"
+                  ) {
+                    // Assuming { value: number; unit: "pct"; }
+                    const percentWidth = tableProps.width.value;
+                    docxTableProps.width = {
+                      size: percentWidth,
+                      type: WidthType.PERCENTAGE,
+                    };
+                    console.log(
+                      `${indent}  Applied width from props: ${percentWidth}%`,
+                    );
+                  } else if (
+                    "value" in tableProps.width &&
+                    "unit" in tableProps.width
+                  ) {
+                    // Handle other Measurement units (e.g., dxa) - TBD
+                    console.warn(
+                      `${indent}  Unhandled table width object type/unit: ${tableProps.width.unit}`,
+                    );
+                    docxTableProps.width = {
+                      size: 100,
+                      type: WidthType.PERCENTAGE,
+                    }; // Fallback
+                  } else {
+                    // Unknown object structure
+                    console.warn(
+                      `${indent}  Unknown table width object structure in props:`,
+                      tableProps.width,
+                    );
+                    docxTableProps.width = {
+                      size: 100,
+                      type: WidthType.PERCENTAGE,
+                    }; // Fallback
+                  }
+                } else {
+                  // Should not happen if type definition is correct, but handle defensively
+                  console.warn(
+                    `${indent}  Unexpected table width type in props:`,
+                    typeof tableProps.width,
+                    tableProps.width,
+                  );
+                  docxTableProps.width = {
+                    size: 100,
+                    type: WidthType.PERCENTAGE,
+                  }; // Fallback
+                }
+              } else {
+                // Default width if not specified in props
+                docxTableProps.width = {
+                  size: 100,
+                  type: WidthType.PERCENTAGE,
+                };
+                console.log(`${indent}  Using default table width: 100%`);
+              }
+
+              // 3. Apply border properties from AST
+              if (tableProps.borders) {
+                // TODO: Convert WmlTableBorderProperties to docx ITableBordersOptions if needed
+                // Assuming direct mapping works for basic styles for now
+                docxTableProps.borders = tableProps.borders;
+                console.log(`${indent}  Applied borders from props.`);
+              } else {
+                console.log(
+                  `${indent}  No border properties found in AST data.`,
+                );
+                // Optionally add default borders here if none are provided
+              }
+              // --- End docx.Table properties preparation ---
+
               children.push(new Table(docxTableProps));
               console.log(`${indent}[processNode] Added Table.`);
             } else {
-              console.log(`${indent}[processNode] Table generated no rows.`);
+              console.log(
+                `${indent}[processNode] Table generated no rows or column count was zero.`,
+              );
             }
             console.log(`${indent}[processNode] Finished table.`);
           } else if (

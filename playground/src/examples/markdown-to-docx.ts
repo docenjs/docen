@@ -1,13 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  type OoxmlElement,
-  type OoxmlRoot,
-  mdastToOoxml,
-  ooxmlToDocx,
-} from "@docen/office";
+import { docenMarkdown } from "@docen/document";
+import { type OoxmlRoot, mdastToOoxml, ooxmlToDocx } from "@docen/office";
 import { Document, Packer } from "docx";
-import remarkParse from "remark-parse";
+import type { Root as MdastRoot } from "mdast";
 import { unified } from "unified";
 import { VFile } from "vfile";
 
@@ -29,7 +25,9 @@ mkdirSync(outputDir, { recursive: true });
 
 // --- Main conversion function ---
 async function convertMarkdownToDocx() {
-  console.log("--- Starting Markdown to DOCX Conversion (via OOXML AST) --- ");
+  console.log(
+    "--- Starting Markdown to DOCX Conversion (Single Pipeline) --- ",
+  );
 
   let markdownContent: string;
   try {
@@ -40,92 +38,45 @@ async function convertMarkdownToDocx() {
     throw error; // Re-throw to be caught by index.ts
   }
 
+  // Create a VFile with the markdown content
   const vfile = new VFile({ value: markdownContent, path: "input.md" });
 
   try {
-    // Step 1: Markdown to MDAST
-    const parser = unified().use(remarkParse);
-    const mdastTree = parser.parse(vfile);
-    console.log("Parsed MDAST.");
+    // Define the unified pipeline
+    const processor = unified()
+      .use(docenMarkdown) // Parser
+      .use(mdastToOoxml) // MDAST -> OOXML AST transformer
+      .use(ooxmlToDocx); // OOXML AST -> docx.Document transformer (attaches to result)
 
-    // Step 2: MDAST to OOXML AST
-    const ooxmlProcessor = unified().use(mdastToOoxml);
-    // Run the transform - the result should be on vfile.result
-    await ooxmlProcessor.run(mdastTree, vfile);
-    // Get the OOXML AST from vfile.result
-    const ooxmlRoot = vfile.result as OoxmlRoot;
-    vfile.result = undefined; // Clear result before next processor
-    console.log("Converted MDAST to OOXML AST from vfile.result.");
+    // Process the VFile through the entire pipeline
+    // .process executes parse, run, etc. and returns the processed VFile
+    // Using 'as any' on process due to potential type issues
+    const processedFile = await (processor.process as any)(vfile);
 
-    // --- Log the input tree for the next step ---
-    console.log(
-      `[markdown-to-docx] ooxmlRoot type: ${ooxmlRoot?.type}, children count: ${ooxmlRoot?.children?.length}`,
-    );
-    if (!ooxmlRoot) {
-      console.error(
-        "[markdown-to-docx] Failed to get ooxmlRoot from mdastToOoxml result!",
-      );
-      throw new Error("mdastToOoxml did not produce a result on vfile.result");
-    }
-    // Log first child ooxmlType if exists
-    if (
-      ooxmlRoot?.children?.length > 0 &&
-      ooxmlRoot.children[0].type === "element"
-    ) {
-      const firstChildData = (ooxmlRoot.children[0] as OoxmlElement).data;
-      console.log(
-        `[markdown-to-docx] First child ooxmlType: ${firstChildData?.ooxmlType}`,
-      );
-    }
-    // ---------------------------------------------
+    // Get the final Document object from the result property of the processed file
+    // Note: Depending on unified version/plugins, result might be on the original vfile or the returned one.
+    // Let's assume it's on the returned processedFile for safety.
+    const doc = processedFile.result as Document;
 
-    // Step 3: OOXML AST to docx.Document
-    if (ooxmlRoot.type !== "root") {
-      // Simpler check now
+    // Check if the result is actually a docx.Document object
+    if (!doc || !(doc instanceof Document)) {
+      console.error("Unified pipeline result:", processedFile.result);
       throw new Error(
-        "mdastToOoxml plugin did not produce a valid OOXML AST Root object on vfile.result.",
+        "Unified pipeline failed to produce a valid Document object on vfile.result.",
       );
     }
+    console.log("docx.Document object generated via single pipeline.");
 
-    const docxProcessor = unified().use(ooxmlToDocx);
-    // console.log(`[markdown-to-docx] Processor after use(ooxmlToDocx):`, docxProcessor); // Keep logs minimal now
-
-    // console.log(`[markdown-to-docx] Before run: typeof vfile.value = ${typeof vfile.value}, vfile.result =`, vfile.result);
-
-    // Run the processor. Input is ooxmlRoot, result (Document) will be on vfile.result
-    await docxProcessor.run(ooxmlRoot, vfile);
-
-    // console.log(`[markdown-to-docx] After run: typeof vfile.value = ${typeof vfile.value}`);
-    console.log(
-      `[markdown-to-docx] After run: typeof vfile.result = ${typeof vfile.result}, result instanceof Document: ${vfile.result instanceof Document}`,
-    );
-
-    // Step 4: Get the Document from vfile.result, Pack, and Write
-    const docxDocument = vfile.result as Document;
-
-    // Check if the result is actually a Document object
-    if (docxDocument instanceof Document) {
-      console.log(
-        "[markdown-to-docx] Received Document object from plugin via result.",
-      );
-      // Use Packer here
-      const buffer = await Packer.toBuffer(docxDocument);
-      console.log(
-        `[markdown-to-docx] Packed document to buffer. Size: ${buffer.length} bytes`,
-      );
-      writeFileSync(outputFilePath, buffer);
-      console.log(`Successfully wrote DOCX to: ${outputFilePath}`);
-    } else {
-      // Throw error if the plugin didn't produce a Document on vfile.result
-      throw new Error(
-        `ooxmlToDocx plugin did not produce a Document object on vfile.result. Got: ${typeof docxDocument}`,
-      );
-    }
+    // Pack and Write
+    const buffer = await Packer.toBuffer(doc);
+    console.log(`Packed document to buffer. Size: ${buffer.length} bytes`);
+    writeFileSync(outputFilePath, buffer);
+    console.log(`Successfully wrote DOCX to: ${outputFilePath}`);
 
     console.log("--- Markdown to DOCX Conversion Finished --- ");
   } catch (error) {
     console.error("Error during Markdown to DOCX pipeline:", error);
-    throw error; // Re-throw the error to be caught by the main runner
+    throw error;
   }
 }
 
