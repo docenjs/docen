@@ -8,11 +8,12 @@ import { docenHtml } from "@docen/document"; // Use the wrapper plugin
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const samplesDir = join(__dirname, "../samples");
-const draftsDir = join(__dirname, "../../drafts");
-const inputFile = join(samplesDir, "sample.html");
-mkdirSync(draftsDir, { recursive: true });
-const outputFile = join(draftsDir, "html-to-markdown.draft.md"); // Output in examples dir
+// Define paths relative to the current file
+const samplesDir = join(__dirname, "../samples"); // Assume __dirname is defined elsewhere or adjust
+const inputFile = join(samplesDir, "sample.md");
+const outputDir = join(__dirname, "..", "..", "drafts");
+mkdirSync(outputDir, { recursive: true });
+const outputFile = join(outputDir, "html_to_markdown.draft.md"); // Output in examples dir
 
 async function convertHtmlToMarkdown() {
   console.log("\nRunning: HTML -> Markdown Example (Using docenHtml)");

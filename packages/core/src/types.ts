@@ -115,7 +115,26 @@ export interface AwarenessState {
   };
   cursor?: CursorPosition | null;
   status?: "online" | "away" | "offline";
+  active?: boolean; // Add active status from usage in getAwarenessCursors
+  selection?: {
+    // Add selection info from usage in getAwarenessCursors
+    anchor?: Y.RelativePosition;
+    head?: Y.RelativePosition;
+  } | null;
   [key: string]: unknown;
+}
+
+/** Interface for processed cursor information from awareness state */
+export interface CursorInfo {
+  clientId: number;
+  userName?: string;
+  color?: string;
+  position: { path: (string | number)[]; offset: number } | null; // Use path/offset from conversion
+  active: boolean;
+  selection: {
+    anchor: Y.AbsolutePosition | null;
+    head: Y.AbsolutePosition | null;
+  } | null;
 }
 
 /** Node binding strategy interface */

@@ -15,7 +15,7 @@ import {
 import type {
   Awareness,
   AwarenessState,
-  CursorData,
+  CursorInfo,
   CursorPosition,
 } from "../types";
 
@@ -134,52 +134,69 @@ export function getNodeAtPath(
 /**
  * Get all user cursors from awareness states
  */
-export function getAwarenessCursors(awareness: Awareness): CursorData[] {
-  const cursors: CursorData[] = [];
+export function getAwarenessCursors(awareness: Awareness): CursorInfo[] {
+  const cursors: CursorInfo[] = [];
 
   try {
     const states = awareness.getStates();
 
-    // Iterate through all client states
     for (const [clientId, state] of states.entries()) {
-      // Skip clients without cursor information
-      if (!state || !state.cursor) continue;
+      if (!state?.cursor) continue;
 
-      const { cursor } = state;
+      const { cursor, selection } = state;
       const doc = awareness.doc;
 
-      // Convert the serialized cursor position
-      let position = null;
-      if (cursor) {
-        const relPos = Y.createRelativePositionFromJSON(cursor);
-        position = Y.createAbsolutePositionFromRelativePosition(relPos, doc);
+      let absolutePosition: Y.AbsolutePosition | null = null;
+      if (cursor?.relativePosition) {
+        try {
+          absolutePosition = createAbsolutePositionFromRelativePosition(
+            cursor.relativePosition,
+            doc,
+          );
+        } catch (e) {
+          console.warn(
+            `[getAwarenessCursors] Error creating absolute position for client ${clientId}`,
+            e,
+          );
+        }
       }
 
-      // Add cursor data
+      let absoluteSelection: {
+        anchor: Y.AbsolutePosition | null;
+        head: Y.AbsolutePosition | null;
+      } | null = null;
+      if (selection) {
+        try {
+          absoluteSelection = {
+            anchor: selection.anchor
+              ? createAbsolutePositionFromRelativePosition(
+                  selection.anchor,
+                  doc,
+                )
+              : null,
+            head: selection.head
+              ? createAbsolutePositionFromRelativePosition(selection.head, doc)
+              : null,
+          };
+        } catch (e) {
+          console.warn(
+            `[getAwarenessCursors] Error creating absolute selection for client ${clientId}`,
+            e,
+          );
+        }
+      }
+
       cursors.push({
         clientId,
-        userName: state.user?.name || `User ${clientId}`,
+        userName: state.user?.name ?? `User ${clientId}`,
         color:
-          state.user?.color ||
+          state.user?.color ??
           `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        position: position ? absolutePositionToPathOffset(position) : null,
-        active: state.active || false,
-        selection: state.selection
-          ? {
-              anchor: state.selection.anchor
-                ? createAbsolutePositionFromRelativePosition(
-                    createRelativePositionFromJSON(state.selection.anchor),
-                    doc,
-                  )
-                : null,
-              head: state.selection.head
-                ? createAbsolutePositionFromRelativePosition(
-                    createRelativePositionFromJSON(state.selection.head),
-                    doc,
-                  )
-                : null,
-            }
+        position: absolutePosition
+          ? absolutePositionToPathOffset(absolutePosition)
           : null,
+        active: state.active ?? false,
+        selection: absoluteSelection,
       });
     }
   } catch (e) {

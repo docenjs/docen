@@ -1,95 +1,133 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  type OoxmlElement,
+  type OoxmlRoot,
+  mdastToOoxml,
+  ooxmlToDocx,
+} from "@docen/office";
+import { Document, Packer } from "docx";
 import remarkParse from "remark-parse";
-import remarkStringify from "remark-stringify"; // For demonstration if needed
 import { unified } from "unified";
 import { VFile } from "vfile";
 
-// --- Placeholder for the actual DOCX generation logic ---
-// In a real scenario, this might be a dedicated plugin in the unified chain
-// (e.g., `ooxml-stringify-docx`) or an external library call.
-async function generateDocx(markdownContent: string): Promise<Buffer> {
-  console.log(
-    "Simulating DOCX generation for Markdown. Replace with actual implementation.",
-  );
-  // Replace this with actual DOCX generation logic (e.g., using pandoc, mammoth, or a custom OOXML serializer)
-  // For now, just return a buffer containing the Markdown for demonstration.
-  return Buffer.from(
-    `This is a placeholder DOCX buffer for:\n\n${markdownContent}`,
-  );
-}
-// ---------------------------------------------------------
-
-async function convertMarkdownToDocx(
-  markdownInput: string,
-  outputPath: string,
-) {
-  console.log("--- Starting Markdown to DOCX Conversion ---");
-
-  // 1. Setup unified processor to parse Markdown
-  const processor = unified().use(remarkParse); // Add other remark plugins here if needed
-
-  // 2. Parse the Markdown into an AST (MDAST)
-  const file = new VFile({ value: markdownInput, path: "input.md" });
-  const mdast = processor.parse(file);
-  console.log("Markdown parsed into MDAST:");
-  // console.log(JSON.stringify(mdast, null, 2)); // Uncomment to see the AST
-
-  // --- Future steps for a pure unified pipeline (Requires new plugins) ---
-  // const ooxmlAst = await unified()
-  //   .use(remarkParse)
-  //   .use(remarkToOoxml) // Hypothetical: MDAST -> OOXML AST
-  //   .run(mdast);
-  //
-  // const docxBuffer = await unified()
-  //   .use(ooxmlStringifyDocx) // Hypothetical: OOXML AST -> DOCX Buffer
-  //   .stringify(ooxmlAst);
-  // -----------------------------------------------------------------------
-
-  // 3. Generate DOCX (using placeholder/external function for now)
-  // We pass the original markdown content here, but could pass processed content
-  const docxBuffer = await generateDocx(markdownInput);
-  console.log(
-    `Generated DOCX buffer (placeholder content). Size: ${docxBuffer.length} bytes`,
-  );
-
-  // 4. Write the DOCX buffer to a file
-  try {
-    writeFileSync(outputPath, docxBuffer);
-    console.log(`Successfully wrote DOCX to: ${outputPath}`);
-  } catch (error) {
-    console.error(`Error writing DOCX file to ${outputPath}:`, error);
-  }
-
-  console.log("--- Markdown to DOCX Conversion Finished ---");
-}
-
-// --- Example Usage ---
-const sampleMarkdown = `
-# Sample Markdown Document
-
-This is a paragraph with **bold** and *italic* text.
-
-- Item 1
-- Item 2
-  - Sub-item 2.1
-
-\`\`\`javascript
-function greet() {
-  console.log('Hello, DOCX!');
-}
-\`\`\`
-`;
-
-const outputFilePath = join(
-  __dirname,
-  "..",
-  "..",
-  "drafts",
-  "sample_markdown.docx",
+// --- Log the imported plugin ---
+console.log(
+  `[markdown-to-docx] Imported ooxmlToDocx type: ${typeof ooxmlToDocx}`,
 );
+// ------------------------------
+
+// Define paths relative to the current file
+const samplesDir = join(__dirname, "../samples"); // Assume __dirname is defined elsewhere or adjust
+const inputFile = join(samplesDir, "sample.md");
+const outputDir = join(__dirname, "..", "..", "drafts");
+mkdirSync(outputDir, { recursive: true });
+const outputFilePath = join(outputDir, "markdown_to_docx.draft.docx"); // Renamed output file
 
 // Ensure output directory exists
-mkdirSync(dirname(outputFilePath), { recursive: true });
+mkdirSync(outputDir, { recursive: true });
 
-convertMarkdownToDocx(sampleMarkdown, outputFilePath);
+// --- Main conversion function ---
+async function convertMarkdownToDocx() {
+  console.log("--- Starting Markdown to DOCX Conversion (via OOXML AST) --- ");
+
+  let markdownContent: string;
+  try {
+    markdownContent = readFileSync(inputFile, "utf-8");
+    console.log(`Read content from: ${inputFile}`);
+  } catch (error) {
+    console.error(`Error reading input file ${inputFile}:`, error);
+    throw error; // Re-throw to be caught by index.ts
+  }
+
+  const vfile = new VFile({ value: markdownContent, path: "input.md" });
+
+  try {
+    // Step 1: Markdown to MDAST
+    const parser = unified().use(remarkParse);
+    const mdastTree = parser.parse(vfile);
+    console.log("Parsed MDAST.");
+
+    // Step 2: MDAST to OOXML AST
+    const ooxmlProcessor = unified().use(mdastToOoxml);
+    // Run the transform - the result should be on vfile.result
+    await ooxmlProcessor.run(mdastTree, vfile);
+    // Get the OOXML AST from vfile.result
+    const ooxmlRoot = vfile.result as OoxmlRoot;
+    vfile.result = undefined; // Clear result before next processor
+    console.log("Converted MDAST to OOXML AST from vfile.result.");
+
+    // --- Log the input tree for the next step ---
+    console.log(
+      `[markdown-to-docx] ooxmlRoot type: ${ooxmlRoot?.type}, children count: ${ooxmlRoot?.children?.length}`,
+    );
+    if (!ooxmlRoot) {
+      console.error(
+        "[markdown-to-docx] Failed to get ooxmlRoot from mdastToOoxml result!",
+      );
+      throw new Error("mdastToOoxml did not produce a result on vfile.result");
+    }
+    // Log first child ooxmlType if exists
+    if (
+      ooxmlRoot?.children?.length > 0 &&
+      ooxmlRoot.children[0].type === "element"
+    ) {
+      const firstChildData = (ooxmlRoot.children[0] as OoxmlElement).data;
+      console.log(
+        `[markdown-to-docx] First child ooxmlType: ${firstChildData?.ooxmlType}`,
+      );
+    }
+    // ---------------------------------------------
+
+    // Step 3: OOXML AST to docx.Document
+    if (ooxmlRoot.type !== "root") {
+      // Simpler check now
+      throw new Error(
+        "mdastToOoxml plugin did not produce a valid OOXML AST Root object on vfile.result.",
+      );
+    }
+
+    const docxProcessor = unified().use(ooxmlToDocx);
+    // console.log(`[markdown-to-docx] Processor after use(ooxmlToDocx):`, docxProcessor); // Keep logs minimal now
+
+    // console.log(`[markdown-to-docx] Before run: typeof vfile.value = ${typeof vfile.value}, vfile.result =`, vfile.result);
+
+    // Run the processor. Input is ooxmlRoot, result (Document) will be on vfile.result
+    await docxProcessor.run(ooxmlRoot, vfile);
+
+    // console.log(`[markdown-to-docx] After run: typeof vfile.value = ${typeof vfile.value}`);
+    console.log(
+      `[markdown-to-docx] After run: typeof vfile.result = ${typeof vfile.result}, result instanceof Document: ${vfile.result instanceof Document}`,
+    );
+
+    // Step 4: Get the Document from vfile.result, Pack, and Write
+    const docxDocument = vfile.result as Document;
+
+    // Check if the result is actually a Document object
+    if (docxDocument instanceof Document) {
+      console.log(
+        "[markdown-to-docx] Received Document object from plugin via result.",
+      );
+      // Use Packer here
+      const buffer = await Packer.toBuffer(docxDocument);
+      console.log(
+        `[markdown-to-docx] Packed document to buffer. Size: ${buffer.length} bytes`,
+      );
+      writeFileSync(outputFilePath, buffer);
+      console.log(`Successfully wrote DOCX to: ${outputFilePath}`);
+    } else {
+      // Throw error if the plugin didn't produce a Document on vfile.result
+      throw new Error(
+        `ooxmlToDocx plugin did not produce a Document object on vfile.result. Got: ${typeof docxDocument}`,
+      );
+    }
+
+    console.log("--- Markdown to DOCX Conversion Finished --- ");
+  } catch (error) {
+    console.error("Error during Markdown to DOCX pipeline:", error);
+    throw error; // Re-throw the error to be caught by the main runner
+  }
+}
+
+// Default export the main function
+export default convertMarkdownToDocx;

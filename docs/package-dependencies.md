@@ -44,7 +44,6 @@ This document outlines the dependencies required for each package in the Docen p
 - `unpdf`: Utilities to work with PDFs in Node.js, browser and workers
 - `pdf-lib`: Pure JavaScript PDF manipulation library (browser-compatible)
 - `docx`: Modern DOCX generation library
-- `docx-to-vfile`: Reads .docx files and stores components in vfile format for unified processing
 - `undio`: Type conversion utilities from UnJS
 - `unified-engine`: Unified processing engine
 - `pathe`: Cross-platform path utilities from UnJS

@@ -188,6 +188,7 @@ export interface ParagraphFormatting {
   tabs?: TabStop[]; // <w:tabs>...</w:tabs>
   runProperties?: FontProperties; // Default run properties for the paragraph <w:rPr> inside <w:pPr>
   textDirection?: "lrTb" | "tbRl" | "btLr" | "lrTbV" | "tbRlV" | "tbLrV"; // <w:textDirection w:val="..."/>
+  thematicBreak?: boolean; // Added to represent a horizontal rule / thematic break
   // Add more: contextualSpacing, mirrorIndents, suppressAutoHyphens, etc.
 }
 

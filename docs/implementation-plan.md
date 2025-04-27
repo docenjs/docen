@@ -99,9 +99,9 @@ This document outlines the implementation plan for the Docen project based on th
 
 - [ ] Implement DOCX document processing
 
-  - [x] Integrate with DOCX manipulation libraries
-  - [ ] Implement docx-to-vfile integration for unified processing
-  - [ ] Implement DOCX-HTML bidirectional conversion
+  - [x] Integrate with DOCX manipulation libraries (using docx.js)
+  - [ ] Create unified plugin (MDAST -> docx objects)
+  - [ ] Implement MDAST -> DOCX conversion using docx.js
   - [ ] Add template-based DOCX generation
 
 - [ ] Implement other Office formats
