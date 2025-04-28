@@ -125,6 +125,7 @@ export type OoxmlElementContent = XastElementContent;
  */
 export interface FontProperties {
   name?: string; // Font name (e.g., 'Calibri') <w:rFonts w:ascii=".." w:hAnsi=".." w:cs=".." w:eastAsia=".."/>
+  font?: string; // Added for specific font assignment (like for inline code)
   size?: Measurement; // Font size (usually half-points, e.g., { value: 24, unit: 'pt' } for 12pt) <w:sz w:val="24"/>
   color?: ColorDefinition; // <w:color w:val="auto|hex" w:themeColor="..." w:themeTint="..." w:themeShade="..."/>
   bold?: OnOffValue; // <w:b/> or <w:b w:val="false|true|0|1"/>
@@ -140,7 +141,7 @@ export interface FontProperties {
   language?: string; // e.g., 'en-US' <w:lang w:val="en-US"/>
   highlight?: string | ColorDefinition; // Highlight color <w:highlight w:val="yellow|green|..."/>
   effect?: // <w:effect w:val="..."/>
-  | "shadow"
+    | "shadow"
     | "outline"
     | "emboss"
     | "engrave"
@@ -166,7 +167,7 @@ export interface FontProperties {
  */
 export interface ParagraphFormatting {
   alignment?: // <w:jc w:val="..."/>
-  | "left"
+    | "left"
     | "center"
     | "right"
     | "justify"

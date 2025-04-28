@@ -40,25 +40,18 @@ import type {
   WmlTableProperties,
 } from "../ast";
 
-// Define interface for formatting state used during inline processing
-interface FormattingState {
-  bold?: boolean;
-  italics?: boolean;
-  // Add other states like strike, code font etc. later
-}
-
 // Helper function to process inline MDAST nodes into OOXML AST Run Content
-// Returns an array of OOXML text runs (<w:r> elements or similar inline elements)
+// Returns an array of OOXML inline elements (like <w:r>, <w:hyperlink>, etc.)
 function processInlineContent(
   nodes: PhrasingContent[],
-  currentState: FormattingState = {},
+  currentState: FontProperties = {}
 ): OoxmlElement[] {
   // Ensure return type is array of OoxmlElement (specifically runs)
   const ooxmlRuns: OoxmlElement[] = [];
 
   for (const node of nodes) {
     if (node.type === "text") {
-      const currentProps = { ...currentState } as FontProperties;
+      const currentProps = { ...currentState };
       const textRun: OoxmlElement = {
         type: "element",
         name: "w:r",
@@ -89,20 +82,20 @@ function processInlineContent(
       ooxmlRuns.push(textRun);
     } else if (node.type === "strong") {
       ooxmlRuns.push(
-        ...processInlineContent(node.children, { ...currentState, bold: true }),
+        ...processInlineContent(node.children, { ...currentState, bold: true })
       );
     } else if (node.type === "emphasis") {
       ooxmlRuns.push(
         ...processInlineContent(node.children, {
           ...currentState,
-          italics: true,
-        }),
+          italic: true,
+        })
       );
     } else if (node.type === "link") {
       const linkNode = node as Link;
       const linkContentRuns = processInlineContent(
         linkNode.children,
-        currentState,
+        currentState
       ); // Process link text runs
       // Create a w:hyperlink element containing the text runs
       const hyperlinkElement: OoxmlElement = {
@@ -118,23 +111,9 @@ function processInlineContent(
           } as WmlHyperlinkProperties,
         },
       };
-      // A hyperlink itself isn't a run, but its contents are.
-      // The paragraph handler needs to know how to place this.
-      // For simplicity here, we wrap it in a structure that the paragraph handler can unpack.
-      // Alternatively, the paragraph handler directly processes phrasing content.
-      // Let's return the hyperlink element directly. The caller (paragraph converter) must handle it.
-      // This means processInlineContent might return more than just <w:r> elements.
-      // We need to adjust the paragraph creation logic.
-      // ---
-      // Revised approach: Return only TextRun compatible elements. Hyperlink processing happens in paragraph.
-      // For now, create runs for link content and add hyperlink info later? No, that loses structure.
-      // ---
-      // Decision: Let processInlineContent return runs and handle link creation in paragraph.
-      // For now, keep it simple: treat link text like regular text within the flow.
-      // TODO: Revisit hyperlink styling and structure generation.
-      // The current `ooxml-to-docx` expects hyperlink elements, so we *should* create them here.
-      // The return type needs to be OoxmlElementContent[] to allow non-run elements.
-      // Let's stick to creating the hyperlink element here.
+      // The current `ooxml-to-docx` plugin expects <w:hyperlink> elements.
+      // Return the hyperlink element directly. The caller (e.g., paragraph handler)
+      // must be able to handle non-<w:r> elements in the returned array.
       ooxmlRuns.push(hyperlinkElement);
     } else if (node.type === "break") {
       const breakElement: OoxmlElement = {
@@ -179,8 +158,40 @@ function processInlineContent(
         data: { ooxmlType: "textRun" },
       };
       ooxmlRuns.push(imageRunWrapper);
+    } else if (node.type === "inlineCode") {
+      const codeText = node.value;
+      // Define properties for inline code using FontProperties directly
+      const codeProps: FontProperties = {
+        ...currentState, // Keep existing state like bold/italic if nested
+        font: "Courier New", // Specify monospace font
+      };
+      const codeRun: OoxmlElement = {
+        type: "element",
+        name: "w:r",
+        attributes: {},
+        children: [
+          {
+            type: "element",
+            name: "w:t",
+            attributes: { "xml:space": "preserve" },
+            children: [
+              {
+                type: "text",
+                value: codeText,
+                data: { ooxmlType: "text" },
+              } as OoxmlText,
+            ],
+            data: { ooxmlType: "textContentWrapper" },
+          },
+        ],
+        data: {
+          ooxmlType: "textRun",
+          properties: codeProps, // Apply code formatting properties
+        },
+      };
+      ooxmlRuns.push(codeRun);
     }
-    // TODO: Handle inlineCode, delete etc.
+    // TODO: Handle delete etc.
   }
   // Filter out any null/undefined entries if logic changes
   return ooxmlRuns.filter(Boolean) as OoxmlElement[];
@@ -190,7 +201,7 @@ function processInlineContent(
 // Converts a single MDAST block-level node to an array of OOXML Elements
 function convertMdastNodeToOoxml(
   node: MdastContent,
-  file: VFile,
+  file: VFile
 ): OoxmlElement[] {
   // Return array as one node might become multiple (though unlikely here)
   const results: OoxmlElement[] = [];
@@ -374,7 +385,7 @@ function convertMdastNodeToOoxml(
           attributes: {},
           children: [],
           data: { ooxmlType: "tableGridCol" }, // Width added later?
-        }),
+        })
       );
       const tableGrid: OoxmlElement = {
         type: "element",

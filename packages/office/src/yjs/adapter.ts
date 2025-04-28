@@ -28,7 +28,7 @@ const defaultBindingStrategies: Record<string, NodeBindingStrategy> = {
           } catch (e) {
             console.warn(
               `Skipping non-serializable property ${key} in default binding:`,
-              e,
+              e
             );
           }
         }
@@ -53,7 +53,7 @@ const defaultBindingStrategies: Record<string, NodeBindingStrategy> = {
     observe(
       node: Node,
       yType: Y.AbstractType<any>,
-      callback: (event: Y.YEvent<any>) => void,
+      callback: (event: Y.YEvent<any>) => void
     ): () => void {
       if (!(yType instanceof Y.Map)) {
         throw new Error("Default observe expects Y.Map");
@@ -143,7 +143,7 @@ export class OfficeYjsAdapter implements CoreYjsAdapter {
 
   resolveConflict(conflict: SyncConflict): ResolvedNode {
     console.warn(
-      "OfficeYjsAdapter.resolveConflict not implemented. Defaulting to timestamp/remote wins.",
+      "OfficeYjsAdapter.resolveConflict not implemented. Defaulting to timestamp/remote wins."
     );
     const localTime =
       conflict.localNode.collaborationMetadata?.lastModifiedTimestamp || 0;
@@ -169,23 +169,20 @@ export class OfficeYjsAdapter implements CoreYjsAdapter {
   }
 
   observeChanges(
-    callback: (
-      events: Array<Y.YEvent<any>>,
-      transaction: Y.Transaction,
-    ) => void,
+    callback: (events: Array<Y.YEvent<any>>, transaction: Y.Transaction) => void
   ): () => void {
     // Correct the listener signature for 'updateV2'
     const listener = (
       update: Uint8Array,
       origin: any,
       doc: Y.Doc,
-      transaction: Y.Transaction,
+      transaction: Y.Transaction
     ) => {
       // We need to get the events from the transaction if possible
       // Accessing transaction.changed is complex; maybe observe rootMap directly is simpler?
       // For now, let's call the callback but acknowledge event details are missing.
       console.warn(
-        "Observing updateV2, but detailed events are not directly available in this handler.",
+        "Observing updateV2, but detailed events are not directly available in this handler."
       );
       // Call the callback with an empty events array as a placeholder
       callback([], transaction);
@@ -224,7 +221,7 @@ export class OfficeYjsAdapter implements CoreYjsAdapter {
  */
 export function createOfficeYjsAdapter(
   ydoc?: Y.Doc,
-  options: YjsAdapterOptions = {},
+  options: YjsAdapterOptions = {}
 ): CoreYjsAdapter {
   return new OfficeYjsAdapter(ydoc, options);
 }

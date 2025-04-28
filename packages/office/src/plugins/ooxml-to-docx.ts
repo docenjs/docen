@@ -77,7 +77,7 @@ const NUMBER_FORMATS = [
 // Helper function to generate numbering levels programmatically
 function generateNumberingLevels(
   type: "bullet" | "number",
-  count: number = MAX_LIST_LEVELS,
+  count: number = MAX_LIST_LEVELS
 ): Readonly<ILevelsOptions>[] {
   return Array.from({ length: count }, (_, i) => {
     const levelIndex = i;
@@ -126,7 +126,7 @@ function onOffToBoolean(value: OnOffValue | undefined): boolean | undefined {
 
 // Helper to map OOXML alignment to docx.js AlignmentType
 function mapAlignment(
-  align?: string,
+  align?: string
 ): (typeof AlignmentType)[keyof typeof AlignmentType] | undefined {
   switch (align?.toLowerCase()) {
     case "start":
@@ -148,7 +148,7 @@ function mapAlignment(
 
 // Helper function to convert AST BorderStyleProperties to docx IBorderOptions
 function mapBorderStyle(
-  astBorder?: BorderStyleProperties,
+  astBorder?: BorderStyleProperties
 ): IBorderOptions | undefined {
   if (!astBorder) return undefined;
   const style = astBorder.style?.toUpperCase() as keyof typeof BorderStyle;
@@ -164,7 +164,7 @@ function mapBorderStyle(
     ) {
       // Basic check for 'auto', known color names, or hex format. Improve as needed.
       console.warn(
-        `[mapBorderStyle] Potentially unsupported color value: ${color}`,
+        `[mapBorderStyle] Potentially unsupported color value: ${color}`
       );
       // color = "auto"; // Optionally fallback
     }
@@ -181,7 +181,7 @@ function mapBorderStyle(
 
   if (!style || !BorderStyle[style]) {
     console.warn(
-      `[mapBorderStyle] Invalid or unsupported border style: ${astBorder.style}`,
+      `[mapBorderStyle] Invalid or unsupported border style: ${astBorder.style}`
     );
     return undefined; // Skip border if style is invalid
   }
@@ -203,7 +203,7 @@ function mapBorderStyle(
       }
       return acc;
     },
-    {} as { [key: string]: any },
+    {} as { [key: string]: any }
   ); // Use writable type for accumulator
 
   // Return cast to IBorderOptions only if valid
@@ -214,7 +214,7 @@ function mapBorderStyle(
 
 // Helper function to map AST TableBorderProperties to docx ITableBordersOptions
 function mapTableBorders(
-  astBorders?: TableBorderProperties,
+  astBorders?: TableBorderProperties
 ): ITableBordersOptions | undefined {
   if (!astBorders) return undefined;
 
@@ -237,7 +237,7 @@ function mapTableBorders(
       }
       return acc;
     },
-    {} as { [key: string]: any },
+    {} as { [key: string]: any }
   ); // Use writable type for accumulator
 
   // Return cast to ITableBordersOptions only if valid
@@ -288,7 +288,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
   return async (tree: OoxmlRoot, file: VFile): Promise<void> => {
     // --- Log Input Tree ---
     console.log(
-      `[ooxmlToDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`,
+      `[ooxmlToDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`
     );
     // ----------------------
     const docxSections: ISectionOptions[] = [];
@@ -298,7 +298,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
     const processNode = async (
       node: OoxmlNode,
       context: ProcessingContext = {},
-      depth = 0,
+      depth = 0
     ): Promise<DocxChild[]> => {
       const indent = "  ".repeat(depth);
       let children: DocxChild[] = []; // Change to let for modification
@@ -362,7 +362,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
             // Process paragraph children (runs, hyperlinks, images) asynchronously
             const runsPromises = (element.children || []).map(
               async (
-                child,
+                child
               ): Promise<TextRun | ImageRun | ExternalHyperlink | null> => {
                 if (
                   child.type === "element" &&
@@ -372,7 +372,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                   const imageRefChild = runElement.children?.find(
                     (c) =>
                       c.type === "element" &&
-                      (c.data as OoxmlData)?.ooxmlType === "imageRef",
+                      (c.data as OoxmlData)?.ooxmlType === "imageRef"
                   ) as OoxmlElement | undefined;
 
                   // --- Handle Image ---
@@ -382,11 +382,11 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                     const imageUrl = imageProps.url;
                     if (!imageUrl) {
                       console.warn(
-                        `${indent}[processNode] ImageRef found but missing URL.`,
+                        `${indent}[processNode] ImageRef found but missing URL.`
                       );
                       // Return a placeholder TextRun if URL is missing
                       return new TextRun(
-                        `[Image: ${imageProps.alt || "Missing URL"}]`,
+                        `[Image: ${imageProps.alt || "Missing URL"}]`
                       );
                     }
 
@@ -396,7 +396,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                         responseType: "arrayBuffer",
                       });
                       console.log(
-                        `${indent}  Image fetched successfully: ${imageUrl}`,
+                        `${indent}  Image fetched successfully: ${imageUrl}`
                       );
 
                       let detectedType: string | undefined;
@@ -414,14 +414,14 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
 
                       try {
                         const imageUint8Array = new Uint8Array(
-                          imageArrayBuffer,
+                          imageArrayBuffer
                         );
                         const meta = imageMeta(imageUint8Array);
                         detectedType = meta.type;
                         detectedWidth = meta.width;
                         detectedHeight = meta.height;
                         console.log(
-                          `${indent}  Image meta detected: type=${detectedType}, width=${detectedWidth}, height=${detectedHeight}`,
+                          `${indent}  Image meta detected: type=${detectedType}, width=${detectedWidth}, height=${detectedHeight}`
                         );
 
                         switch (detectedType?.toLowerCase()) {
@@ -444,25 +444,25 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                             break;
                           default:
                             console.warn(
-                              `${indent}  Unsupported image type '${detectedType}' detected for ${imageUrl}.`,
+                              `${indent}  Unsupported image type '${detectedType}' detected for ${imageUrl}.`
                             );
                             imageRunType = undefined; // Explicitly set to undefined
                         }
                       } catch (metaError) {
                         console.warn(
                           `${indent}  Could not detect image meta for ${imageUrl}:`,
-                          metaError,
+                          metaError
                         );
                         // Fallback to placeholder if meta detection fails
                         return new TextRun(
-                          `[Image Meta Error: ${imageProps.alt || imageUrl}]`,
+                          `[Image Meta Error: ${imageProps.alt || imageUrl}]`
                         );
                       }
 
                       if (!imageRunType) {
                         // Fallback to placeholder if type is unsupported or detection failed
                         return new TextRun(
-                          `[Unsupported Image Type: ${imageProps.alt || imageUrl}]`,
+                          `[Unsupported Image Type: ${imageProps.alt || imageUrl}]`
                         );
                       }
 
@@ -511,11 +511,11 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                     } catch (error) {
                       console.error(
                         `${indent}  Error processing image ${imageUrl}:`,
-                        error,
+                        error
                       );
                       // Fallback to placeholder on fetch or other errors
                       return new TextRun(
-                        `[Image Error: ${imageProps.alt || imageUrl}]`,
+                        `[Image Error: ${imageProps.alt || imageUrl}]`
                       );
                     }
                   } else {
@@ -527,7 +527,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                       (c) =>
                         c.type === "element" &&
                         (c.data as OoxmlData)?.ooxmlType ===
-                          "textContentWrapper",
+                          "textContentWrapper"
                     );
                     if (textWrapper?.type === "element") {
                       const textNode = textWrapper.children?.[0] as
@@ -540,16 +540,17 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
 
                     const convertedRunProps: Partial<IRunOptions> = {
                       bold: onOffToBoolean(runProps.bold),
-                      italics: onOffToBoolean(runProps.italic),
+                      italics: onOffToBoolean(runProps.italic), // Direct conversion
                       strike: onOffToBoolean(runProps.strike),
                       doubleStrike: onOffToBoolean(runProps.doubleStrike),
-                      // TODO: Add other run properties like font, size, color, underline
+                      // Directly map the font property if it exists
+                      ...(runProps.font && { font: runProps.font }),
+                      // TODO: Add other run properties like font name (from rFonts?), size, color, underline
                     };
 
                     // Convert properties, ensuring correct types for docx.js
                     const runOptions: IRunOptions = {}; // Initialize empty options
 
-                    // Object.keys(convertedRunProps).forEach((key) => {
                     for (const key of Object.keys(convertedRunProps)) {
                       const optionKey = key as keyof IRunOptions;
                       const value =
@@ -561,7 +562,6 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                         (runOptions as any)[optionKey] = value;
                       }
                     }
-                    // });
 
                     // Return TextRun only if there's text or specific formatting
                     if (
@@ -602,7 +602,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                         (c) =>
                           c.type === "element" &&
                           (c.data as OoxmlData)?.ooxmlType ===
-                            "textContentWrapper",
+                            "textContentWrapper"
                       );
                       if (linkTextWrapper?.type === "element") {
                         const linkTextNode = linkTextWrapper.children?.[0] as
@@ -643,7 +643,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                             text: linkTextContent,
                             ...linkRunOptions, // Use the filtered options
                             style: "Hyperlink", // Apply hyperlink style
-                          }),
+                          })
                         );
                       }
                     }
@@ -658,18 +658,18 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                 } else {
                   return null; // Skip other node types within paragraph for now
                 }
-              },
+              }
             );
 
             // Await all promises and filter out nulls
             const resolvedRuns = (await Promise.all(runsPromises)).filter(
-              (r) => r !== null,
+              (r) => r !== null
             ) as (TextRun | ImageRun | ExternalHyperlink)[];
 
             // Only add paragraph if it contains resolved runs
             if (resolvedRuns.length > 0) {
               children.push(
-                new Paragraph({ ...paragraphProps, children: resolvedRuns }),
+                new Paragraph({ ...paragraphProps, children: resolvedRuns })
               );
             } else {
               console.log(`${indent}[processNode] Skipped empty paragraph.`);
@@ -685,7 +685,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
               context.listLevel !== undefined ? context.listLevel + 1 : 0;
             const newContext: ProcessingContext = { listLevel, listRef };
             const listChildrenPromises = (element.children || []).map((child) =>
-              processNode(child, newContext, depth + 1),
+              processNode(child, newContext, depth + 1)
             );
             const resolvedListChildren =
               await Promise.all(listChildrenPromises);
@@ -694,7 +694,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
             // ... existing listItem handling ...
             // Important: Need to await results from recursive calls
             const itemChildrenPromises = (element.children || []).map((child) =>
-              processNode(child, context, depth + 1),
+              processNode(child, context, depth + 1)
             );
             const resolvedItemChildren =
               await Promise.all(itemChildrenPromises);
@@ -719,12 +719,12 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                       gc.attributes?.["w:w"]
                     ) {
                       gridCols.push(
-                        Number.parseInt(gc.attributes["w:w"] as string, 10),
+                        Number.parseInt(gc.attributes["w:w"] as string, 10)
                       );
                     }
                   }
                   console.log(
-                    `${indent}  Found tableGrid with ${gridCols.length} columns.`,
+                    `${indent}  Found tableGrid with ${gridCols.length} columns.`
                   );
                 } else if (child.name === "w:tr") {
                   // Row processing needs to be async due to cell content
@@ -738,7 +738,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
               .filter(
                 (child) =>
                   child.type === "element" &&
-                  (child.data as OoxmlData)?.ooxmlType === "tableRow",
+                  (child.data as OoxmlData)?.ooxmlType === "tableRow"
               )
               // REMOVE explicit type annotation for rowElement
               .map(async (rowElement) => {
@@ -752,7 +752,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                   .filter(
                     (c): c is OoxmlElement =>
                       c.type === "element" &&
-                      (c.data as OoxmlData)?.ooxmlType === "tableCell",
+                      (c.data as OoxmlData)?.ooxmlType === "tableCell"
                   )
                   // Provide type for cellElement
                   .map(async (cellElement: OoxmlElement) => {
@@ -763,7 +763,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                     const cellContentPromises = (
                       cellElement.children || []
                     ).map((contentNode: OoxmlElementContent) =>
-                      processNode(contentNode, {}, depth + 1),
+                      processNode(contentNode, {}, depth + 1)
                     );
                     const cellContent = (
                       await Promise.all(cellContentPromises)
@@ -800,7 +800,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
               });
 
             const resolvedRows = (await Promise.all(rowPromises)).filter(
-              (r) => r !== null,
+              (r) => r !== null
             ) as TableRow[];
 
             const columnCount = gridCols.length;
@@ -816,17 +816,17 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
               children.push(new Table(tempTableOpts));
             } else {
               console.log(
-                `${indent}[processNode] Table generated no rows or column count was zero.`,
+                `${indent}[processNode] Table generated no rows or column count was zero.`
               );
             }
           } else {
             // ... handle other element types or skip ...
             // Recursively process children asynchronously for unhandled elements
             const otherChildrenPromises = (element.children || []).map(
-              (child) => processNode(child, context, depth + 1),
+              (child) => processNode(child, context, depth + 1)
             );
             const resolvedOtherChildren = await Promise.all(
-              otherChildrenPromises,
+              otherChildrenPromises
             );
             children.push(...resolvedOtherChildren.flat());
           }
@@ -835,7 +835,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
         } else if (node.type === "root") {
           // Process root children asynchronously
           const rootChildrenPromises = (node as OoxmlRoot).children.map(
-            (child) => processNode(child, {}, depth + 1),
+            (child) => processNode(child, {}, depth + 1)
           );
           const resolvedRootChildren = await Promise.all(rootChildrenPromises);
           children = resolvedRootChildren.flat(); // Assign directly to children
@@ -851,7 +851,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
     // Start processing from the root, now awaiting the result
     currentSectionChildren = await processNode(tree);
     console.log(
-      `[ooxmlToDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`,
+      `[ooxmlToDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`
     );
 
     // ... create sections and document (sync) ...
@@ -866,7 +866,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
         children: [new Paragraph("Generated document is empty.")],
       });
       console.warn(
-        "[ooxmlToDocx] No content generated for the document section.",
+        "[ooxmlToDocx] No content generated for the document section."
       );
     }
 

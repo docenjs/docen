@@ -18,7 +18,7 @@ export type PdfProcessor = Processor<OoxmlRoot>;
  * potentially with collaboration enabled via @docen/core.
  */
 export function createPdfProcessor(
-  options: PdfProcessorOptions = {},
+  options: PdfProcessorOptions = {}
 ): PdfProcessor {
   const processor = createProcessor({
     ...options,

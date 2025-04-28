@@ -92,7 +92,7 @@ export const deepBindingStrategy: NodeBindingStrategy = {
   observe(
     node: Node,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void,
+    callback: (event: Y.YEvent<any>) => void
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map for node observation");
@@ -183,7 +183,7 @@ export const shallowBindingStrategy: NodeBindingStrategy = {
   observe(
     node: Node,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void,
+    callback: (event: Y.YEvent<any>) => void
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map for node observation");
@@ -274,7 +274,7 @@ export const lazyBindingStrategy: NodeBindingStrategy = {
   observe(
     node: Node,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void,
+    callback: (event: Y.YEvent<any>) => void
   ): () => void {
     if (!(yType instanceof Y.Map)) {
       throw new Error("Expected Y.Map for node observation");
@@ -296,7 +296,7 @@ export const lazyBindingStrategy: NodeBindingStrategy = {
  */
 export function bindNodeToYjs(
   node: Node,
-  strategy: NodeBindingStrategy = deepBindingStrategy,
+  strategy: NodeBindingStrategy = deepBindingStrategy
 ): Node & CollaborativeNode {
   // Convert the node to Yjs representation
   const yType = strategy.toYjs(node);

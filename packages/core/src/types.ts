@@ -144,7 +144,7 @@ export interface NodeBindingStrategy<N extends Node = Node> {
   observe(
     node: N,
     yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void,
+    callback: (event: Y.YEvent<any>) => void
   ): () => void;
 }
 
@@ -224,7 +224,7 @@ export interface DocumentFragment {
 export interface FragmentManager {
   createFragment(
     path: (string | number)[],
-    options?: { metadata?: Record<string, unknown> },
+    options?: { metadata?: Record<string, unknown> }
   ): DocumentFragment;
   getFragment(path: (string | number)[]): DocumentFragment | null;
   hasFragment(path: (string | number)[]): boolean;
@@ -390,10 +390,7 @@ export interface YjsAdapter {
   resolveConflict(conflict: SyncConflict): ResolvedNode;
   transact<T>(fn: () => T, origin?: string): T;
   observeChanges(
-    callback: (
-      events: Array<Y.YEvent<any>>,
-      transaction: Y.Transaction,
-    ) => void,
+    callback: (events: Array<Y.YEvent<any>>, transaction: Y.Transaction) => void
   ): () => void;
 }
 
@@ -411,15 +408,15 @@ export interface Awareness {
     event: "change" | "update",
     cb: (
       changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: any,
-    ) => void,
+      origin: any
+    ) => void
   ): void;
   off(
     event: "change" | "update",
     cb: (
       changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: unknown,
-    ) => void,
+      origin: unknown
+    ) => void
   ): void;
   destroy(): void;
 }

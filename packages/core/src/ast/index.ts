@@ -16,9 +16,7 @@ import type {
  */
 export function isParent(node: Node): node is Parent {
   return Boolean(
-    node &&
-      typeof node === "object" &&
-      Array.isArray((node as Parent).children),
+    node && typeof node === "object" && Array.isArray((node as Parent).children)
   );
 }
 
@@ -30,7 +28,7 @@ export function isTextNode(node: Node): node is TextNode {
     node &&
       typeof node === "object" &&
       node.type &&
-      typeof (node as TextNode).value === "string",
+      typeof (node as TextNode).value === "string"
   );
 }
 
@@ -46,7 +44,7 @@ export function isRoot(node: Node): node is DocenRoot {
  */
 export function createNode<T extends Node>(
   type: string,
-  props: Partial<T> = {},
+  props: Partial<T> = {}
 ): T {
   return {
     type,
@@ -70,7 +68,7 @@ export function createTextNode(value: string): TextNode {
 export function createParent<T extends Parent>(
   type: string,
   children: Node[] = [],
-  props: Partial<Omit<T, "type" | "children">> = {},
+  props: Partial<Omit<T, "type" | "children">> = {}
 ): T {
   return {
     type,
@@ -98,7 +96,7 @@ export function createCollaborativeNode(
   props: Partial<
     Omit<CollaborativeNode, "type" | "collaborationMetadata" | "binding">
   > = {},
-  metadata: Partial<CollaborationMetadata> = {},
+  metadata: Partial<CollaborationMetadata> = {}
 ): CollaborativeNode {
   const node: CollaborativeNode = {
     type,

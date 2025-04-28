@@ -40,8 +40,8 @@ export class DocenAwarenessAdapter implements CoreAwareness {
     event: "change" | "update",
     cb: (
       changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: any,
-    ) => void,
+      origin: any
+    ) => void
   ): void {
     this.yAwareness.on(event, cb);
   }
@@ -50,8 +50,8 @@ export class DocenAwarenessAdapter implements CoreAwareness {
     event: "change" | "update",
     cb: (
       changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: unknown,
-    ) => void,
+      origin: unknown
+    ) => void
   ): void {
     this.yAwareness.off(event, cb);
   }

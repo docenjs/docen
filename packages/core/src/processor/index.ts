@@ -21,7 +21,7 @@ import { Awareness } from "../yjs/awareness";
  * Factory function to create a Docen processor
  */
 export function createProcessor(
-  options: DocenProcessorOptions = {},
+  options: DocenProcessorOptions = {}
 ): DocenProcessor {
   // 1. Create the base processor WITHOUT initial cast
   const baseProcessor = unified();
@@ -64,7 +64,7 @@ export function createProcessor(
 
   // 4. Define Docen custom methods as functions accessing context
   const observeChanges = (
-    callback: (changes: Array<ChangeEvent>) => void,
+    callback: (changes: Array<ChangeEvent>) => void
   ): (() => void) => {
     context.observers.add(callback);
     // TODO: Connect this to actual Yjs observation
@@ -115,7 +115,7 @@ export function createProcessor(
         // Add missing setSyncStrategy to match interface
         setSyncStrategy: (strategy, handler?) => {
           console.warn(
-            "setSyncStrategy called on document object, but not implemented.",
+            "setSyncStrategy called on document object, but not implemented."
           );
         },
       } as CoreCollaborativeDocument; // Keep assertion
@@ -132,7 +132,7 @@ export function createProcessor(
         const rp = createRelativePositionFromPath(
           context.ydoc,
           position.path,
-          position.offset,
+          position.offset
         );
         context.awareness.setLocalStateField("cursor", {
           relativePosition: rp,
@@ -156,12 +156,12 @@ export function createProcessor(
         const anchorRelPos = createRelativePositionFromPath(
           context.ydoc,
           range.anchor.path,
-          range.anchor.offset,
+          range.anchor.offset
         );
         const headRelPos = createRelativePositionFromPath(
           context.ydoc,
           range.head.path,
-          range.head.offset,
+          range.head.offset
         );
         context.awareness.setLocalStateField("cursor", {
           relativePosition: headRelPos,

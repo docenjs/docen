@@ -24,7 +24,7 @@ import type {
  */
 export function createRelativePosition(
   sharedType: Y.AbstractType<any>,
-  offset: number,
+  offset: number
 ): Y.RelativePosition {
   return Y.createRelativePositionFromTypeIndex(sharedType, offset);
 }
@@ -35,7 +35,7 @@ export function createRelativePosition(
 export function createRelativePositionFromPath(
   doc: Y.Doc,
   path: (string | number)[],
-  offset: number,
+  offset: number
 ): Y.RelativePosition {
   const sharedType = getNodeAtPath(doc, path);
   if (!sharedType) {
@@ -49,7 +49,7 @@ export function createRelativePositionFromPath(
  */
 export function createAbsolutePosition(
   relPos: Y.RelativePosition,
-  doc: Y.Doc,
+  doc: Y.Doc
 ): Y.AbsolutePosition | null {
   return Y.createAbsolutePositionFromRelativePosition(relPos, doc);
 }
@@ -58,7 +58,7 @@ export function createAbsolutePosition(
  * Convert an absolute position to a path and offset
  */
 export function absolutePositionToPathOffset(
-  absPos: Y.AbsolutePosition,
+  absPos: Y.AbsolutePosition
 ): { path: string[]; offset: number } | null {
   if (!absPos || !absPos.type) return null;
 
@@ -99,13 +99,13 @@ export function absolutePositionToPathOffset(
  */
 export function getNodeAtPath(
   doc: Y.Doc,
-  path: (string | number)[],
+  path: (string | number)[]
 ): Y.AbstractType<any> | null {
   if (!path || path.length === 0) return null;
 
   let current: Y.AbstractType<any> | null = doc.get(
     path[0].toString(),
-    Y.AbstractType,
+    Y.AbstractType
   ) as Y.AbstractType<any>;
   if (!current) return null;
 
@@ -151,12 +151,12 @@ export function getAwarenessCursors(awareness: Awareness): CursorInfo[] {
         try {
           absolutePosition = createAbsolutePositionFromRelativePosition(
             cursor.relativePosition,
-            doc,
+            doc
           );
         } catch (e) {
           console.warn(
             `[getAwarenessCursors] Error creating absolute position for client ${clientId}`,
-            e,
+            e
           );
         }
       }
@@ -171,7 +171,7 @@ export function getAwarenessCursors(awareness: Awareness): CursorInfo[] {
             anchor: selection.anchor
               ? createAbsolutePositionFromRelativePosition(
                   selection.anchor,
-                  doc,
+                  doc
                 )
               : null,
             head: selection.head
@@ -181,7 +181,7 @@ export function getAwarenessCursors(awareness: Awareness): CursorInfo[] {
         } catch (e) {
           console.warn(
             `[getAwarenessCursors] Error creating absolute selection for client ${clientId}`,
-            e,
+            e
           );
         }
       }
@@ -211,7 +211,7 @@ export function getAwarenessCursors(awareness: Awareness): CursorInfo[] {
  */
 export function calculateDocumentStats(
   doc: Y.Doc,
-  awareness?: Awareness,
+  awareness?: Awareness
 ): DocumentStats {
   const totalNodes = 0;
   const totalCharacters = 0;
@@ -228,7 +228,7 @@ export function calculateDocumentStats(
 
     // Count unique collaborators from the document
     const collaborators = Array.from(
-      new Set(doc.getClients().map((id) => id.toString())),
+      new Set(doc.getClients().map((id) => id.toString()))
     );
 
     // Add active users from awareness
