@@ -1,4 +1,5 @@
 import type { Node } from "@docen/core"; // Assuming Node is exported from core
+import type { Root as HastRoot } from "hast"; // Import HastRoot
 import rehypeParse from "rehype-parse";
 import rehypeRemark from "rehype-remark";
 import rehypeSanitize, {
@@ -38,34 +39,33 @@ export interface DocenHtmlOptions {
 }
 
 /**
- * A unified plugin that configures the processor for HTML handling,
- * including parsing, sanitization, and conversion to the specified format.
+ * A unified plugin that configures the processor for HTML handling.
+ * NOTE: Uses internal .use calls, which is non-standard.
+ * Signature adjusted to primarily declare HastRoot output for type compatibility.
  */
 export const docenHtml: Plugin<
   [DocenHtmlOptions?],
-  any,
-  Node | string // Output can be AST or string
+  string, // Input should be string for a parser-centric plugin
+  HastRoot // Declare HastRoot as the primary AST output
 > = function (options = {}) {
   const processor = this as Processor;
   const { fragment = true, sanitize = defaultSchema, to = "html" } = options;
 
-  // 1. Parsing & Sanitization
+  // Internal .use calls (still non-standard but kept as requested)
   processor.use(rehypeParse, { fragment });
   if (sanitize !== false) {
     processor.use(rehypeSanitize, sanitize);
   }
 
-  // 2. Conditionally add transformation and the *correct* final stringifier
+  // Conditional transformers/stringifiers
   if (to === "markdown") {
-    processor.use(rehypeRemark); // hast -> mdast
-    processor.use(remarkGfm); // Add GFM support for stringification
-    processor.use(remarkStringify); // mdast -> markdown string
+    processor.use(rehypeRemark);
+    processor.use(remarkGfm);
+    processor.use(remarkStringify);
+  } else if (to === "html") {
+    processor.use(rehypeStringify);
   }
-  // Only add rehypeStringify if the target is explicitly html (default)
-  else if (to === "html") {
-    processor.use(rehypeStringify); // hast -> html string
-  }
-  // If 'to' is something else or invalid, no stringifier is added by default.
+  // If neither, the output *is* HastRoot
 
   // Collaboration integration handled by core processor.
 };

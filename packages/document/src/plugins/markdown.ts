@@ -1,4 +1,5 @@
 import type { Node } from "@docen/core"; // Assuming Node is exported from core
+import type { Root as MdastRoot } from "mdast"; // Import MdastRoot
 import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm"; // Import GFM plugin
 import remarkParse from "remark-parse";
@@ -21,32 +22,30 @@ export interface DocenMarkdownOptions {
 }
 
 /**
- * A unified plugin that configures the processor for Markdown handling,
- * including parsing, GFM support, and conversion to the specified format.
+ * A unified plugin that configures the processor for Markdown handling.
+ * NOTE: Uses internal .use calls, which is non-standard.
+ * Signature adjusted to primarily declare MdastRoot output for type compatibility.
  */
 export const docenMarkdown: Plugin<
   [DocenMarkdownOptions?],
-  any,
-  Node | string // Output can be AST (if no stringifier runs) or string
+  string, // Input should be string for a parser-centric plugin
+  MdastRoot // Declare MdastRoot as the primary AST output
 > = function (options = {}) {
   const processor = this as Processor;
   const { to = "markdown" } = options;
 
-  // Always parse and add GFM support
+  // Internal .use calls (still non-standard but kept as requested)
   processor.use(remarkParse);
   processor.use(remarkGfm);
 
-  // Conditionally add transformation and the *correct* final stringifier
+  // Conditional stringifiers
   if (to === "html") {
-    processor.use(remarkRehype); // mdast -> hast
-    processor.use(rehypeStringify); // hast -> html string
+    processor.use(remarkRehype);
+    processor.use(rehypeStringify);
+  } else if (to === "markdown") {
+    processor.use(remarkStringify);
   }
-  // Only add remarkStringify if the target is explicitly markdown (default)
-  else if (to === "markdown") {
-    processor.use(remarkStringify); // mdast -> markdown string
-  }
-  // If 'to' is something else or invalid, no stringifier is added by default,
-  // which might be desired if only AST processing is needed.
+  // If neither, the output *is* MdastRoot
 
   // Collaboration integration (Yjs binding) should still be handled
   // by the core DocenProcessor if enabled.

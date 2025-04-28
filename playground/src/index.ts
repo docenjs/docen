@@ -1,10 +1,16 @@
-import { readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Get current directory using import.meta.url for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+if (existsSync(path.join(__dirname, "..", "drafts"))) {
+  rmSync(path.join(__dirname, "..", "drafts"), { recursive: true });
+}
+
+mkdirSync(path.join(__dirname, "..", "drafts"), { recursive: true });
 
 async function runAllExamples() {
   console.log("--- Running All Docen Playground Examples ---");
@@ -41,7 +47,7 @@ async function runAllExamples() {
         }
       } catch (error) {
         console.error(`--- Failed ${file} ---`);
-        // Error is already logged within the example script
+        console.error("Error details:", error);
         failureCount++;
       }
       console.log("\n"); // Add spacing between examples

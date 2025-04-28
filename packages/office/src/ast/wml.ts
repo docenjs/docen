@@ -210,6 +210,7 @@ export interface WmlTableCellProperties {
     bottom?: Measurement; // <w:bottom w:w="..." w:type="dxa"/>
     left?: Measurement; // <w:left w:w="..." w:type="dxa"/>
     right?: Measurement; // <w:right w:w="..." w:type="dxa"/>
+    // Add start/end if needed for LTR/RTL
   };
   verticalAlign?: "top" | "center" | "bottom"; // <w:vAlign w:val="..."/>
   textDirection?: "lrTb" | "tbRl" | "btLr"; // <w:textDirection w:val="..."/>
@@ -266,4 +267,12 @@ export interface WmlPictureProperties {
     embeddedVml?: any /* Define VML AST type later */;
   };
   positioning?: PositionalProperties; // Extracted from shape properties within VML?
+}
+
+// --- Image Reference Properties (Custom AST Node) ---
+// Used to carry image info from mdast-to-ooxml to ooxml-to-docx
+export interface WmlImageRefProperties {
+  url: string;
+  alt?: string | null;
+  title?: string | null;
 }

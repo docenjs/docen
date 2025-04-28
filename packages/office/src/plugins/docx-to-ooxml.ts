@@ -1,4 +1,3 @@
-import * as core from "@docen/core";
 import { strFromU8, unzip } from "fflate";
 import type { Plugin } from "unified";
 import { is } from "unist-util-is";

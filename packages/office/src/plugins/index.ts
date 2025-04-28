@@ -1,5 +1,5 @@
 // Plugin exports
-export * from "./docx-to-ooxml";
-export * from "./pdf-to-ooxml";
-export * from "./mdast-to-ooxml";
-export * from "./ooxml-to-docx";
+export { docxToOoxmlAst } from "./docx-to-ooxml";
+export { ooxmlToDocx } from "./ooxml-to-docx";
+export { pdfToOoxmlAst } from "./pdf-to-ooxml";
+export { mdastToOoxml } from "./mdast-to-ooxml";

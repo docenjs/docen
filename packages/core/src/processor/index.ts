@@ -11,45 +11,11 @@ import type {
   CursorPosition,
   DocenProcessor,
   DocenProcessorOptions,
-  FragmentManager,
-  Node,
   YjsAdapter,
 } from "../types";
-import {
-  createRelativePositionFromPath,
-  getAwarenessCursors,
-} from "../utils/collaborative";
+import { createRelativePositionFromPath } from "../utils/collaborative";
 import { createYjsAdapter } from "../yjs";
 import { Awareness } from "../yjs/awareness";
-import type { YjsAdapterOptions } from "../yjs/types";
-
-// Define a transformer type that works with our Node type
-type DocenTransformer = (node: Node) => Promise<Node> | Node;
-
-// Internal implementation for fragment data structure - keep local
-interface FragmentData {
-  path: (string | number)[];
-  doc: CoreCollaborativeDocument | null; // Use alias for core type, allow null
-  metadata: {
-    createdAt: number;
-    lastAccessed: number;
-    size?: number;
-    [key: string]: unknown;
-  };
-  fragmentManager: FragmentManager | undefined; // Use FragmentManager from ../types
-  fragmentOptions: {
-    enabled: boolean;
-    nodeTypes: string[];
-  };
-  // Internal adapter reference
-  _yjsAdapter: YjsAdapter | undefined; // Use YjsAdapter from ../types
-}
-
-// Define ExtendedProcessor based on DocenProcessor from types
-interface ExtendedProcessor extends DocenProcessor {
-  context: any;
-  // Add internal methods if needed
-}
 
 /**
  * Factory function to create a Docen processor
@@ -57,220 +23,225 @@ interface ExtendedProcessor extends DocenProcessor {
 export function createProcessor(
   options: DocenProcessorOptions = {},
 ): DocenProcessor {
-  const baseProcessor = unified() as ExtendedProcessor;
+  // 1. Create the base processor WITHOUT initial cast
+  const baseProcessor = unified();
 
-  const ydoc = options?.collaborative ? options.ydoc || new Y.Doc() : undefined;
-
-  // Initialize YjsAdapter if collaboration is enabled
-  let initialAdapter: YjsAdapter | undefined;
-  if (options.collaborative && ydoc) {
-    try {
-      initialAdapter = createYjsAdapter(ydoc, options.yjsAdapterOptions);
-    } catch (e) {
-      console.error(
-        "Failed to initialize YjsAdapter during processor creation:",
-        e,
-      );
-      // Decide handling: throw error, or proceed without adapter?
-      // Proceeding without adapter for now, collaboration will be disabled.
-      initialAdapter = undefined;
-    }
-  }
-
-  // Define context structure clearly
-  const context: {
-    // Add type for adapter
-    _yjsAdapter: YjsAdapter | undefined;
-    ydoc: Y.Doc | undefined;
-    doc: CoreCollaborativeDocument | undefined; // Use alias for core type
-    observers: Set<(changes: Array<ChangeEvent>) => void>;
-    unsubscribeFunctions: Set<() => void>;
-    collaborativeTransformers: DocenTransformer[];
-    fragments: Map<string, FragmentData>;
-    awareness: Awareness | undefined;
-    fragmentManager: FragmentManager | undefined; // Use FragmentManager from ../types
-    fragmentOptions: {
-      enabled: boolean;
-      threshold: number;
-      maxFragments: number;
-      nodeTypes: string[];
-    };
-    // Store specific Yjs config options
-    undoManagerOptions: YjsAdapterOptions["undoManagerOptions"];
-    bindingStrategies: YjsAdapterOptions["bindingStrategies"];
-    defaultBindingStrategy: YjsAdapterOptions["defaultBindingStrategy"];
-  } = {
-    _yjsAdapter: initialAdapter, // Store the created adapter
-    ydoc,
-    doc: undefined,
-    observers: new Set(),
-    unsubscribeFunctions: new Set(),
-    collaborativeTransformers: [],
-    fragments: new Map(),
-    awareness: ydoc && initialAdapter ? new Awareness(ydoc) : undefined, // Only create awareness if adapter exists
-    fragmentManager: undefined, // Will be initialized later if needed
-    fragmentOptions: {
-      enabled: options?.fragmentOptions?.enabled ?? false,
-      threshold: options?.fragmentOptions?.threshold ?? 1000,
-      maxFragments: options?.fragmentOptions?.maxFragments ?? 100,
-      nodeTypes: options?.fragmentOptions?.nodeTypes ?? ["section", "chapter"],
-    },
-    // Store specific Yjs config options
-    undoManagerOptions: options.yjsAdapterOptions?.undoManagerOptions,
-    bindingStrategies: options.yjsAdapterOptions?.bindingStrategies,
-    defaultBindingStrategy: options.yjsAdapterOptions?.defaultBindingStrategy,
-  };
-  baseProcessor.context = context;
-
-  // Add custom plugins
+  // 2. Apply initial plugins FIRST to let unified handle type inference
   if (options.plugins) {
     for (const plugin of options.plugins) {
       baseProcessor.use(plugin);
     }
   }
 
-  // --- Attach Docen Methods to Processor ---
+  // 3. Setup Docen context separately
+  const ydoc = options?.collaborative ? options.ydoc || new Y.Doc() : undefined;
+  let initialAdapter: YjsAdapter | undefined;
+  if (options.collaborative && ydoc) {
+    try {
+      initialAdapter = createYjsAdapter(ydoc, options.yjsAdapterOptions);
+    } catch (e) {
+      console.error("Failed to initialize YjsAdapter:", e);
+      initialAdapter = undefined;
+    }
+  }
 
-  baseProcessor.observeChanges = (
+  const context: {
+    _yjsAdapter: YjsAdapter | undefined;
+    ydoc: Y.Doc | undefined;
+    doc: CoreCollaborativeDocument | undefined;
+    observers: Set<(changes: Array<ChangeEvent>) => void>;
+    awareness: Awareness | undefined;
+    // Add other context fields as needed (e.g., fragment manager, options)
+    // Ensure these fields match what the custom methods below expect
+  } = {
+    _yjsAdapter: initialAdapter,
+    ydoc,
+    doc: undefined,
+    observers: new Set(),
+    awareness: ydoc && initialAdapter ? new Awareness(ydoc) : undefined,
+    // Initialize other fields
+  };
+
+  // 4. Define Docen custom methods as functions accessing context
+  const observeChanges = (
     callback: (changes: Array<ChangeEvent>) => void,
   ): (() => void) => {
     context.observers.add(callback);
+    // TODO: Connect this to actual Yjs observation
     return () => {
       context.observers.delete(callback);
     };
   };
 
-  // Add getYjsAdapter method
-  baseProcessor.getYjsAdapter = function (): YjsAdapter | null {
-    return this.context._yjsAdapter ?? null;
+  const getYjsAdapter = (): YjsAdapter | null => {
+    return context._yjsAdapter ?? null;
   };
 
-  // Get Document Method - Returns a lightweight representation or null
-  baseProcessor.getDocument = function (): CoreCollaborativeDocument | null {
-    if (
-      !this.context._yjsAdapter ||
-      !this.context.ydoc ||
-      !this.context.awareness
-    ) {
+  const getDocument = (): CoreCollaborativeDocument | null => {
+    if (!context._yjsAdapter || !context.ydoc || !context.awareness) {
       return null;
     }
-    // Construct a CollaborativeDocument-like object on the fly if needed
-    // This depends on the final definition of CollaborativeDocument
-    // For now, returning a basic structure or potentially the context.doc if managed
-    if (!this.context.doc) {
-      // Lazily create a document representation if context.doc is not managed
-      // This implementation needs refinement based on CollaborativeDocument final definition
-      const adapter = this.context._yjsAdapter;
-      this.context.doc = {
-        id: this.context.ydoc?.guid ?? "unknown-doc-id",
-        ydoc: this.context.ydoc,
-        awareness: this.context.awareness,
+    if (!context.doc) {
+      const adapter = context._yjsAdapter;
+      context.doc = {
+        id: context.ydoc?.guid ?? "unknown-doc-id",
+        ydoc: context.ydoc,
+        awareness: context.awareness,
         transact: adapter.transact.bind(adapter),
         getStateVector: () => {
-          if (!this.context.ydoc) return new Uint8Array();
-          return Y.encodeStateVector(this.context.ydoc);
+          if (!context.ydoc) throw new Error("Y.Doc is not initialized.");
+          return Y.encodeStateVector(context.ydoc);
         },
         encodeStateAsUpdate: () => {
-          if (!this.context.ydoc) return new Uint8Array();
-          return Y.encodeStateAsUpdate(this.context.ydoc);
+          if (!context.ydoc) throw new Error("Y.Doc is not initialized.");
+          return Y.encodeStateAsUpdate(context.ydoc);
         },
         applyUpdate: (update) => {
-          if (!this.context.ydoc) return;
-          Y.applyUpdate(this.context.ydoc, update);
+          if (!context.ydoc) throw new Error("Y.Doc is not initialized.");
+          Y.applyUpdate(context.ydoc, update);
         },
         destroy: () => {
-          /* Should processor handle YDoc destroy? Maybe not */
+          /* No-op */
         },
         undo: () => adapter.undoManager?.undo(),
         redo: () => adapter.undoManager?.redo(),
         canUndo: () => adapter.undoManager?.canUndo() ?? false,
         canRedo: () => adapter.undoManager?.canRedo() ?? false,
-        getAwarenessStates: () => this.context.awareness?.getStates(),
+        getAwarenessStates: () => context.awareness?.getStates() ?? new Map(),
         setLocalCursor: (pos) =>
-          this.context.awareness?.setLocalStateField("cursor", pos),
+          context.awareness?.setLocalStateField("cursor", pos),
         setLocalUser: (user) =>
-          this.context.awareness?.setLocalStateField("user", user),
-      } as CoreCollaborativeDocument;
+          context.awareness?.setLocalStateField("user", user),
+        // Add missing setSyncStrategy to match interface
+        setSyncStrategy: (strategy, handler?) => {
+          console.warn(
+            "setSyncStrategy called on document object, but not implemented.",
+          );
+        },
+      } as CoreCollaborativeDocument; // Keep assertion
     }
-    return this.context.doc;
+    return context.doc;
   };
 
-  baseProcessor.setCursor = function (position) {
-    if (this.context.awareness && this.context.ydoc) {
+  const setCursor = (position: {
+    path: (string | number)[];
+    offset: number;
+  }) => {
+    if (context.awareness && context.ydoc) {
       try {
-        const relPos = createRelativePositionFromPath(
-          this.context.ydoc,
+        const rp = createRelativePositionFromPath(
+          context.ydoc,
           position.path,
           position.offset,
         );
-        const cursorState: CursorPosition = {
-          relativePosition: relPos,
+        context.awareness.setLocalStateField("cursor", {
+          relativePosition: rp,
           range: null,
-        };
-        this.context.awareness.setLocalStateField("cursor", cursorState);
+        } as CursorPosition);
       } catch (e) {
         console.error("Error setting cursor:", e);
       }
     }
-    return this;
+    // Need to return `this` (the processor) but `this` here is undefined
+    // We will assign this function to the processor later.
+    // Returning the processor instance requires access to it, handled by Object.assign.
   };
 
-  baseProcessor.setSelection = function (range) {
-    if (this.context.awareness && this.context.ydoc) {
+  const setSelection = (range: {
+    anchor: { path: (string | number)[]; offset: number };
+    head: { path: (string | number)[]; offset: number };
+  }) => {
+    if (context.awareness && context.ydoc) {
       try {
         const anchorRelPos = createRelativePositionFromPath(
-          this.context.ydoc,
+          context.ydoc,
           range.anchor.path,
           range.anchor.offset,
         );
         const headRelPos = createRelativePositionFromPath(
-          this.context.ydoc,
+          context.ydoc,
           range.head.path,
           range.head.offset,
         );
-        const selectionState: CursorPosition = {
+        context.awareness.setLocalStateField("cursor", {
           relativePosition: headRelPos,
           range: { start: anchorRelPos, end: headRelPos },
-        };
-        this.context.awareness.setLocalStateField("cursor", selectionState);
+        } as CursorPosition);
       } catch (e) {
         console.error("Error setting selection:", e);
       }
     }
-    return this;
+    // Need to return `this` (the processor)
   };
 
-  // Directly build the expected cursor info structure from awareness states
-  baseProcessor.getCursors = function () {
-    const cursors: {
+  const getCursors = () => {
+    if (!context.awareness) return [];
+    const states = context.awareness.getStates();
+    const cursors: Array<{
       clientId: number;
-      user: {
-        [key: string]: unknown;
-        id: string;
-        name?: string;
-        color?: string;
-        avatar?: string;
-      };
+      user: AwarenessState["user"];
       cursor: CursorPosition | null;
-    }[] = [];
-    if (this.context.awareness) {
-      this.context.awareness
-        .getStates()
-        .forEach((state: AwarenessState, clientId: number) => {
-          // Ensure user info exists, as it's required in the target type
-          if (state.user) {
-            cursors.push({
-              clientId: clientId,
-              user: state.user, // Assume state.user fits the expected structure
-              cursor: state.cursor || null, // Use state.cursor or null
-            });
-          }
+    }> = [];
+    states.forEach((state, clientId) => {
+      if (state?.user) {
+        cursors.push({
+          clientId,
+          user: state.user,
+          cursor: state.cursor ?? null,
         });
-    }
+      }
+    });
     return cursors;
   };
 
-  // Ensure final return type matches DocenProcessor from ./types
-  // Cast to DocenProcessor, relying on structural typing
-  return baseProcessor;
+  // 5. Assign custom methods to the baseProcessor
+  // Need to cast baseProcessor to `any` temporarily to assign properties
+  // Then cast the final result to DocenProcessor.
+  // Note: setCursor and setSelection need modification to return the processor instance.
+
+  const finalProcessor = Object.assign(baseProcessor, {
+    observeChanges,
+    getDocument,
+    // Modify setCursor and setSelection to return the processor instance
+    setCursor: function (position: {
+      path: (string | number)[];
+      offset: number;
+    }) {
+      setCursor(position); // Call the logic function
+      return this; // `this` will refer to finalProcessor
+    },
+    setSelection: function (range: {
+      anchor: { path: (string | number)[]; offset: number };
+      head: { path: (string | number)[]; offset: number };
+    }) {
+      setSelection(range); // Call the logic function
+      return this; // `this` will refer to finalProcessor
+    },
+    getCursors,
+    getYjsAdapter,
+    // Add context property if it needs to be accessible (discouraged)
+    // context: context,
+  });
+
+  // --- Finalize Setup (e.g., start Yjs observation) ---
+  if (context._yjsAdapter) {
+    // Start observing Yjs changes to trigger callbacks
+    const unsubscribeYjs = context._yjsAdapter.observeChanges((events, tx) => {
+      // Map Yjs events to Docen ChangeEvent[] (implement mapping logic)
+      const changes: ChangeEvent[] = []; // Placeholder
+      if (changes.length > 0) {
+        for (const callback of context.observers) {
+          callback(changes);
+        }
+      }
+    });
+    // Store unsubscribe function if needed (e.g., in context)
+    // context.unsubscribeFunctions.add(unsubscribeYjs);
+  }
+
+  // 6. Return the modified processor with the final cast
+  return finalProcessor as DocenProcessor;
 }
+
+// You might need ChangeEventType definition if it's used in observation mapping
+// import { ChangeEventType } from "../types";

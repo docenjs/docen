@@ -1,15 +1,21 @@
 import {
-  AbstractNumbering,
-  Alignment,
   AlignmentType,
   BorderStyle,
   Document,
+  ExternalHyperlink,
   HeadingLevel,
+  type IBorderOptions,
+  // Import specific image option types
+  type IImageOptions,
+  type ILevelsOptions,
   type IRunOptions,
   type ISectionOptions,
-  Level,
+  type ITableBordersOptions,
+  type ITableCellOptions,
+  type ITableOptions,
+  type ITableWidthProperties,
+  ImageRun,
   LevelSuffix,
-  Numbering,
   Paragraph,
   Table,
   TableCell,
@@ -18,10 +24,13 @@ import {
   VerticalAlign,
   WidthType,
 } from "docx";
+// Import image-meta for type/dimension detection
+import { imageMeta } from "image-meta";
+import { ofetch } from "ofetch";
 import type { Plugin } from "unified";
-import { CONTINUE, SKIP, visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import type {
+  BorderStyleProperties,
   FontProperties,
   OnOffValue,
   OoxmlData,
@@ -31,12 +40,82 @@ import type {
   OoxmlRoot,
   OoxmlText,
   ParagraphFormatting,
+  TableBorderProperties,
   WmlTableCellProperties as TableCellProperties,
   WmlTableProperties as TableProperties,
+  WmlHyperlinkProperties,
+  WmlImageRefProperties,
 } from "../ast";
 
+// --- Constants for Numbering Generation ---
+const MAX_LIST_LEVELS = 9; // Define the maximum number of levels (0-8)
+const BASE_INDENT = 720; // Initial left indent for level 0 in DXA (twips)
+const HANGING_INDENT = 360; // Consistent hanging indent in DXA (twips)
+const INDENT_STEP = 720; // Increase in left indent per level in DXA (twips)
+
+const BULLET_SYMBOLS = [
+  "\u2022", // • Standard bullet
+  "\u25E6", // ◦ White bullet
+  "\u25AA", // ▪ Small black square
+  "\u25AB", // ▫ Small white square
+];
+
+// Define number formats and their corresponding text patterns
+// The text pattern uses %N where N is the level number (1-based index)
+const NUMBER_FORMATS = [
+  { format: "decimal" as const, text: "%1." }, // 1.
+  { format: "lowerLetter" as const, text: "%2)" }, // a)
+  { format: "lowerRoman" as const, text: "%3." }, // i.
+  { format: "decimal" as const, text: "(%4)" }, // (1)
+  { format: "lowerLetter" as const, text: "%5)" }, // a) - repeat pattern
+  { format: "lowerRoman" as const, text: "%6." }, // i. - repeat pattern
+  { format: "decimal" as const, text: "(%7)" }, // (1) - repeat pattern
+  { format: "lowerLetter" as const, text: "%8)" }, // a) - repeat pattern
+  { format: "lowerRoman" as const, text: "%9." }, // i. - repeat pattern
+];
+
+// Helper function to generate numbering levels programmatically
+function generateNumberingLevels(
+  type: "bullet" | "number",
+  count: number = MAX_LIST_LEVELS,
+): Readonly<ILevelsOptions>[] {
+  return Array.from({ length: count }, (_, i) => {
+    const levelIndex = i;
+    const indentLeft = BASE_INDENT + levelIndex * INDENT_STEP;
+    const levelStyle = {
+      paragraph: {
+        indent: { left: indentLeft, hanging: HANGING_INDENT },
+      },
+    };
+
+    if (type === "bullet") {
+      const symbol = BULLET_SYMBOLS[levelIndex % BULLET_SYMBOLS.length];
+      return {
+        level: levelIndex,
+        format: "bullet" as const,
+        text: symbol,
+        alignment: AlignmentType.LEFT,
+        style: levelStyle,
+      };
+    }
+    // type === 'number'
+    const formatInfo = NUMBER_FORMATS[levelIndex % NUMBER_FORMATS.length];
+    const levelText = formatInfo.text
+      ? formatInfo.text.replace(/%\d+/, `%${levelIndex + 1}`)
+      : "";
+    return {
+      level: levelIndex,
+      format: formatInfo.format,
+      text: levelText,
+      alignment: AlignmentType.LEFT,
+      style: levelStyle,
+      suffix: LevelSuffix.NOTHING,
+    };
+  });
+}
+
 // Define the type for the objects that docx.Document expects in its sections.children array
-type DocxChild = Paragraph | Table; // Added Table
+type DocxChild = Paragraph | Table;
 
 // Helper function to convert OnOffValue to boolean for docx.js
 function onOffToBoolean(value: OnOffValue | undefined): boolean | undefined {
@@ -67,40 +146,116 @@ function mapAlignment(
   }
 }
 
+// Helper function to convert AST BorderStyleProperties to docx IBorderOptions
+function mapBorderStyle(
+  astBorder?: BorderStyleProperties,
+): IBorderOptions | undefined {
+  if (!astBorder) return undefined;
+  const style = astBorder.style?.toUpperCase() as keyof typeof BorderStyle;
+  let color: string | undefined = "auto";
+  if (typeof astBorder.color?.value === "string") {
+    color = astBorder.color.value;
+    // *** FIX: Simplify color mapping - Assume valid CSS color string or 'auto' ***
+    // color = color === "auto" ? "auto" : (color.length === 6 ? `#${color}` : "auto"); // Remove hex prefix logic
+    if (
+      color !== "auto" &&
+      !/^#[0-9A-Fa-f]{6}$/.test(color) &&
+      !/^[a-zA-Z]+$/.test(color)
+    ) {
+      // Basic check for 'auto', known color names, or hex format. Improve as needed.
+      console.warn(
+        `[mapBorderStyle] Potentially unsupported color value: ${color}`,
+      );
+      // color = "auto"; // Optionally fallback
+    }
+  }
+  let size: number | undefined;
+  if (astBorder.size?.unit === "pt") {
+    size = astBorder.size.value * 8; // Convert points to eighths-of-a-point
+  } else if (astBorder.size?.unit === "dxa") {
+    size = astBorder.size.value / 2.5; // Approx DXA to eighths-of-a-point (1pt = 20dxa) -> size_pt * 8 = size_dxa / 20 * 8 = size_dxa / 2.5
+  } else if (typeof astBorder.size?.value === "number") {
+    // Assume eighths-of-a-point if no unit? Risky.
+    size = astBorder.size.value;
+  }
+
+  if (!style || !BorderStyle[style]) {
+    console.warn(
+      `[mapBorderStyle] Invalid or unsupported border style: ${astBorder.style}`,
+    );
+    return undefined; // Skip border if style is invalid
+  }
+
+  // Build a writable object first
+  const tempBorder: { [key: string]: any } = {
+    // Use a generic writable object
+    style: BorderStyle[style],
+    color: color,
+    size: size ? Math.round(size) : undefined,
+    space: astBorder.space?.value, // Assuming space is a direct number mapping
+  };
+
+  // Clean undefined properties using reduce on the temporary object
+  const finalBorder = Object.entries(tempBorder).reduce(
+    (acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value; // Assign to generic accumulator
+      }
+      return acc;
+    },
+    {} as { [key: string]: any },
+  ); // Use writable type for accumulator
+
+  // Return cast to IBorderOptions only if valid
+  return Object.keys(finalBorder).length > 0
+    ? (finalBorder as IBorderOptions)
+    : undefined;
+}
+
+// Helper function to map AST TableBorderProperties to docx ITableBordersOptions
+function mapTableBorders(
+  astBorders?: TableBorderProperties,
+): ITableBordersOptions | undefined {
+  if (!astBorders) return undefined;
+
+  // Build a writable object first
+  const tempBorders: { [key: string]: any } = {
+    // Use a generic writable object
+    top: mapBorderStyle(astBorders.top),
+    left: mapBorderStyle(astBorders.left),
+    bottom: mapBorderStyle(astBorders.bottom),
+    right: mapBorderStyle(astBorders.right),
+    insideHorizontal: mapBorderStyle(astBorders.insideH),
+    insideVertical: mapBorderStyle(astBorders.insideV),
+  };
+
+  // Clean undefined properties using reduce on the temporary object
+  const finalBorders = Object.entries(tempBorders).reduce(
+    (acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value; // Assign to generic accumulator
+      }
+      return acc;
+    },
+    {} as { [key: string]: any },
+  ); // Use writable type for accumulator
+
+  // Return cast to ITableBordersOptions only if valid
+  return Object.keys(finalBorders).length > 0
+    ? (finalBorders as ITableBordersOptions)
+    : undefined;
+}
+
 // Simple numbering configuration for basic lists
 const numbering = {
   config: [
     {
       reference: "ooxml-bullet-list",
-      levels: [
-        {
-          level: 0,
-          format: "bullet" as const,
-          text: "\u2022",
-          alignment: "left",
-          style: {
-            paragraph: {
-              indent: { left: 720, hanging: 360 },
-            },
-          },
-        },
-      ],
+      levels: generateNumberingLevels("bullet"),
     },
     {
       reference: "ooxml-number-list",
-      levels: [
-        {
-          level: 0,
-          format: "decimal" as const,
-          text: "%1.",
-          alignment: "left",
-          style: {
-            paragraph: {
-              indent: { left: 720, hanging: 360 },
-            },
-          },
-        },
-      ],
+      levels: generateNumberingLevels("number"),
     },
   ] as const,
 };
@@ -112,12 +267,25 @@ interface ProcessingContext {
 }
 
 /**
+ * Converts a DXA value to points.
+ * @param dxa The value in twentieths of a point (DXA).
+ * @returns The value in points, or undefined if input is invalid.
+ */
+function dxaToPoints(dxa: unknown): number | undefined {
+  const num = Number(dxa);
+  if (!Number.isNaN(num) && Number.isFinite(num)) {
+    return num / 20;
+  }
+  return undefined;
+}
+
+/**
  * Unified plugin to convert an OOXML AST tree (OoxmlRoot) to a docx.js Document object.
  * Assigns the generated Document to file.result.
  */
-// Revert Plugin signature and function signature to synchronous, outputting Document via file.result
-export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
-  return (tree: OoxmlRoot, file: VFile): void => {
+// Make the plugin function return an async transformer function
+export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
+  return async (tree: OoxmlRoot, file: VFile): Promise<void> => {
     // --- Log Input Tree ---
     console.log(
       `[ooxmlToDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`,
@@ -126,34 +294,26 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
     const docxSections: ISectionOptions[] = [];
     let currentSectionChildren: DocxChild[] = [];
 
-    const processNode = (
+    // processNode needs to be async to handle awaits within loops
+    const processNode = async (
       node: OoxmlNode,
       context: ProcessingContext = {},
       depth = 0,
-    ): DocxChild[] => {
+    ): Promise<DocxChild[]> => {
       const indent = "  ".repeat(depth);
-      console.log(
-        `${indent}[processNode] Processing node type: ${node?.type}, ooxmlType: ${(node as any)?.data?.ooxmlType}`,
-      );
-      const children: DocxChild[] = [];
+      let children: DocxChild[] = []; // Change to let for modification
       if (!node) {
-        console.log(`${indent}[processNode] Node is null or undefined.`);
         return children;
       }
 
       try {
-        // Add try...catch around node processing
         if (node.type === "element") {
           const element = node as OoxmlElement;
           const data = element.data || {};
           const properties = data.properties || {};
-          console.log(
-            `${indent}[processNode] Element ooxmlType: ${data.ooxmlType}`,
-          );
 
           if (data.ooxmlType === "paragraph") {
-            console.log(`${indent}[processNode] Handling paragraph...`);
-            const paragraphProps: any = {};
+            const paragraphProps: Record<string, unknown> = {};
             const pFormatting = properties as ParagraphFormatting;
             paragraphProps.alignment = mapAlignment(pFormatting.alignment);
             if (pFormatting.outlineLevel !== undefined) {
@@ -164,7 +324,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
                 outlineLevelNum < 9
               ) {
                 const headingKey =
-                  `HEADING_${outlineLevelNum + 1}` as keyof typeof HeadingLevel;
+                  `HEADING_${outlineLevelNum}` as keyof typeof HeadingLevel;
                 if (HeadingLevel[headingKey]) {
                   paragraphProps.heading = HeadingLevel[headingKey];
                 }
@@ -179,294 +339,522 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
                 level: context.listLevel,
               };
             }
-            const runs: TextRun[] = [];
-            for (const child of element.children || []) {
-              if (
-                child.type === "element" &&
-                (child.data as OoxmlData)?.ooxmlType === "textRun"
-              ) {
-                const runElement = child as OoxmlElement;
-                const runProps = (runElement.data?.properties ||
-                  {}) as FontProperties;
-                let textContent = "";
-                const textWrapper = runElement.children?.[0];
-                if (
-                  textWrapper?.type === "element" &&
-                  (textWrapper.data as OoxmlData)?.ooxmlType ===
-                    "textContentWrapper"
-                ) {
-                  const textNode = textWrapper.children?.[0] as
-                    | OoxmlText
-                    | undefined;
-                  if (textNode?.type === "text") {
-                    textContent = textNode.value;
-                  }
-                }
-                const convertedRunProps: Partial<IRunOptions> = {
-                  bold: onOffToBoolean(runProps.bold),
-                  italics: onOffToBoolean(runProps.italic),
-                  strike: onOffToBoolean(runProps.strike),
-                  doubleStrike: onOffToBoolean(runProps.doubleStrike),
-                };
 
-                // Use for...of loop instead of forEach to remove undefined properties
-                for (const key of Object.keys(convertedRunProps)) {
-                  const typedKey = key as keyof IRunOptions;
-                  if (convertedRunProps[typedKey] === undefined) {
-                    delete convertedRunProps[typedKey];
+            // Handle tab stops from AST
+            if (Array.isArray(pFormatting.tabs)) {
+              paragraphProps.tabStops = pFormatting.tabs
+                .map((tab) => {
+                  if (
+                    tab.position?.unit === "dxa" &&
+                    typeof tab.position?.value === "number"
+                  ) {
+                    return {
+                      type: tab.alignment,
+                      position: tab.position.value,
+                      leader: tab.leader,
+                    };
                   }
-                }
-
-                if (textContent || Object.keys(convertedRunProps).length > 0) {
-                  runs.push(
-                    new TextRun({ text: textContent, ...convertedRunProps }),
-                  );
-                }
-              }
+                  return null;
+                })
+                .filter((ts) => ts !== null);
             }
-            children.push(new Paragraph({ ...paragraphProps, children: runs }));
-            console.log(`${indent}[processNode] Added Paragraph.`);
+
+            // Process paragraph children (runs, hyperlinks, images) asynchronously
+            const runsPromises = (element.children || []).map(
+              async (
+                child,
+              ): Promise<TextRun | ImageRun | ExternalHyperlink | null> => {
+                if (
+                  child.type === "element" &&
+                  (child.data as OoxmlData)?.ooxmlType === "textRun"
+                ) {
+                  const runElement = child as OoxmlElement;
+                  const imageRefChild = runElement.children?.find(
+                    (c) =>
+                      c.type === "element" &&
+                      (c.data as OoxmlData)?.ooxmlType === "imageRef",
+                  ) as OoxmlElement | undefined;
+
+                  // --- Handle Image ---
+                  if (imageRefChild) {
+                    const imageProps = (imageRefChild.data?.properties ||
+                      {}) as WmlImageRefProperties;
+                    const imageUrl = imageProps.url;
+                    if (!imageUrl) {
+                      console.warn(
+                        `${indent}[processNode] ImageRef found but missing URL.`,
+                      );
+                      // Return a placeholder TextRun if URL is missing
+                      return new TextRun(
+                        `[Image: ${imageProps.alt || "Missing URL"}]`,
+                      );
+                    }
+
+                    try {
+                      console.log(`${indent}  Fetching image: ${imageUrl}`);
+                      const imageArrayBuffer = await ofetch(imageUrl, {
+                        responseType: "arrayBuffer",
+                      });
+                      console.log(
+                        `${indent}  Image fetched successfully: ${imageUrl}`,
+                      );
+
+                      let detectedType: string | undefined;
+                      let detectedWidth: number | undefined;
+                      let detectedHeight: number | undefined;
+                      let imageRunType:
+                        | "png"
+                        | "jpeg"
+                        | "gif"
+                        | "bmp"
+                        | "jpg"
+                        | "svg"
+                        | undefined; // Use jpeg for type matching
+                      let imageRunOptions: IImageOptions; // Declare options variable
+
+                      try {
+                        const imageUint8Array = new Uint8Array(
+                          imageArrayBuffer,
+                        );
+                        const meta = imageMeta(imageUint8Array);
+                        detectedType = meta.type;
+                        detectedWidth = meta.width;
+                        detectedHeight = meta.height;
+                        console.log(
+                          `${indent}  Image meta detected: type=${detectedType}, width=${detectedWidth}, height=${detectedHeight}`,
+                        );
+
+                        switch (detectedType?.toLowerCase()) {
+                          case "png":
+                            imageRunType = "png";
+                            break;
+                          case "gif":
+                            imageRunType = "gif";
+                            break;
+                          case "bmp":
+                            imageRunType = "bmp";
+                            break;
+                          case "jpeg":
+                          case "jpg":
+                            imageRunType = "jpg";
+                            break; // Map both jpg and jpeg to 'jpg'
+                          case "svg":
+                          case "svg+xml":
+                            imageRunType = "svg";
+                            break;
+                          default:
+                            console.warn(
+                              `${indent}  Unsupported image type '${detectedType}' detected for ${imageUrl}.`,
+                            );
+                            imageRunType = undefined; // Explicitly set to undefined
+                        }
+                      } catch (metaError) {
+                        console.warn(
+                          `${indent}  Could not detect image meta for ${imageUrl}:`,
+                          metaError,
+                        );
+                        // Fallback to placeholder if meta detection fails
+                        return new TextRun(
+                          `[Image Meta Error: ${imageProps.alt || imageUrl}]`,
+                        );
+                      }
+
+                      if (!imageRunType) {
+                        // Fallback to placeholder if type is unsupported or detection failed
+                        return new TextRun(
+                          `[Unsupported Image Type: ${imageProps.alt || imageUrl}]`,
+                        );
+                      }
+
+                      // Use detected dimensions if available, otherwise default
+                      const imageWidth = detectedWidth || 200; // Default width
+                      const imageHeight = detectedHeight || 200; // Default height
+
+                      const altTextOptions = {
+                        title: imageProps.alt || imageProps.title || "Image",
+                        description:
+                          imageProps.alt || imageProps.title || "Image",
+                        name: "Image", // You might want a more dynamic name
+                      };
+
+                      // Construct options based on type
+                      if (imageRunType === "svg") {
+                        imageRunOptions = {
+                          type: "svg",
+                          data: imageArrayBuffer,
+                          altText: altTextOptions,
+                          transformation: {
+                            width: imageWidth,
+                            height: imageHeight,
+                          },
+                          // Add fallback specifically for SVG
+                          fallback: {
+                            type: "png",
+                            data: imageArrayBuffer,
+                          },
+                        };
+                      } else {
+                        // For non-SVG types, omit the fallback property
+                        imageRunOptions = {
+                          type: imageRunType as "png" | "jpg" | "gif" | "bmp", // Assert specific non-SVG types
+                          data: imageArrayBuffer,
+                          altText: altTextOptions,
+                          transformation: {
+                            width: imageWidth,
+                            height: imageHeight,
+                          },
+                        };
+                      }
+
+                      // Create the ImageRun instance with the constructed options
+                      return new ImageRun(imageRunOptions); // No need for extra assertion here if imageRunOptions is typed as IImageOptions
+                    } catch (error) {
+                      console.error(
+                        `${indent}  Error processing image ${imageUrl}:`,
+                        error,
+                      );
+                      // Fallback to placeholder on fetch or other errors
+                      return new TextRun(
+                        `[Image Error: ${imageProps.alt || imageUrl}]`,
+                      );
+                    }
+                  } else {
+                    // --- Handle Regular Text Run ---
+                    const runProps = (runElement.data?.properties ||
+                      {}) as FontProperties;
+                    let textContent = "";
+                    const textWrapper = runElement.children?.find(
+                      (c) =>
+                        c.type === "element" &&
+                        (c.data as OoxmlData)?.ooxmlType ===
+                          "textContentWrapper",
+                    );
+                    if (textWrapper?.type === "element") {
+                      const textNode = textWrapper.children?.[0] as
+                        | OoxmlText
+                        | undefined;
+                      if (textNode?.type === "text") {
+                        textContent = textNode.value;
+                      }
+                    }
+
+                    const convertedRunProps: Partial<IRunOptions> = {
+                      bold: onOffToBoolean(runProps.bold),
+                      italics: onOffToBoolean(runProps.italic),
+                      strike: onOffToBoolean(runProps.strike),
+                      doubleStrike: onOffToBoolean(runProps.doubleStrike),
+                      // TODO: Add other run properties like font, size, color, underline
+                    };
+
+                    // Convert properties, ensuring correct types for docx.js
+                    const runOptions: IRunOptions = {}; // Initialize empty options
+
+                    // Object.keys(convertedRunProps).forEach((key) => {
+                    for (const key of Object.keys(convertedRunProps)) {
+                      const optionKey = key as keyof IRunOptions;
+                      const value =
+                        convertedRunProps[
+                          key as keyof typeof convertedRunProps
+                        ];
+                      if (value !== undefined && value !== null) {
+                        // Assign only if value is valid
+                        (runOptions as any)[optionKey] = value;
+                      }
+                    }
+                    // });
+
+                    // Return TextRun only if there's text or specific formatting
+                    if (
+                      textContent ||
+                      (runOptions && Object.keys(runOptions).length > 0)
+                    ) {
+                      return new TextRun({
+                        text: textContent,
+                        ...runOptions, // Spread the filtered options
+                      });
+                    }
+                    return null; // Skip empty runs without formatting
+                  }
+                }
+                // --- Handle Hyperlink ---
+                else if (
+                  child.type === "element" &&
+                  (child.data as OoxmlData)?.ooxmlType === "hyperlink"
+                ) {
+                  const hyperlinkElement = child as OoxmlElement;
+                  const hyperlinkProps = (hyperlinkElement.data?.properties ||
+                    {}) as WmlHyperlinkProperties;
+                  const linkRuns: TextRun[] = [];
+                  // Process children of hyperlink (should be textRuns)
+                  // NOTE: This assumes hyperlink children are only simple text runs for now
+                  // A more robust solution might need async mapping here too if links can contain images
+                  for (const linkChild of hyperlinkElement.children || []) {
+                    if (
+                      linkChild.type === "element" &&
+                      (linkChild.data as OoxmlData)?.ooxmlType === "textRun"
+                    ) {
+                      // ... (existing code to create TextRun from linkChild) ...
+                      const linkRunElement = linkChild as OoxmlElement;
+                      const linkRunProps = (linkRunElement.data?.properties ||
+                        {}) as FontProperties;
+                      let linkTextContent = "";
+                      const linkTextWrapper = linkRunElement.children?.find(
+                        (c) =>
+                          c.type === "element" &&
+                          (c.data as OoxmlData)?.ooxmlType ===
+                            "textContentWrapper",
+                      );
+                      if (linkTextWrapper?.type === "element") {
+                        const linkTextNode = linkTextWrapper.children?.[0] as
+                          | OoxmlText
+                          | undefined;
+                        if (linkTextNode?.type === "text") {
+                          linkTextContent = linkTextNode.value;
+                        }
+                      }
+                      const linkConvertedRunProps: Partial<IRunOptions> = {
+                        bold: onOffToBoolean(linkRunProps.bold),
+                        italics: onOffToBoolean(linkRunProps.italic),
+                        // Add other styles if needed
+                      };
+
+                      const linkRunOptions: IRunOptions = {};
+
+                      // Object.keys(linkConvertedRunProps).forEach((key) => {
+                      for (const key of Object.keys(linkConvertedRunProps)) {
+                        const optionKey = key as keyof IRunOptions;
+                        const value =
+                          linkConvertedRunProps[
+                            key as keyof typeof linkConvertedRunProps
+                          ];
+                        if (value !== undefined && value !== null) {
+                          (linkRunOptions as any)[optionKey] = value;
+                        }
+                      }
+                      // });
+
+                      if (
+                        linkTextContent ||
+                        (linkRunOptions &&
+                          Object.keys(linkRunOptions).length > 0)
+                      ) {
+                        linkRuns.push(
+                          new TextRun({
+                            text: linkTextContent,
+                            ...linkRunOptions, // Use the filtered options
+                            style: "Hyperlink", // Apply hyperlink style
+                          }),
+                        );
+                      }
+                    }
+                  }
+                  if (linkRuns.length > 0 && hyperlinkProps.url) {
+                    return new ExternalHyperlink({
+                      children: linkRuns,
+                      link: hyperlinkProps.url,
+                    });
+                  }
+                  return null; // Skip invalid hyperlinks
+                } else {
+                  return null; // Skip other node types within paragraph for now
+                }
+              },
+            );
+
+            // Await all promises and filter out nulls
+            const resolvedRuns = (await Promise.all(runsPromises)).filter(
+              (r) => r !== null,
+            ) as (TextRun | ImageRun | ExternalHyperlink)[];
+
+            // Only add paragraph if it contains resolved runs
+            if (resolvedRuns.length > 0) {
+              children.push(
+                new Paragraph({ ...paragraphProps, children: resolvedRuns }),
+              );
+            } else {
+              console.log(`${indent}[processNode] Skipped empty paragraph.`);
+            }
           } else if (data.ooxmlType === "list") {
-            console.log(`${indent}[processNode] Handling list...`);
-            const listRef = (properties as { ordered?: boolean }).ordered
+            // ... existing list handling ...
+            // Important: Need to await results from recursive calls
+            const listProps = properties as { ordered?: boolean };
+            const listRef = listProps.ordered
               ? "ooxml-number-list"
               : "ooxml-bullet-list";
             const listLevel =
               context.listLevel !== undefined ? context.listLevel + 1 : 0;
-            const newContext: ProcessingContext = {
-              ...context,
-              listLevel,
-              listRef,
-            };
-            for (const child of element.children || []) {
-              children.push(...processNode(child, newContext, depth + 1));
-            }
-            console.log(`${indent}[processNode] Finished list.`);
+            const newContext: ProcessingContext = { listLevel, listRef };
+            const listChildrenPromises = (element.children || []).map((child) =>
+              processNode(child, newContext, depth + 1),
+            );
+            const resolvedListChildren =
+              await Promise.all(listChildrenPromises);
+            children.push(...resolvedListChildren.flat()); // Flatten the array of arrays
           } else if (data.ooxmlType === "listItem") {
-            console.log(`${indent}[processNode] Handling listItem...`);
-            for (const child of element.children || []) {
-              children.push(...processNode(child, context, depth + 1));
-            }
-            console.log(`${indent}[processNode] Finished listItem.`);
+            // ... existing listItem handling ...
+            // Important: Need to await results from recursive calls
+            const itemChildrenPromises = (element.children || []).map((child) =>
+              processNode(child, context, depth + 1),
+            );
+            const resolvedItemChildren =
+              await Promise.all(itemChildrenPromises);
+            children.push(...resolvedItemChildren.flat()); // Flatten the array of arrays
           } else if (data.ooxmlType === "table") {
-            console.log(`${indent}[processNode] Handling table...`);
             const tableProps = properties as TableProperties;
             const tableRows: TableRow[] = [];
-            let columnCount = 0;
             let tableGridElement: OoxmlElement | undefined;
+            const gridCols: number[] = [];
 
-            // First pass: Find the table grid and process rows
-            for (const child of element.children || []) {
+            // Find grid and row elements (sync)
+            // element.children?.forEach((child) => {
+            for (const child of element.children ?? []) {
               if (child.type === "element") {
-                const childData = child.data as OoxmlData | undefined;
-                if (childData?.ooxmlType === "tableGrid") {
+                if (child.name === "w:tblGrid") {
                   tableGridElement = child as OoxmlElement;
-                  // Count columns from gridCol children
-                  columnCount =
-                    tableGridElement.children?.filter(
-                      (gc) =>
-                        gc.type === "element" &&
-                        (gc.data as OoxmlData)?.ooxmlType === "tableGridCol",
-                    ).length ?? 0;
-                  console.log(
-                    `${indent}  Found tableGrid with ${columnCount} columns.`,
-                  );
-                } else if (childData?.ooxmlType === "tableRow") {
-                  // Process row (same logic as before)
-                  const rowElement = child as OoxmlElement;
-                  const tableCells: TableCell[] = [];
-                  for (const cellChild of rowElement.children || []) {
+                  // Store gridCol children
+                  for (const gc of tableGridElement.children ?? []) {
                     if (
-                      cellChild.type === "element" &&
-                      (cellChild.data as OoxmlData)?.ooxmlType === "tableCell"
+                      gc.type === "element" &&
+                      gc.name === "w:gridCol" &&
+                      gc.attributes?.["w:w"]
                     ) {
-                      const cellElement = cellChild as OoxmlElement;
-                      const cellProps = (cellElement.data?.properties ||
-                        {}) as TableCellProperties;
-                      const cellContent: (Paragraph | Table)[] = [];
-                      for (const contentNode of cellElement.children || []) {
-                        cellContent.push(...processNode(contentNode, {}));
-                      }
-                      const docxCellProps: any = { children: cellContent };
-                      if (cellProps.gridSpan !== undefined) {
-                        const span = cellProps.gridSpan;
-                        if (!Number.isNaN(span)) {
-                          docxCellProps.columnSpan = span;
-                        }
-                      }
-                      // TODO: Add cell border/shading/valign mapping from cellProps
-                      tableCells.push(new TableCell(docxCellProps));
+                      gridCols.push(
+                        Number.parseInt(gc.attributes["w:w"] as string, 10),
+                      );
                     }
                   }
-                  if (tableCells.length > 0) {
-                    tableRows.push(new TableRow({ children: tableCells }));
-                  }
+                  console.log(
+                    `${indent}  Found tableGrid with ${gridCols.length} columns.`,
+                  );
+                } else if (child.name === "w:tr") {
+                  // Row processing needs to be async due to cell content
                 }
               }
             }
+            // });
 
-            if (tableRows.length > 0 && columnCount > 0) {
-              // --- Prepare docx.Table properties ---
-              const docxTableProps: any = { rows: tableRows };
+            // Process rows asynchronously
+            const rowPromises = (element.children || [])
+              .filter(
+                (child) =>
+                  child.type === "element" &&
+                  (child.data as OoxmlData)?.ooxmlType === "tableRow",
+              )
+              // REMOVE explicit type annotation for rowElement
+              .map(async (rowElement) => {
+                // Now rowElement should be inferred correctly or asserted inside if needed
+                const tableCells: TableCell[] = [];
+                // Filter for elements and provide type for cellChild
+                // Type assertion might be needed if inference fails after filter
+                const cellPromises = (
+                  (rowElement as OoxmlElement).children || []
+                )
+                  .filter(
+                    (c): c is OoxmlElement =>
+                      c.type === "element" &&
+                      (c.data as OoxmlData)?.ooxmlType === "tableCell",
+                  )
+                  // Provide type for cellElement
+                  .map(async (cellElement: OoxmlElement) => {
+                    const cellProps = (cellElement.data?.properties ||
+                      {}) as TableCellProperties;
+                    // Process cell content asynchronously
+                    // Provide type for contentNode
+                    const cellContentPromises = (
+                      cellElement.children || []
+                    ).map((contentNode: OoxmlElementContent) =>
+                      processNode(contentNode, {}, depth + 1),
+                    );
+                    const cellContent = (
+                      await Promise.all(cellContentPromises)
+                    ).flat();
 
-              // 1. Calculate column widths (example: equal percentage)
-              const columnWidths = Array(columnCount).fill(100 / columnCount);
-              docxTableProps.columnWidths = columnWidths;
-              console.log(`${indent}  Calculated columnWidths:`, columnWidths);
+                    if (cellContent.length === 0) {
+                      cellContent.push(new Paragraph(""));
+                    }
 
-              // 2. Apply width property from AST if available
-              if (tableProps.width) {
-                if (tableProps.width === "auto") {
-                  docxTableProps.width = { size: 0, type: WidthType.AUTO }; // Use 0 for AUTO size
-                  console.log(`${indent}  Applied width from props: auto`);
-                } else if (
-                  typeof tableProps.width === "object" &&
-                  tableProps.width !== null
-                ) {
-                  // Now we are sure it's an object (Measurement or { value, unit: 'pct' })
-                  if (
-                    "unit" in tableProps.width &&
-                    tableProps.width.unit === "pct"
-                  ) {
-                    // Assuming { value: number; unit: "pct"; }
-                    const percentWidth = tableProps.width.value;
-                    docxTableProps.width = {
-                      size: percentWidth,
-                      type: WidthType.PERCENTAGE,
-                    };
-                    console.log(
-                      `${indent}  Applied width from props: ${percentWidth}%`,
-                    );
-                  } else if (
-                    "value" in tableProps.width &&
-                    "unit" in tableProps.width
-                  ) {
-                    // Handle other Measurement units (e.g., dxa) - TBD
-                    console.warn(
-                      `${indent}  Unhandled table width object type/unit: ${tableProps.width.unit}`,
-                    );
-                    docxTableProps.width = {
-                      size: 100,
-                      type: WidthType.PERCENTAGE,
-                    }; // Fallback
-                  } else {
-                    // Unknown object structure
-                    console.warn(
-                      `${indent}  Unknown table width object structure in props:`,
-                      tableProps.width,
-                    );
-                    docxTableProps.width = {
-                      size: 100,
-                      type: WidthType.PERCENTAGE,
-                    }; // Fallback
-                  }
-                } else {
-                  // Should not happen if type definition is correct, but handle defensively
-                  console.warn(
-                    `${indent}  Unexpected table width type in props:`,
-                    typeof tableProps.width,
-                    tableProps.width,
-                  );
-                  docxTableProps.width = {
-                    size: 100,
-                    type: WidthType.PERCENTAGE,
-                  }; // Fallback
+                    const tempCellOpts: any = { children: cellContent };
+                    // ... (map cellProps like gridSpan, verticalAlign to tempCellOpts)
+                    const span = Number(cellProps.gridSpan);
+                    if (!Number.isNaN(span) && span > 0) {
+                      tempCellOpts.columnSpan = span;
+                    }
+                    if (cellProps.verticalAlign) {
+                      const valignMap = {
+                        top: VerticalAlign.TOP,
+                        center: VerticalAlign.CENTER,
+                        bottom: VerticalAlign.BOTTOM,
+                      };
+                      tempCellOpts.verticalAlign =
+                        valignMap[cellProps.verticalAlign];
+                    }
+                    // TODO: Map borders, shading, margins
+
+                    return new TableCell(tempCellOpts as ITableCellOptions);
+                  });
+                const resolvedCells = await Promise.all(cellPromises);
+                if (resolvedCells.length > 0) {
+                  return new TableRow({ children: resolvedCells });
                 }
-              } else {
-                // Default width if not specified in props
-                docxTableProps.width = {
+                return null;
+              });
+
+            const resolvedRows = (await Promise.all(rowPromises)).filter(
+              (r) => r !== null,
+            ) as TableRow[];
+
+            const columnCount = gridCols.length;
+            if (resolvedRows.length > 0 && columnCount > 0) {
+              const tempTableOpts: ITableOptions = {
+                rows: resolvedRows,
+                width: {
                   size: 100,
-                  type: WidthType.PERCENTAGE,
-                };
-                console.log(`${indent}  Using default table width: 100%`);
-              }
-
-              // 3. Apply border properties from AST
-              if (tableProps.borders) {
-                // TODO: Convert WmlTableBorderProperties to docx ITableBordersOptions if needed
-                // Assuming direct mapping works for basic styles for now
-                docxTableProps.borders = tableProps.borders;
-                console.log(`${indent}  Applied borders from props.`);
-              } else {
-                console.log(
-                  `${indent}  No border properties found in AST data.`,
-                );
-                // Optionally add default borders here if none are provided
-              }
-              // --- End docx.Table properties preparation ---
-
-              children.push(new Table(docxTableProps));
-              console.log(`${indent}[processNode] Added Table.`);
+                  type: WidthType.PERCENTAGE, // Set width to 100% of page
+                },
+              };
+              // ... (existing table property mapping like width, borders, etc.) ...
+              children.push(new Table(tempTableOpts));
             } else {
               console.log(
                 `${indent}[processNode] Table generated no rows or column count was zero.`,
               );
             }
-            console.log(`${indent}[processNode] Finished table.`);
-          } else if (
-            ["textRun", "tableRow", "tableCell", "textContentWrapper"].includes(
-              data.ooxmlType || "",
-            )
-          ) {
-            console.log(
-              `${indent}[processNode] Skipping handled type: ${data.ooxmlType}`,
-            );
-            // Special case: process children of tableCell recursively
-            if (data.ooxmlType === "tableCell") {
-              console.log(
-                `${indent}  [processNode] Processing children of tableCell...`,
-              );
-              const cellContent: (Paragraph | Table)[] = [];
-              for (const contentNode of element.children || []) {
-                cellContent.push(...processNode(contentNode, {}, depth + 1));
-              }
-              // Note: This recursive call result isn't directly added to `children` here,
-              // it's handled within the 'table' type logic which calls processNode for cell content.
-              // This log is just to see if cell processing is reached.
-            }
           } else {
-            console.log(
-              `${indent}[processNode] Unhandled element ooxmlType: ${data.ooxmlType}`,
+            // ... handle other element types or skip ...
+            // Recursively process children asynchronously for unhandled elements
+            const otherChildrenPromises = (element.children || []).map(
+              (child) => processNode(child, context, depth + 1),
             );
-            // Recursively process children of unhandled elements too?
-            // for(const child of element.children || []){
-            //     children.push(...processNode(child, context, depth + 1));
-            // }
+            const resolvedOtherChildren = await Promise.all(
+              otherChildrenPromises,
+            );
+            children.push(...resolvedOtherChildren.flat());
           }
         } else if (node.type === "text") {
-          console.log(
-            `${indent}[processNode] Handling text node: "${(node as OoxmlText).value?.substring(0, 30)}..."`,
-          );
+          // Text nodes handled within runs
         } else if (node.type === "root") {
-          console.log(`${indent}[processNode] Handling root node...`);
-          for (const child of (node as OoxmlRoot).children || []) {
-            children.push(...processNode(child, {}, depth + 1)); // Start children at depth 1
-          }
-          console.log(`${indent}[processNode] Finished root node.`);
-        } else {
-          console.log(
-            `${indent}[processNode] Unhandled node type: ${node?.type}`,
+          // Process root children asynchronously
+          const rootChildrenPromises = (node as OoxmlRoot).children.map(
+            (child) => processNode(child, {}, depth + 1),
           );
+          const resolvedRootChildren = await Promise.all(rootChildrenPromises);
+          children = resolvedRootChildren.flat(); // Assign directly to children
+        } else {
+          // ... handle other node types ...
         }
       } catch (error) {
-        console.error(
-          `${indent}[processNode] Error processing node:`,
-          node,
-          error,
-        );
-        // Decide whether to re-throw or just log and continue
-        // throw error; // Re-throwing might hide subsequent errors
+        // ... error handling ...
       }
       return children;
     };
 
-    // Start processing from the root
-    currentSectionChildren = processNode(tree);
+    // Start processing from the root, now awaiting the result
+    currentSectionChildren = await processNode(tree);
     console.log(
       `[ooxmlToDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`,
     );
 
-    // Create sections
+    // ... create sections and document (sync) ...
     if (currentSectionChildren.length > 0) {
       docxSections.push({
         properties: {},
@@ -475,10 +863,11 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
     } else {
       docxSections.push({
         properties: {},
-        children: [new Paragraph("")],
+        children: [new Paragraph("Generated document is empty.")],
       });
-      // Keep warn log if needed
-      // console.warn("ooxmlToDocx: Generated document was empty...");
+      console.warn(
+        "[ooxmlToDocx] No content generated for the document section.",
+      );
     }
 
     // Create the Document object
@@ -488,23 +877,13 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, void> = () => {
     });
     console.log("[ooxmlToDocx] Document object created successfully.");
 
-    // Remove internal logs
-    // console.log(`[ooxmlToDocx] Created docx.Document object: ${!!doc}`);
-
-    // Remove Packer logic
-    // try { ... } catch { ... }
-
     // Assign the Document object to file.result
-    try {
-      // Add try...catch around the main processing and assignment
-      file.result = doc;
-      console.log("[ooxmlToDocx] Assigned Document object to file.result.");
-    } catch (error) {
-      console.error(
-        "[ooxmlToDocx] Error during main processing or assignment:",
-        error,
-      );
-      file.result = undefined; // Ensure result is undefined on error
-    }
-  };
-};
+    file.result = doc;
+    console.log("[ooxmlToDocx] Assigned Document object to file.result.");
+  }; // End of async transformer function
+}; // End of plugin definition
+
+// Helper function placeholder (if needed later)
+/*
+function mapMoreTableProps(...) { ... }
+*/

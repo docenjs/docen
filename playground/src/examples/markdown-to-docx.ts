@@ -1,12 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createProcessor } from "@docen/core";
 import { docenMarkdown } from "@docen/document";
-import { type OoxmlRoot, mdastToOoxml, ooxmlToDocx } from "@docen/office";
+import { mdastToOoxml, ooxmlToDocx } from "@docen/office";
 import { Document, Packer } from "docx";
-import type { Root as MdastRoot } from "mdast";
-import { unified } from "unified";
 import { VFile } from "vfile";
-
 // --- Log the imported plugin ---
 console.log(
   `[markdown-to-docx] Imported ooxmlToDocx type: ${typeof ooxmlToDocx}`,
@@ -17,7 +15,6 @@ console.log(
 const samplesDir = join(__dirname, "../samples"); // Assume __dirname is defined elsewhere or adjust
 const inputFile = join(samplesDir, "sample.md");
 const outputDir = join(__dirname, "..", "..", "drafts");
-mkdirSync(outputDir, { recursive: true });
 const outputFilePath = join(outputDir, "markdown_to_docx.draft.docx"); // Renamed output file
 
 // Ensure output directory exists
@@ -43,29 +40,32 @@ async function convertMarkdownToDocx() {
 
   try {
     // Define the unified pipeline
-    const processor = unified()
+    const processor = createProcessor()
       .use(docenMarkdown) // Parser
       .use(mdastToOoxml) // MDAST -> OOXML AST transformer
       .use(ooxmlToDocx); // OOXML AST -> docx.Document transformer (attaches to result)
 
-    // Process the VFile through the entire pipeline
-    // .process executes parse, run, etc. and returns the processed VFile
-    // Using 'as any' on process due to potential type issues
-    const processedFile = await (processor.process as any)(vfile);
+    // Parse the markdown into an MDAST tree
+    const tree = processor.parse(vfile);
 
-    // Get the final Document object from the result property of the processed file
-    // Note: Depending on unified version/plugins, result might be on the original vfile or the returned one.
-    // Let's assume it's on the returned processedFile for safety.
-    const doc = processedFile.result as Document;
+    // Run the transformers on the tree. ooxmlToDocx will attach the result to vfile.
+    await processor.run(tree, vfile);
+
+    // Get the final Document object from the result property of the VFile
+    // The result should be on the original vfile instance after .run()
+    const doc = vfile.result as Document;
 
     // Check if the result is actually a docx.Document object
     if (!doc || !(doc instanceof Document)) {
-      console.error("Unified pipeline result:", processedFile.result);
+      console.error(
+        "Unified pipeline result (from vfile.result after run):",
+        vfile.result,
+      );
       throw new Error(
-        "Unified pipeline failed to produce a valid Document object on vfile.result.",
+        "Unified pipeline failed to produce a valid Document object on vfile.result after run.",
       );
     }
-    console.log("docx.Document object generated via single pipeline.");
+    console.log("docx.Document object generated via parse/run pipeline.");
 
     // Pack and Write
     const buffer = await Packer.toBuffer(doc);

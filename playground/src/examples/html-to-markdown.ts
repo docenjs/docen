@@ -12,7 +12,6 @@ const __dirname = dirname(__filename);
 const samplesDir = join(__dirname, "../samples"); // Assume __dirname is defined elsewhere or adjust
 const inputFile = join(samplesDir, "sample.md");
 const outputDir = join(__dirname, "..", "..", "drafts");
-mkdirSync(outputDir, { recursive: true });
 const outputFile = join(outputDir, "html_to_markdown.draft.md"); // Output in examples dir
 
 async function convertHtmlToMarkdown() {
