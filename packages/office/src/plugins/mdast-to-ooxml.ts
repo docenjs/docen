@@ -2,11 +2,18 @@ import type {
   BlockContent,
   Blockquote,
   Break,
+  Definition,
   DefinitionContent,
+  Delete,
   Emphasis,
+  FootnoteDefinition,
+  FootnoteReference,
+  HTML,
   Heading,
   Image,
+  ImageReference,
   Link,
+  LinkReference,
   List,
   ListItem,
   Code as MdastCode,
@@ -23,10 +30,11 @@ import type {
 } from "mdast";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
-import type { VFile } from "vfile";
+import { x } from "xastscript";
 import type {
   BorderStyleProperties,
   FontProperties,
+  OoxmlData,
   OoxmlElement,
   OoxmlElementContent,
   OoxmlNode,
@@ -34,24 +42,102 @@ import type {
   OoxmlText,
   ParagraphFormatting,
   WmlBreakProperties,
+  WmlFootnoteReferenceProperties,
   WmlHyperlinkProperties,
   WmlImageRefProperties,
+  WmlListItemProperties,
+  WmlListProperties,
   WmlTableCellProperties,
   WmlTableProperties,
+  WmlTableRowProperties,
 } from "../ast";
 
-// Helper function to process inline MDAST nodes into OOXML AST Run Content
-// Returns an array of OOXML inline elements (like <w:r>, <w:hyperlink>, etc.)
+// --- Helper Functions ---
+
+/**
+ * Checks if a value represents an "on" state in OOXML.
+ */
+function isOnOffTrue(value: any): boolean {
+  return value === true || value === "true" || value === "on" || value === "1";
+}
+
+/**
+ * Simple HTML tag parser for basic inline tags (<u>, <sub>, <sup>).
+ * Returns an array of text segments and associated tags.
+ * Very basic, assumes valid nesting and no attributes.
+ */
+function parseBasicHtml(
+  html: string
+): { text: string; tags: Array<"u" | "sub" | "sup"> }[] {
+  const segments: { text: string; tags: Array<"u" | "sub" | "sup"> }[] = [];
+
+  // Basic regex approach - more robust parsing might be needed for complex cases
+  const regex = /(\s*<\/?(u|sub|sup)>\s*)|([^<]+)/gi;
+  const match = regex.exec(html);
+  let lastIndex = 0;
+  const currentTags: Array<"u" | "sub" | "sup"> = [];
+
+  // Add initial segment if HTML doesn't start with a tag
+  // Simplified: This basic parser assumes tags directly adjacent or separated by processable text
+
+  while (match !== null) {
+    const fullMatch = match[0];
+    const tagPart = match[1];
+    const tagName = match[2]?.toLowerCase() as "u" | "sub" | "sup" | undefined;
+    const textPart = match[3];
+
+    // Capture text before the tag
+    if (match.index > lastIndex) {
+      const textBefore = html.substring(lastIndex, match.index);
+      if (textBefore.trim()) {
+        // Avoid adding empty/whitespace-only segments
+        segments.push({ text: textBefore, tags: [...currentTags] });
+      }
+    }
+
+    if (tagPart) {
+      // Handle tag
+      const isClosing = tagPart.includes("</");
+      if (isClosing && tagName) {
+        const index = currentTags.lastIndexOf(tagName);
+        if (index !== -1) {
+          currentTags.splice(index, 1); // Remove last matching tag
+        }
+      } else if (tagName) {
+        currentTags.push(tagName);
+      }
+    } else if (textPart) {
+      // Handle text segment
+      segments.push({ text: textPart, tags: [...currentTags] });
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  // Capture any remaining text after the last tag
+  if (lastIndex < html.length) {
+    const remainingText = html.substring(lastIndex);
+    if (remainingText.trim()) {
+      segments.push({ text: remainingText, tags: [...currentTags] });
+    }
+  }
+
+  return segments;
+}
+
+/**
+ * Process inline MDAST nodes into OOXML AST Run Content (<w:r>, <w:hyperlink>, etc.).
+ */
 function processInlineContent(
   nodes: PhrasingContent[],
+  definitions: Record<string, Definition>,
+  footnoteDefinitions: Record<string, FootnoteDefinition>,
   currentState: FontProperties = {}
 ): OoxmlElement[] {
-  // Ensure return type is array of OoxmlElement (specifically runs)
   const ooxmlRuns: OoxmlElement[] = [];
 
   for (const node of nodes) {
     if (node.type === "text") {
-      const currentProps = { ...currentState };
       const textRun: OoxmlElement = {
         type: "element",
         name: "w:r",
@@ -60,7 +146,7 @@ function processInlineContent(
           {
             type: "element",
             name: "w:t",
-            attributes: { "xml:space": "preserve" }, // Preserve whitespace
+            attributes: { "xml:space": "preserve" },
             children: [
               {
                 type: "text",
@@ -73,143 +159,247 @@ function processInlineContent(
         ],
         data: {
           ooxmlType: "textRun",
-          // Only add properties if currentProps is not empty
-          ...(Object.keys(currentProps).length > 0 && {
-            properties: currentProps,
+          ...(Object.keys(currentState).length > 0 && {
+            properties: { ...currentState },
           }),
         },
       };
       ooxmlRuns.push(textRun);
     } else if (node.type === "strong") {
       ooxmlRuns.push(
-        ...processInlineContent(node.children, { ...currentState, bold: true })
+        ...processInlineContent(
+          node.children,
+          definitions,
+          footnoteDefinitions,
+          {
+            ...currentState,
+            bold: true,
+          }
+        )
       );
     } else if (node.type === "emphasis") {
       ooxmlRuns.push(
-        ...processInlineContent(node.children, {
-          ...currentState,
-          italic: true,
-        })
+        ...processInlineContent(
+          node.children,
+          definitions,
+          footnoteDefinitions,
+          {
+            ...currentState,
+            italic: true,
+          }
+        )
+      );
+    } else if (node.type === "delete") {
+      ooxmlRuns.push(
+        ...processInlineContent(
+          node.children,
+          definitions,
+          footnoteDefinitions,
+          {
+            ...currentState,
+            strike: true,
+          }
+        )
       );
     } else if (node.type === "link") {
       const linkNode = node as Link;
       const linkContentRuns = processInlineContent(
         linkNode.children,
+        definitions,
+        footnoteDefinitions,
         currentState
-      ); // Process link text runs
-      // Create a w:hyperlink element containing the text runs
+      );
       const hyperlinkElement: OoxmlElement = {
         type: "element",
         name: "w:hyperlink",
-        attributes: {}, // Attributes like r:id will be added by docx-to-ooxml if needed
-        children: linkContentRuns, // Embed the processed runs
+        attributes: {},
+        children: linkContentRuns,
         data: {
           ooxmlType: "hyperlink",
           properties: {
             url: linkNode.url,
             title: linkNode.title,
+            tooltip: linkNode.title,
           } as WmlHyperlinkProperties,
         },
       };
-      // The current `ooxml-to-docx` plugin expects <w:hyperlink> elements.
-      // Return the hyperlink element directly. The caller (e.g., paragraph handler)
-      // must be able to handle non-<w:r> elements in the returned array.
       ooxmlRuns.push(hyperlinkElement);
+    } else if (node.type === "linkReference") {
+      const linkRefNode = node as LinkReference;
+      const definition = definitions[linkRefNode.identifier.toUpperCase()];
+      if (definition) {
+        const linkContentRuns = processInlineContent(
+          linkRefNode.children,
+          definitions,
+          footnoteDefinitions,
+          currentState
+        );
+        const hyperlinkElement: OoxmlElement = {
+          type: "element",
+          name: "w:hyperlink",
+          attributes: {},
+          children: linkContentRuns,
+          data: {
+            ooxmlType: "hyperlink",
+            properties: {
+              url: definition.url,
+              title: definition.title,
+              tooltip: definition.title,
+            } as WmlHyperlinkProperties,
+          },
+        };
+        ooxmlRuns.push(hyperlinkElement);
+      } else {
+        console.warn(
+          `Definition not found for linkReference: ${linkRefNode.identifier}`
+        );
+        ooxmlRuns.push(
+          ...processInlineContent(
+            linkRefNode.children,
+            definitions,
+            footnoteDefinitions,
+            currentState
+          )
+        );
+      }
     } else if (node.type === "break") {
-      const breakElement: OoxmlElement = {
-        type: "element",
-        name: "w:br",
-        attributes: {},
-        children: [],
-        data: { ooxmlType: "break", properties: {} as WmlBreakProperties }, // Type might be needed?
+      const breakElement = x("w:br", {});
+      breakElement.data = {
+        ooxmlType: "break",
+        properties: {} as WmlBreakProperties,
       };
-      // A break needs to be inside a run (<w:r><w:br/></w:r>)
-      const breakRun: OoxmlElement = {
-        type: "element",
-        name: "w:r",
-        attributes: {},
-        children: [breakElement],
-        data: { ooxmlType: "textRun" },
-      };
+      const breakRun = x("w:r", {}, [breakElement]);
+      breakRun.data = { ooxmlType: "textRun" };
       ooxmlRuns.push(breakRun);
     } else if (node.type === "image") {
       const imageNode = node as Image;
-      // Create the imageRef element (custom AST node for deferred processing)
-      const imageRefElement: OoxmlElement = {
-        type: "element",
-        name: "imageRef", // Custom node type
-        attributes: {},
-        children: [],
-        data: {
-          ooxmlType: "imageRef", // Mark for ooxml-to-docx
-          properties: {
-            url: imageNode.url,
-            alt: imageNode.alt,
-            title: imageNode.title,
-          } as WmlImageRefProperties,
-        },
+      const imageRefElement = x("imageRef", {});
+      imageRefElement.data = {
+        ooxmlType: "imageRef",
+        properties: {
+          url: imageNode.url,
+          alt: imageNode.alt,
+          title: imageNode.title,
+        } as WmlImageRefProperties,
       };
-      // Wrap imageRef in a text run for inline placement context
-      const imageRunWrapper: OoxmlElement = {
-        type: "element",
-        name: "w:r",
-        attributes: {},
-        children: [imageRefElement],
-        data: { ooxmlType: "textRun" },
-      };
+      const imageRunWrapper = x("w:r", {}, [imageRefElement]);
+      imageRunWrapper.data = { ooxmlType: "textRun" };
       ooxmlRuns.push(imageRunWrapper);
+    } else if (node.type === "imageReference") {
+      const imageRefNode = node as ImageReference;
+      const definition = definitions[imageRefNode.identifier.toUpperCase()];
+      if (definition) {
+        const imageRefElement = x("imageRef", {});
+        imageRefElement.data = {
+          ooxmlType: "imageRef",
+          properties: {
+            url: definition.url,
+            alt: imageRefNode.alt,
+            title: definition.title,
+            identifier: imageRefNode.identifier,
+          } as WmlImageRefProperties,
+        };
+        const imageRunWrapper = x("w:r", {}, [imageRefElement]);
+        imageRunWrapper.data = { ooxmlType: "textRun" };
+        ooxmlRuns.push(imageRunWrapper);
+      } else {
+        console.warn(
+          `Definition not found for imageReference: ${imageRefNode.identifier}`
+        );
+        if (imageRefNode.alt) {
+          const fallbackRun = x("w:r", {}, [
+            x("w:t", { "xml:space": "preserve" }, imageRefNode.alt),
+          ]);
+          fallbackRun.data = { ooxmlType: "textRun", properties: currentState };
+          ooxmlRuns.push(fallbackRun);
+        }
+      }
     } else if (node.type === "inlineCode") {
       const codeText = node.value;
-      // Define properties for inline code using FontProperties directly
-      const codeProps: FontProperties = {
-        ...currentState, // Keep existing state like bold/italic if nested
-        font: "Courier New", // Specify monospace font
-      };
-      const codeRun: OoxmlElement = {
-        type: "element",
-        name: "w:r",
-        attributes: {},
-        children: [
-          {
-            type: "element",
-            name: "w:t",
-            attributes: { "xml:space": "preserve" },
-            children: [
-              {
-                type: "text",
-                value: codeText,
-                data: { ooxmlType: "text" },
-              } as OoxmlText,
-            ],
-            data: { ooxmlType: "textContentWrapper" },
-          },
-        ],
-        data: {
-          ooxmlType: "textRun",
-          properties: codeProps, // Apply code formatting properties
-        },
+      const codeRun = x("w:r", {}, [
+        x("w:t", { "xml:space": "preserve" }, codeText),
+      ]);
+      codeRun.data = {
+        ooxmlType: "textRun",
+        properties: { ...currentState, styleId: "CodeChar" } as FontProperties,
       };
       ooxmlRuns.push(codeRun);
+    } else if (node.type === "footnoteReference") {
+      const footnoteRefNode = node as FootnoteReference;
+      const definition =
+        footnoteDefinitions[footnoteRefNode.identifier.toUpperCase()];
+      if (definition) {
+        const footnoteRefElement = x("w:footnoteReference", {});
+        footnoteRefElement.data = {
+          ooxmlType: "footnoteReference",
+          properties: {
+            id: footnoteRefNode.identifier,
+          } as WmlFootnoteReferenceProperties,
+        };
+        const footnoteRefRun = x("w:r", {}, [footnoteRefElement]);
+        footnoteRefRun.data = {
+          ooxmlType: "textRun",
+          properties: {
+            ...currentState,
+            styleId: "FootnoteReference",
+          } as FontProperties,
+        };
+        ooxmlRuns.push(footnoteRefRun);
+      } else {
+        console.warn(
+          `Footnote definition not found for reference: ${footnoteRefNode.identifier}`
+        );
+        const fallbackText = `[^${footnoteRefNode.identifier}]`;
+        const fallbackRun = x("w:r", {}, [
+          x("w:t", { "xml:space": "preserve" }, fallbackText),
+        ]);
+        fallbackRun.data = { ooxmlType: "textRun", properties: currentState };
+        ooxmlRuns.push(fallbackRun);
+      }
+    } else if (node.type === "html") {
+      const htmlNode = node as HTML;
+      const segments = parseBasicHtml(htmlNode.value);
+      for (const segment of segments) {
+        const segmentState = { ...currentState };
+        for (const tag of segment.tags) {
+          if (tag === "u") {
+            segmentState.underline = { style: "single" };
+          } else if (tag === "sub") {
+            segmentState.vertAlign = "subscript";
+          } else if (tag === "sup") {
+            segmentState.vertAlign = "superscript";
+          }
+        }
+        const segmentRun = x("w:r", {}, [
+          x("w:t", { "xml:space": "preserve" }, segment.text),
+        ]);
+        segmentRun.data = { ooxmlType: "textRun", properties: segmentState };
+        ooxmlRuns.push(segmentRun);
+      }
     }
-    // TODO: Handle delete etc.
   }
-  // Filter out any null/undefined entries if logic changes
   return ooxmlRuns.filter(Boolean) as OoxmlElement[];
 }
 
 // --- Core Conversion Function ---
-// Converts a single MDAST block-level node to an array of OOXML Elements
+
+/**
+ * Converts a single MDAST block-level node to an array of OOXML Elements.
+ */
 function convertMdastNodeToOoxml(
   node: MdastContent,
-  file: VFile
+  definitions: Record<string, Definition>,
+  footnoteDefinitions: Record<string, FootnoteDefinition>
 ): OoxmlElement[] {
-  // Return array as one node might become multiple (though unlikely here)
   const results: OoxmlElement[] = [];
 
   if (node.type === "paragraph") {
     const mdastParagraph = node as MdastParagraph;
-    const paragraphContent = processInlineContent(mdastParagraph.children);
-    // Only create paragraph if it has content (runs)
+    const paragraphContent = processInlineContent(
+      mdastParagraph.children,
+      definitions,
+      footnoteDefinitions
+    );
     if (paragraphContent.length > 0) {
       const ooxmlParagraph: OoxmlElement = {
         type: "element",
@@ -219,20 +409,33 @@ function convertMdastNodeToOoxml(
         data: { ooxmlType: "paragraph", properties: {} as ParagraphFormatting },
       };
       results.push(ooxmlParagraph);
+    } else {
+      const emptyParagraph: OoxmlElement = {
+        type: "element",
+        name: "w:p",
+        attributes: {},
+        children: [],
+        data: { ooxmlType: "paragraph", properties: {} as ParagraphFormatting },
+      };
+      results.push(emptyParagraph);
     }
   } else if (node.type === "heading") {
     const headingNode = node as Heading;
-    const headingContent = processInlineContent(headingNode.children);
+    const headingContent = processInlineContent(
+      headingNode.children,
+      definitions,
+      footnoteDefinitions
+    );
     if (headingContent.length > 0) {
       const ooxmlHeading: OoxmlElement = {
         type: "element",
-        name: "w:p", // Headings are paragraphs with outlineLevel
+        name: "w:p",
         attributes: {},
         children: headingContent,
         data: {
           ooxmlType: "paragraph",
           properties: {
-            outlineLevel: headingNode.depth - 1, // Docx uses 0-based index for levels
+            styleId: `Heading${headingNode.depth}`,
           } as ParagraphFormatting,
         },
       };
@@ -243,34 +446,36 @@ function convertMdastNodeToOoxml(
       type: "element",
       name: "w:p",
       attributes: {},
-      children: [], // Often represented by a paragraph border or specific run
+      children: [],
       data: {
         ooxmlType: "paragraph",
-        properties: { thematicBreak: true } as ParagraphFormatting, // Mark for specific handling
+        properties: { thematicBreak: true } as ParagraphFormatting,
       },
     };
     results.push(ooxmlBreak);
   } else if (node.type === "blockquote") {
     const blockquoteNode = node as Blockquote;
-    // Process children recursively and add 'isQuote' property
     for (const childNode of blockquoteNode.children) {
-      const convertedChildren = convertMdastNodeToOoxml(childNode, file);
+      const convertedChildren = convertMdastNodeToOoxml(
+        childNode,
+        definitions,
+        footnoteDefinitions
+      );
       for (const ooxmlChild of convertedChildren) {
-        // Add quote property to paragraph children
         if (ooxmlChild.data?.ooxmlType === "paragraph") {
           const props = (ooxmlChild.data.properties ||
             {}) as ParagraphFormatting;
-          // REMOVE indentation logic
-          // props.indentation = { ...props.indentation, left: { value: 720, unit: 'dxa' } };
-          // ADD tab stop definition
-          props.tabs = [
-            { alignment: "left", position: { value: 720, unit: "dxa" } },
-            // Add more tab stops here if needed in the future
-          ];
+          props.styleId = "Quote";
           ooxmlChild.data.properties = props;
+          results.push(ooxmlChild);
+        } else if (ooxmlChild.data?.ooxmlType === "list") {
+          console.warn(
+            "Applying blockquote style to nested lists is not fully supported yet."
+          );
+          results.push(ooxmlChild);
+        } else {
+          results.push(ooxmlChild);
         }
-        // TODO: How to handle non-paragraph children within a quote?
-        results.push(ooxmlChild);
       }
     }
   } else if (node.type === "list") {
@@ -278,38 +483,84 @@ function convertMdastNodeToOoxml(
     const ooxmlListItems: OoxmlElement[] = [];
 
     for (const itemNode of listNode.children) {
-      // Iterate through list items
       if (itemNode.type === "listItem") {
+        const mdastListItem = itemNode as ListItem;
         const ooxmlListItemChildren: OoxmlElementContent[] = [];
-        // Recursively convert block content inside the list item
-        for (const contentNode of itemNode.children) {
-          const convertedContent = convertMdastNodeToOoxml(contentNode, file);
+        // Convert children first
+        for (const contentNode of mdastListItem.children) {
+          const convertedContent = convertMdastNodeToOoxml(
+            contentNode,
+            definitions,
+            footnoteDefinitions
+          );
           ooxmlListItemChildren.push(...convertedContent);
         }
 
-        // Create the OOXML list item if it has content
+        // If it's a GFM task list item, apply style to the first paragraph
+        if (
+          mdastListItem.checked !== null &&
+          mdastListItem.checked !== undefined &&
+          ooxmlListItemChildren.length > 0
+        ) {
+          const firstChild = ooxmlListItemChildren[0] as OoxmlElement; // Assert first child is an element for simplicity here
+
+          // Ensure the first child is a paragraph element
+          if (
+            firstChild &&
+            firstChild.type === "element" &&
+            firstChild.name === "w:p"
+          ) {
+            // Ensure data exists and is of the correct type (or create it)
+            let paragraphData = firstChild.data as OoxmlData | undefined;
+            if (!paragraphData) {
+              paragraphData = {};
+              firstChild.data = paragraphData;
+            }
+            paragraphData.ooxmlType = paragraphData.ooxmlType || "paragraph"; // Ensure ooxmlType is set
+
+            // Ensure properties object exists
+            if (!paragraphData.properties) {
+              paragraphData.properties = {};
+            }
+
+            const styleId = mdastListItem.checked
+              ? "TaskItemChecked"
+              : "TaskItemUnchecked";
+            // Add or overwrite styleId
+            (paragraphData.properties as ParagraphFormatting).styleId = styleId;
+          }
+        }
+
         if (ooxmlListItemChildren.length > 0) {
+          const listItemProps: WmlListItemProperties = {
+            level: 0, // Level still needs context, maybe handled by ooxml-to-docx based on list nesting
+          };
+
           ooxmlListItems.push({
             type: "element",
-            name: "listItem", // Abstract type, handled by ooxml-to-docx
+            name: "listItem",
             attributes: {},
             children: ooxmlListItemChildren,
-            data: { ooxmlType: "listItem" },
+            data: {
+              ooxmlType: "listItem",
+              properties: listItemProps,
+            },
           });
         }
       }
     }
 
-    // Create the OOXML list element if it has list items
     if (ooxmlListItems.length > 0) {
       results.push({
         type: "element",
-        name: "list", // Abstract type, handled by ooxml-to-docx
+        name: "list",
         attributes: {},
         children: ooxmlListItems,
         data: {
           ooxmlType: "list",
-          properties: { ordered: listNode.ordered ?? false },
+          properties: {
+            ordered: listNode.ordered ?? false,
+          } as WmlListProperties,
         },
       });
     }
@@ -318,63 +569,85 @@ function convertMdastNodeToOoxml(
     const ooxmlTableRows: OoxmlElement[] = [];
     let columnCount = 0;
 
-    // Determine column count from the first row (can be refined)
-    if (mdastTable.children[0]?.type === "tableRow") {
-      columnCount = mdastTable.children[0].children.length;
-    }
-    // Or iterate all rows to find max column count
     for (const mdastRow of mdastTable.children) {
       if (mdastRow.type === "tableRow") {
         columnCount = Math.max(columnCount, mdastRow.children.length);
       }
     }
 
-    for (const mdastRow of mdastTable.children) {
+    mdastTable.children.forEach((mdastRow, rowIndex) => {
       if (mdastRow.type === "tableRow") {
         const ooxmlTableRowCells: OoxmlElement[] = [];
         mdastRow.children.forEach((mdastCell, cellIndex) => {
           if (mdastCell.type === "tableCell") {
-            const align = mdastTable.align?.[cellIndex];
-            const cellContentRuns = processInlineContent(mdastCell.children);
-            // Table cells must contain block-level content (like paragraphs)
+            const align = mdastTable.align?.[cellIndex] ?? undefined;
+            const cellContentRuns = processInlineContent(
+              mdastCell.children,
+              definitions,
+              footnoteDefinitions
+            );
+
             const cellParagraph: OoxmlElement = {
               type: "element",
               name: "w:p",
               attributes: {},
-              children: cellContentRuns, // Paragraph contains the runs
+              children: cellContentRuns.length > 0 ? cellContentRuns : [],
               data: {
                 ooxmlType: "paragraph",
                 properties: {
-                  alignment: align ?? undefined,
+                  alignment: align,
                 } as ParagraphFormatting,
               },
             };
+            const cellProps: WmlTableCellProperties = {}; // Initialize empty or add standard props if needed
             const ooxmlCell: OoxmlElement = {
               type: "element",
               name: "w:tc",
               attributes: {},
-              children: [cellParagraph], // Cell contains the paragraph
+              children: [cellParagraph],
               data: {
                 ooxmlType: "tableCell",
-                properties: {} as WmlTableCellProperties,
+                properties: cellProps,
               },
             };
             ooxmlTableRowCells.push(ooxmlCell);
           }
         });
 
+        while (ooxmlTableRowCells.length < columnCount) {
+          const emptyPara: OoxmlElement = {
+            type: "element",
+            name: "w:p",
+            attributes: {},
+            children: [],
+            data: { ooxmlType: "paragraph", properties: {} },
+          };
+          ooxmlTableRowCells.push({
+            type: "element",
+            name: "w:tc",
+            attributes: {},
+            children: [emptyPara],
+            data: { ooxmlType: "tableCell", properties: {} },
+          });
+        }
+
         if (ooxmlTableRowCells.length > 0) {
-          // Ensure row has correct number of cells (add empty if needed?) - Basic for now
+          const rowProps: WmlTableRowProperties = {
+            isHeader: rowIndex === 0,
+          };
           ooxmlTableRows.push({
             type: "element",
             name: "w:tr",
             attributes: {},
             children: ooxmlTableRowCells,
-            data: { ooxmlType: "tableRow" },
+            data: {
+              ooxmlType: "tableRow",
+              properties: rowProps,
+            },
           });
         }
       }
-    }
+    });
 
     if (ooxmlTableRows.length > 0 && columnCount > 0) {
       const gridCols: OoxmlElement[] = Array.from(
@@ -384,7 +657,7 @@ function convertMdastNodeToOoxml(
           name: "w:gridCol",
           attributes: {},
           children: [],
-          data: { ooxmlType: "tableGridCol" }, // Width added later?
+          data: { ooxmlType: "tableGridCol" },
         })
       );
       const tableGrid: OoxmlElement = {
@@ -395,10 +668,9 @@ function convertMdastNodeToOoxml(
         data: { ooxmlType: "tableGrid" },
       };
 
-      // Basic borders (can be customized)
       const basicBorderStyle: BorderStyleProperties = {
         style: "single",
-        size: { value: 4, unit: "dxa" },
+        size: { value: 4, unit: "pt" },
         color: { value: "auto" },
       };
       const tableBorders: WmlTableProperties["borders"] = {
@@ -419,61 +691,41 @@ function convertMdastNodeToOoxml(
           ooxmlType: "table",
           properties: {
             borders: tableBorders,
-            width: { value: 100, unit: "pct" }, // Default width
+            width: { value: 100, unit: "pct" },
+            layout: "autofit",
           } as WmlTableProperties,
         },
       });
     }
   } else if (node.type === "code") {
-    // Basic code block handling: place content in a single run within a paragraph
-    const codeContent = node.value;
-    const codeRun: OoxmlElement = {
-      type: "element",
-      name: "w:r",
-      attributes: {},
-      children: [
-        {
-          type: "element",
-          name: "w:t",
-          attributes: {},
-          children: [
-            {
-              type: "text",
-              value: codeContent,
-              data: { ooxmlType: "text" },
-            } as OoxmlText,
-          ],
-          data: { ooxmlType: "textContentWrapper" },
+    const codeContent = node.value || "";
+    const lines = codeContent.split("\\n");
+
+    lines.forEach((line, index) => {
+      const codeRun = x("w:r", {}, [
+        x("w:t", { "xml:space": "preserve" }, line),
+      ]);
+      codeRun.data = { ooxmlType: "textRun" };
+
+      const codeParagraph: OoxmlElement = {
+        type: "element",
+        name: "w:p",
+        attributes: {},
+        children: [codeRun],
+        data: {
+          ooxmlType: "paragraph",
+          properties: { styleId: "CodeBlock" } as ParagraphFormatting,
         },
-      ],
-      // TODO: Apply a specific style (e.g., Courier font) for code
-      data: {
-        ooxmlType: "textRun",
-        properties: { isCode: true /* custom flag? */ } as FontProperties,
-      },
-    };
-    const codeParagraph: OoxmlElement = {
-      type: "element",
-      name: "w:p",
-      attributes: {},
-      children: [codeRun],
-      // TODO: Apply paragraph style (e.g., shading, borders) for code block
-      data: {
-        ooxmlType: "paragraph",
-        properties: {
-          isCodeBlock: true /* custom flag? */,
-        } as ParagraphFormatting,
-      },
-    };
-    results.push(codeParagraph);
+      };
+      results.push(codeParagraph);
+    });
   } else if (["definition", "footnoteDefinition"].includes(node.type)) {
-    // Skip these for now, handled separately if needed
-    console.warn(`Skipping MDAST node type during conversion: ${node.type}`);
   } else if (node.type === "html") {
-    // Skip HTML nodes
-    console.warn("Skipping raw HTML node during conversion.");
+    console.warn("Skipping block-level HTML node during conversion.");
   } else {
-    console.warn(`Unhandled MDAST node type during conversion: ${node.type}`);
+    console.warn(
+      `Unhandled MDAST node type during conversion: ${(node as any).type}`
+    );
   }
 
   return results;
@@ -483,12 +735,35 @@ function convertMdastNodeToOoxml(
  * Unified plugin to convert an MDAST tree to an OOXML AST tree (OoxmlRoot).
  */
 export const mdastToOoxml: Plugin<[], MdastRoot, OoxmlRoot> = () => {
-  return (tree: MdastRoot, file: VFile): OoxmlRoot => {
+  return (tree: MdastRoot): OoxmlRoot => {
     const ooxmlChildren: OoxmlElementContent[] = [];
 
-    // Process top-level block content nodes
+    // Local stores for definitions
+    const definitions: Record<string, Definition> = {};
+    const footnoteDefinitions: Record<string, FootnoteDefinition> = {};
+
+    // First pass: Collect definitions
+    visit(tree, ["definition", "footnoteDefinition"], (node) => {
+      if (node.type === "definition") {
+        const defNode = node as Definition;
+        definitions[defNode.identifier.toUpperCase()] = defNode;
+      } else if (node.type === "footnoteDefinition") {
+        const footnoteDefNode = node as FootnoteDefinition;
+        footnoteDefinitions[footnoteDefNode.identifier.toUpperCase()] =
+          footnoteDefNode;
+      }
+      return SKIP;
+    });
+
     for (const node of tree.children) {
-      const convertedNodes = convertMdastNodeToOoxml(node, file);
+      if (node.type === "definition" || node.type === "footnoteDefinition") {
+        continue;
+      }
+      const convertedNodes = convertMdastNodeToOoxml(
+        node,
+        definitions,
+        footnoteDefinitions
+      );
       ooxmlChildren.push(...convertedNodes);
     }
 
@@ -499,7 +774,7 @@ export const mdastToOoxml: Plugin<[], MdastRoot, OoxmlRoot> = () => {
     };
 
     // Optional: Log the generated OOXML AST for debugging
-    // console.log(JSON.stringify(ooxmlRoot, null, 2));
+    // console.log("Generated OOXML AST:", JSON.stringify(ooxmlRoot, null, 2));
 
     return ooxmlRoot;
   };

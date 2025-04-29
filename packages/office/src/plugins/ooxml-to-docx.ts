@@ -315,6 +315,12 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
           if (data.ooxmlType === "paragraph") {
             const paragraphProps: Record<string, unknown> = {};
             const pFormatting = properties as ParagraphFormatting;
+
+            // --- Apply Style ID --- //
+            if (pFormatting.styleId) {
+              paragraphProps.style = pFormatting.styleId;
+            }
+
             paragraphProps.alignment = mapAlignment(pFormatting.alignment);
             if (pFormatting.outlineLevel !== undefined) {
               const outlineLevelNum = pFormatting.outlineLevel;
@@ -523,19 +529,25 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                     const runProps = (runElement.data?.properties ||
                       {}) as FontProperties;
                     let textContent = "";
-                    const textWrapper = runElement.children?.find(
-                      (c) =>
-                        c.type === "element" &&
-                        (c.data as OoxmlData)?.ooxmlType ===
-                          "textContentWrapper"
-                    );
-                    if (textWrapper?.type === "element") {
-                      const textNode = textWrapper.children?.[0] as
+
+                    // Attempt to find a direct <w:t> child element
+                    const textElement = runElement.children?.find(
+                      (c) => c.type === "element" && c.name === "w:t"
+                    ) as OoxmlElement | undefined;
+
+                    if (textElement) {
+                      // Extract text value from the first text node child of <w:t>
+                      const textNode = textElement.children?.[0] as
                         | OoxmlText
                         | undefined;
-                      if (textNode?.type === "text") {
+                      if (textNode && textNode.type === "text") {
                         textContent = textNode.value;
                       }
+                    } else {
+                      // Fallback or alternative search if needed, maybe log a warning
+                      console.warn(
+                        `${indent}  Could not find <w:t> element within <w:r> for text extraction.`
+                      );
                     }
 
                     const convertedRunProps: Partial<IRunOptions> = {
@@ -666,14 +678,11 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
               (r) => r !== null
             ) as (TextRun | ImageRun | ExternalHyperlink)[];
 
-            // Only add paragraph if it contains resolved runs
-            if (resolvedRuns.length > 0) {
-              children.push(
-                new Paragraph({ ...paragraphProps, children: resolvedRuns })
-              );
-            } else {
-              console.log(`${indent}[processNode] Skipped empty paragraph.`);
-            }
+            // ALWAYS add the paragraph, even if it has no runs (e.g., empty line in code block).
+            // The paragraphProps (like style) are important to preserve structure.
+            children.push(
+              new Paragraph({ ...paragraphProps, children: resolvedRuns })
+            );
           } else if (data.ooxmlType === "list") {
             // ... existing list handling ...
             // Important: Need to await results from recursive calls
