@@ -74,7 +74,25 @@ The project follows a modular design that maintains strict compatibility with un
    - Integrates with Yjs for real-time document updates
    - Maintains cross-platform compatibility
 
-6. **Providers (@docen/providers)**
+6. **Custom Editor (@docen/editor)**
+
+   - Provides a custom collaborative editor built entirely on Yjs
+   - Implements DOM rendering without external editor dependencies
+   - Handles input processing, cursor management, and user interactions
+   - Supports real-time collaboration with awareness and presence
+   - Offers extensible plugin architecture for customization
+   - Maintains high performance with large documents and many users
+
+7. **MDOC Format (@docen/mdoc)**
+
+   - Implements enhanced Markdown container format (.mdoc)
+   - Uses ZIP-based containers with embedded media support
+   - Leverages frontmatter for metadata instead of separate files
+   - Provides seamless integration with unified.js ecosystem
+   - Supports collaborative editing of container documents
+   - Enables bidirectional conversion with standard Markdown
+
+8. **Providers (@docen/providers)**
 
    - Implements standard Yjs providers
    - Supports subdocument synchronization
@@ -83,7 +101,7 @@ The project follows a modular design that maintains strict compatibility with un
    - Provides offline capabilities
    - Creates unified interfaces for different backends
 
-7. **Main Package (docen)**
+9. **Main Package (docen)**
    - Provides unified.js-compatible factory functions
    - Integrates all modules with consistent APIs
    - Implements automatic processor configuration
@@ -117,6 +135,311 @@ packages/[package-name]/
 ├── test/                # Tests
 ├── README.md            # Documentation
 └── package.json         # Package metadata
+```
+
+## Custom Editor Architecture (@docen/editor)
+
+### Core Design Principles
+
+The editor is built entirely from scratch using Yjs as the foundation, without dependencies on existing editor frameworks like ProseMirror or Quill.
+
+```typescript
+// Core editor architecture
+interface DocenEditor {
+  // Core lifecycle
+  mount(container: HTMLElement): void;
+  unmount(): void;
+  destroy(): void;
+
+  // Document management
+  loadDocument(doc: Y.Doc): Promise<void>;
+  saveDocument(): Promise<Uint8Array>;
+
+  // Editing operations
+  insertText(text: string, position?: Position): void;
+  deleteRange(range: Range): void;
+  formatText(range: Range, formatting: TextFormatting): void;
+
+  // Collaborative features
+  setUser(user: UserInfo): void;
+  getCursors(): CursorInfo[];
+  setProvider(provider: Provider): void;
+
+  // Event system
+  on(event: string, handler: Function): void;
+  off(event: string, handler: Function): void;
+  emit(event: string, data: any): void;
+}
+
+// Editor configuration
+interface EditorConfig {
+  // Document type support
+  format: "markdown" | "mdoc" | "html" | "plaintext";
+
+  // Collaborative settings
+  collaborative: boolean;
+  ydoc?: Y.Doc;
+  awareness?: Awareness;
+
+  // UI configuration
+  toolbar?: boolean | ToolbarConfig;
+  statusbar?: boolean | StatusbarConfig;
+  theme?: string | ThemeConfig;
+
+  // Plugin system
+  plugins?: EditorPlugin[];
+
+  // Performance settings
+  virtualScrolling?: boolean;
+  lazyLoading?: boolean;
+  debounceMs?: number;
+}
+```
+
+### Editor Component Architecture
+
+```typescript
+// Main editor class
+class DocenEditor {
+  // Core components
+  private renderer: DOMRenderer;
+  private inputHandler: InputHandler;
+  private selectionManager: SelectionManager;
+  private commandManager: CommandManager;
+  private pluginManager: PluginManager;
+
+  // Collaborative components
+  private yjsAdapter: YjsAdapter;
+  private awarenessManager: AwarenessManager;
+  private cursorManager: CursorManager;
+
+  // UI components
+  private toolbar?: Toolbar;
+  private statusbar?: Statusbar;
+  private contextMenu?: ContextMenu;
+}
+
+// DOM rendering system
+interface DOMRenderer {
+  render(root: Node, container: HTMLElement): void;
+  update(changes: ChangeEvent[]): void;
+  getElementAtPosition(position: Position): HTMLElement | null;
+  getPositionFromElement(element: HTMLElement): Position | null;
+}
+
+// Input handling system
+interface InputHandler {
+  handleKeydown(event: KeyboardEvent): boolean;
+  handleInput(event: InputEvent): boolean;
+  handleComposition(event: CompositionEvent): boolean;
+  handlePaste(event: ClipboardEvent): boolean;
+  handleDrop(event: DragEvent): boolean;
+}
+
+// Selection management
+interface SelectionManager {
+  getSelection(): Selection | null;
+  setSelection(selection: Selection): void;
+  updateCursor(position: Position): void;
+  selectRange(range: Range): void;
+  selectAll(): void;
+}
+```
+
+### Editor Plugin System
+
+```typescript
+interface EditorPlugin {
+  name: string;
+  version: string;
+
+  // Lifecycle hooks
+  init?(editor: DocenEditor): void;
+  destroy?(): void;
+
+  // Command registration
+  commands?: Record<string, Command>;
+
+  // Key bindings
+  keymap?: Record<string, string | Command>;
+
+  // UI extensions
+  toolbar?: ToolbarExtension[];
+  contextMenu?: ContextMenuExtension[];
+
+  // Event handlers
+  onSelectionChange?(selection: Selection): void;
+  onDocumentChange?(changes: ChangeEvent[]): void;
+  onCursorMove?(cursor: CursorInfo): void;
+}
+
+// Example plugin implementations
+const BoldPlugin: EditorPlugin = {
+  name: "bold",
+  version: "1.0.0",
+  commands: {
+    toggleBold: (editor) =>
+      editor.formatText(editor.getSelection(), { bold: true }),
+  },
+  keymap: {
+    "Ctrl+B": "toggleBold",
+    "Cmd+B": "toggleBold",
+  },
+  toolbar: [
+    {
+      id: "bold",
+      title: "Bold",
+      icon: "bold-icon",
+      command: "toggleBold",
+    },
+  ],
+};
+```
+
+## MDOC Format Specification (@docen/mdoc)
+
+### Container Structure
+
+The MDOC format uses a ZIP-based container with the following structure:
+
+```
+document.mdoc (ZIP archive)
+├── content.md           # Main Markdown content with frontmatter
+├── media/               # Embedded media directory
+│   ├── images/          # Image files
+│   │   ├── cover.jpg
+│   │   └── diagram.svg
+│   ├── videos/          # Video files
+│   │   └── demo.mp4
+│   └── attachments/     # Other attachments
+│       └── data.json
+└── styles.css           # Optional custom styles
+```
+
+### Frontmatter Schema
+
+MDOC uses YAML frontmatter embedded in content.md for metadata:
+
+```yaml
+---
+# Document metadata
+title: "Document Title"
+author:
+  - "Primary Author"
+  - "Secondary Author"
+created: "2024-01-15T10:30:00Z"
+modified: "2024-01-15T15:45:00Z"
+version: "1.2.0"
+language: "en"
+
+# Content metadata
+description: "Brief document description"
+keywords: ["keyword1", "keyword2"]
+tags: ["tag1", "tag2"]
+category: "documentation"
+
+# MDOC specific
+mdoc:
+  version: "1.0"
+  generator: "docen@1.0.0"
+  compression: "deflate"
+
+# Custom fields
+custom:
+  project: "Project Name"
+  status: "draft"
+  reviewers: ["reviewer1", "reviewer2"]
+---
+# Document Content
+
+Your Markdown content here...
+```
+
+### Media Reference System
+
+```typescript
+interface MediaReference {
+  // Standard markdown image/link syntax
+  path: string; // Relative path within container
+  alt?: string; // Alt text for images
+  title?: string; // Title attribute
+
+  // MDOC enhancements
+  optimize?: boolean; // Auto-optimize media files
+  thumbnail?: string; // Thumbnail path for videos
+  metadata?: MediaMetadata;
+}
+
+interface MediaMetadata {
+  size: number; // File size in bytes
+  checksum: string; // File integrity hash
+  mimeType: string; // MIME type
+  dimensions?: {
+    // For images/videos
+    width: number;
+    height: number;
+  };
+  duration?: number; // For audio/video (seconds)
+}
+```
+
+### MDOC Processing Pipeline
+
+```typescript
+// MDOC parser
+interface MdocParser {
+  parse(zipData: Uint8Array): Promise<MdocDocument>;
+  parseFromPath(filePath: string): Promise<MdocDocument>;
+
+  // Streaming for large files
+  parseStream(stream: ReadableStream): Promise<MdocDocument>;
+}
+
+// MDOC stringifier
+interface MdocStringifier {
+  stringify(doc: MdocDocument): Promise<Uint8Array>;
+  stringifyToPath(doc: MdocDocument, filePath: string): Promise<void>;
+
+  // Streaming for large outputs
+  stringifyStream(doc: MdocDocument): ReadableStream;
+}
+
+// MDOC document representation
+interface MdocDocument {
+  metadata: MdocMetadata;
+  content: string; // Markdown content
+  media: Map<string, MediaFile>;
+  styles?: string; // CSS styles
+
+  // Processing context
+  ast?: Node; // Unified AST representation
+  ydoc?: Y.Doc; // Yjs document for collaboration
+}
+
+interface MdocMetadata {
+  // Core fields
+  title?: string;
+  author?: string | string[];
+  created?: Date;
+  modified?: Date;
+  version?: string;
+
+  // Content fields
+  description?: string;
+  keywords?: string[];
+  tags?: string[];
+  language?: string;
+
+  // MDOC specific
+  mdoc: {
+    version: string;
+    generator?: string;
+    compression?: "store" | "deflate";
+  };
+
+  // Extensible custom fields
+  custom?: Record<string, unknown>;
+}
 ```
 
 ## Core Types and Interfaces

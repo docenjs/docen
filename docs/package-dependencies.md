@@ -48,6 +48,7 @@ This document outlines the dependencies required for each package in the Docen p
 - `unified-engine`: Unified processing engine
 - `pathe`: Cross-platform path utilities from UnJS
 - `std-env`: Runtime detection from UnJS
+- `fflate`: Fast DEFLATE compression/decompression (for OOXML ZIP handling)
 
 ### Custom Implementations
 
@@ -105,6 +106,61 @@ The following formats will be implemented without external dependencies:
 
 - Sample media files for testing
 
+## @docen/editor
+
+### Production Dependencies
+
+- `@docen/core`: Core Docen functionality
+- `yjs`: Collaborative editing framework (primary dependency)
+- `y-protocols`: Yjs communication protocols
+- `lib0`: Utility functions used by Yjs
+- `@types/dom`: DOM type definitions for TypeScript
+- `eventemitter3`: Event emitter implementation
+- `hotkeys-js`: Keyboard shortcuts handling
+- `resize-observer-polyfill`: ResizeObserver polyfill for older browsers
+
+### Custom Implementations
+
+The editor is built entirely from scratch without dependencies on existing editors:
+
+- **DOM Renderer**: Custom DOM manipulation and rendering system
+- **Input Handler**: Keyboard, mouse, and touch input processing
+- **Selection Manager**: Text selection and cursor management
+- **Command System**: Extensible command pattern for editor actions
+- **Plugin Architecture**: Custom plugin system for extensions
+- **Toolbar Components**: UI components for formatting controls
+- **Theme System**: Customizable theming and styling
+
+### Development Dependencies
+
+- DOM testing utilities for editor interaction tests
+- Synthetic event libraries for testing user input
+
+## @docen/mdoc
+
+### Production Dependencies
+
+- `@docen/core`: Core Docen functionality
+- `@docen/document`: For Markdown processing integration
+- `fflate`: Fast ZIP compression/decompression (browser and Node.js compatible)
+- `gray-matter`: Frontmatter parsing and serialization
+- `mime-db`: MIME type detection for embedded media
+- `pathe`: Cross-platform path utilities from UnJS
+- `image-meta`: Image metadata extraction
+- `file-type`: File type detection
+
+### Custom Implementations
+
+- **MDOC Container Format**: Custom ZIP-based container specification
+- **Media Embedding**: Automatic media file optimization and embedding
+- **Cross-Reference System**: Internal link and reference management
+- **Version Management**: Document versioning and compatibility handling
+
+### Development Dependencies
+
+- Sample .mdoc files for testing
+- ZIP file manipulation utilities for testing
+
 ## @docen/providers
 
 ### Production Dependencies
@@ -135,6 +191,8 @@ The following formats will be implemented without external dependencies:
 - `@docen/office`: Office document processing
 - `@docen/data`: Data processing
 - `@docen/media`: Media processing
+- `@docen/editor`: Custom collaborative editor
+- `@docen/mdoc`: MDOC format support
 - `@docen/providers`: Synchronization providers
 - `pathe`: Cross-platform path utils from UnJS
 - `std-env`: Runtime detection from UnJS

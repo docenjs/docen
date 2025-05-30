@@ -19,6 +19,8 @@ This document outlines the implementation plan for the Docen project based on th
   - [x] @docen/data
   - [x] @docen/media
   - [x] @docen/office
+  - [ ] @docen/editor
+  - [ ] @docen/mdoc
   - [x] @docen/providers
   - [x] docen (main package)
 
@@ -153,7 +155,67 @@ This document outlines the implementation plan for the Docen project based on th
   - [ ] Create media fragment management
   - [ ] Optimize for large media files
 
-## Phase 7: Providers (@docen/providers)
+## Phase 7: Custom Editor (@docen/editor)
+
+- [ ] Implement core editor architecture
+
+  - [ ] Create DocenEditor class with Yjs integration
+  - [ ] Implement DOM rendering system without external editor dependencies
+  - [ ] Build input handling and event management
+  - [ ] Create cursor and selection management system
+
+- [ ] Implement collaborative features
+
+  - [ ] Real-time cursor synchronization using Yjs awareness
+  - [ ] Conflict-free text editing with Y.Text integration
+  - [ ] User presence and awareness indicators
+  - [ ] Operational transform for complex edits
+
+- [ ] Build editor UI components
+
+  - [ ] Toolbar and formatting controls
+  - [ ] Context menus and shortcuts
+  - [ ] Status bar and document info
+  - [ ] Plugin system for extensions
+
+- [ ] Document format support
+
+  - [ ] Markdown editing with live preview
+  - [ ] MDOC format editing support
+  - [ ] Rich text formatting capabilities
+  - [ ] Table and media insertion
+
+## Phase 8: MDOC Format (@docen/mdoc)
+
+- [ ] Define MDOC container format
+
+  - [ ] Specify .mdoc file structure (ZIP-based)
+  - [ ] Design frontmatter metadata schema
+  - [ ] Create media embedding specifications
+  - [ ] Define version and compatibility rules
+
+- [ ] Implement MDOC parser
+
+  - [ ] ZIP container extraction
+  - [ ] Frontmatter parsing and validation
+  - [ ] Media file handling and referencing
+  - [ ] Error handling and recovery
+
+- [ ] Implement MDOC stringifier
+
+  - [ ] ZIP container creation
+  - [ ] Frontmatter serialization
+  - [ ] Media file embedding and optimization
+  - [ ] Cross-platform file handling
+
+- [ ] Integration with unified ecosystem
+
+  - [ ] Create unified plugin for MDOC processing
+  - [ ] Ensure compatibility with existing remark plugins
+  - [ ] Support bidirectional conversion (MDOC ↔ Markdown)
+  - [ ] Enable collaborative editing of MDOC files
+
+## Phase 9: Providers (@docen/providers)
 
 - [ ] Implement standard Yjs providers
 
@@ -172,7 +234,7 @@ This document outlines the implementation plan for the Docen project based on th
   - [ ] Implement offline capabilities
   - [ ] Add awareness for collaborative presence
 
-## Phase 8: Main Package (docen)
+## Phase 10: Main Package (docen)
 
 - [ ] Create unified.js-compatible factory functions
 
@@ -192,32 +254,36 @@ This document outlines the implementation plan for the Docen project based on th
   - [ ] Test in Deno
   - [ ] Test in Edge environments
 
-## Phase 9: Testing and Optimization
+## Phase 11: Testing and Optimization
 
 - [ ] Create comprehensive test suite
 
   - [ ] Unit tests for all modules
   - [ ] Integration tests for module interoperability
   - [ ] End-to-end tests for complete workflows
+  - [ ] Editor interaction tests
 
 - [ ] Performance optimization
 
   - [ ] Benchmark core operations
   - [ ] Optimize critical paths
   - [ ] Improve memory usage
+  - [ ] Editor rendering performance
 
 - [ ] Compatibility testing
   - [ ] Test with existing unified.js plugins
   - [ ] Test with different Yjs providers
   - [ ] Verify cross-platform functionality
+  - [ ] Editor cross-browser compatibility
 
-## Phase 10: Documentation and Examples
+## Phase 12: Documentation and Examples
 
 - [ ] Create developer documentation
 
   - [ ] API reference
   - [ ] Integration guides
   - [ ] Plugin development documentation
+  - [ ] Editor customization guide
 
 - [ ] Build examples
 
@@ -226,13 +292,15 @@ This document outlines the implementation plan for the Docen project based on th
   - [ ] Data processing example
   - [ ] Media annotation example
   - [ ] Office document processing example
+  - [ ] MDOC format usage example
 
 - [ ] User guides
   - [ ] Getting started guide
   - [ ] Advanced usage patterns
   - [ ] Troubleshooting guide
+  - [ ] Editor deployment guide
 
-## Phase 11: Release and Maintenance
+## Phase 13: Release and Maintenance
 
 - [ ] Prepare for first release
 
@@ -255,8 +323,9 @@ This document outlines the implementation plan for the Docen project based on th
 
 After completing the implementation plan, focus on:
 
-1. Gathering user feedback
-2. Expanding the plugin ecosystem
-3. Improving performance for specific use cases
+1. Gathering user feedback on editor usability
+2. Expanding the plugin ecosystem for editor and MDOC
+3. Improving performance for large documents and many users
 4. Adding support for additional document formats
 5. Enhancing collaborative features based on real-world usage
+6. Building desktop and mobile applications using the editor

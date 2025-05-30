@@ -12,15 +12,15 @@ import type { CollaborativeNode, Node } from "../types";
  */
 export function findNode<T extends Node = Node>(
   tree: Node,
-  predicate: (node: Node) => node is T
+  predicate: (node: Node) => node is T,
 ): T | undefined;
 export function findNode(
   tree: Node,
-  predicate: (node: Node) => boolean
+  predicate: (node: Node) => boolean,
 ): Node | undefined;
 export function findNode(
   tree: Node,
-  predicate: (node: Node) => boolean
+  predicate: (node: Node) => boolean,
 ): Node | undefined {
   let result: Node | undefined = undefined;
 
@@ -44,7 +44,7 @@ export function findNode(
  */
 export function findNodePath(
   tree: Node,
-  node: Node
+  node: Node,
 ): (string | number)[] | null {
   // Early exit if tree is the node we're looking for
   if (tree === node) {
@@ -100,7 +100,7 @@ export function getNodeTimestamp(node: Node): number {
  */
 export function setNodeTimestamp<T extends Node>(
   node: T,
-  timestamp: number = Date.now()
+  timestamp: number = Date.now(),
 ): T & Partial<CollaborativeNode> {
   // Return type indicates metadata might be added
   // Ensure node is treated as potentially collaborative
@@ -130,7 +130,7 @@ export function setNodeTimestamp<T extends Node>(
 export function transform(
   tree: Node,
   test: string | ((node: Node) => boolean),
-  transform: (node: Node) => Node
+  transform: (node: Node) => Node,
 ): Node {
   return map(tree, (node) => {
     if (typeof test === "string" ? node.type === test : test(node)) {

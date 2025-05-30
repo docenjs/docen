@@ -244,11 +244,11 @@ async function generateFixtures() {
   let imageData: Buffer;
   try {
     imageData = await fs.readFile(
-      path.resolve(__dirname, "fixtures", "placeholder.png")
+      path.resolve(__dirname, "fixtures", "placeholder.png"),
     );
   } catch (e) {
     console.error(
-      "Placeholder image not found. Skipping image fixture generation."
+      "Placeholder image not found. Skipping image fixture generation.",
     );
     imageData = Buffer.from(""); // Provide empty buffer to avoid crash
   }

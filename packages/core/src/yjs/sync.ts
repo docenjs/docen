@@ -28,7 +28,7 @@ export function resolveTimestampBased(conflict: SyncConflict): ResolvedNode {
  */
 export function resolveIntentBased(conflict: SyncConflict): ResolvedNode {
   console.warn(
-    "Intent-based conflict resolution is not fully implemented. Falling back to timestamp."
+    "Intent-based conflict resolution is not fully implemented. Falling back to timestamp.",
   );
   return resolveTimestampBased(conflict);
 }
@@ -38,7 +38,7 @@ export function resolveIntentBased(conflict: SyncConflict): ResolvedNode {
  */
 export function createSyncHandler(
   strategy: SyncStrategy = "timestamp",
-  customHandler?: SyncHandler
+  customHandler?: SyncHandler,
 ): SyncHandler {
   if (strategy === "custom" && customHandler) {
     return customHandler;
@@ -59,7 +59,7 @@ export function createSyncHandler(
 export function applySyncUpdate(
   targetDoc: Y.Doc,
   update: Uint8Array,
-  syncHandler: SyncHandler = resolveTimestampBased
+  syncHandler: SyncHandler = resolveTimestampBased,
 ): void {
   // Start a transaction for atomic updates
   targetDoc.transact(() => {
@@ -82,12 +82,12 @@ export function createSyncManager(
     customHandler?: SyncHandler;
     onConflict?: (conflict: SyncConflict) => void;
     onResolved?: (resolved: ResolvedNode) => void;
-  } = {}
+  } = {},
 ) {
   // Create the sync handler based on the strategy
   const syncHandler = createSyncHandler(
     options.strategy,
-    options.customHandler
+    options.customHandler,
   );
 
   // Return the sync manager API
@@ -140,7 +140,7 @@ export function mergeNodes(
   local: Node,
   remote: Node,
   strategy: SyncStrategy = "timestamp",
-  customHandler?: SyncHandler
+  customHandler?: SyncHandler,
 ): Node {
   // Create a conflict object
   const conflict: SyncConflict = {

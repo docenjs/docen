@@ -70,6 +70,87 @@ The media package handles binary media formats.
 | MP3    | .mp3        | ✅   | ❌    | Audio files with metadata support  |
 | MP4    | .mp4        | ✅   | ❌    | Video files with metadata support  |
 
+## @docen/mdoc
+
+The mdoc package handles the enhanced Markdown container format.
+
+### Supported Formats
+
+| Format         | Extension | Read | Write | Description                                        |
+| -------------- | --------- | ---- | ----- | -------------------------------------------------- |
+| MDOC Container | .mdoc     | ✅   | ✅    | Enhanced Markdown with embedded media and metadata |
+
+### MDOC Format Specification
+
+The MDOC format is a ZIP-based container that extends Markdown with the following features:
+
+#### Container Structure
+
+```
+document.mdoc (ZIP file)
+├── content.md          # Main Markdown content
+├── media/              # Embedded media files
+│   ├── image1.png
+│   ├── video1.mp4
+│   └── audio1.mp3
+└── styles.css          # Optional custom styles
+```
+
+#### Frontmatter Metadata
+
+MDOC files use YAML frontmatter in the content.md file for metadata:
+
+```yaml
+---
+title: "Document Title"
+author: "Author Name"
+created: "2024-01-15T10:30:00Z"
+modified: "2024-01-15T15:45:00Z"
+version: "1.0"
+tags: ["tag1", "tag2"]
+description: "Document description"
+language: "en"
+custom:
+  project: "Project Name"
+  status: "draft"
+---
+```
+
+#### Media References
+
+Media files are referenced using relative paths within the Markdown content:
+
+```markdown
+![Image description](media/image1.png)
+[Video link](media/video1.mp4)
+```
+
+#### Features
+
+- **Embedded Media**: All referenced media files are automatically embedded
+- **Version Control**: Built-in versioning and compatibility tracking
+- **Cross-References**: Internal link management and validation
+- **Collaborative Editing**: Full Yjs integration for real-time collaboration
+- **Compression**: Efficient ZIP compression for smaller file sizes
+
+## @docen/editor
+
+The editor package provides collaborative editing capabilities for supported formats.
+
+### Editor Features
+
+| Feature                 | Markdown | MDOC | HTML | Office | Status  |
+| ----------------------- | -------- | ---- | ---- | ------ | ------- |
+| Real-time Collaboration | ✅       | ✅   | ✅   | 🔄     | Ready   |
+| Cursor Synchronization  | ✅       | ✅   | ✅   | 🔄     | Ready   |
+| Live Preview            | ✅       | ✅   | ✅   | ❌     | Ready   |
+| Media Insertion         | ✅       | ✅   | ✅   | 🔄     | Ready   |
+| Table Editing           | ✅       | ✅   | ✅   | 🔄     | Ready   |
+| Formula Support         | 🔄       | ✅   | 🔄   | ❌     | Planned |
+| Comments & Annotations  | 🔄       | ✅   | 🔄   | 🔄     | Planned |
+
+Legend: ✅ Supported | 🔄 Planned | ❌ Not Planned
+
 ### Key AST Types
 
 | AST Type | Description                          | Used For                 |
@@ -79,5 +160,6 @@ The media package handles binary media formats.
 | xast     | XML Abstract Syntax Tree             | XML, data formats        |
 | ooxast   | Office Open XML Abstract Syntax Tree | DOCX, XLSX, PPTX formats |
 | unist    | Universal Syntax Tree                | Base for all AST types   |
+| mdocast  | MDOC Abstract Syntax Tree            | MDOC format processing   |
 
-All document transformations in Docen leverage these AST types with unified.js processors to maintain document structure and formatting during conversion.
+All document transformations in Docen leverage these AST types with unified.js processors to maintain document structure and formatting during conversion and collaborative editing.

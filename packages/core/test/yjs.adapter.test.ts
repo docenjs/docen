@@ -127,7 +127,7 @@ describe("createYjsAdapter", () => {
     };
     const resolution = customAdapter.resolveConflict(conflict);
     expect(customHandler).toHaveBeenCalledWith(
-      expect.objectContaining(conflict)
+      expect.objectContaining(conflict),
     );
     expect(resolution.node).toBe(conflict.localNode);
     expect(resolution.origin).toBe("merged");
@@ -164,10 +164,10 @@ describe("createYjsAdapter", () => {
     const customStrategy: NodeBindingStrategy = {
       toYjs: vi.fn((node: Node) => new Y.Text("custom")),
       fromYjs: vi.fn(
-        (ytext: Y.AbstractType<any>) => ({ type: "custom" }) as Node
+        (ytext: Y.AbstractType<any>) => ({ type: "custom" }) as Node,
       ),
       observe: vi.fn(
-        (node: Node, yType: Y.AbstractType<any>, callback: any) => () => {}
+        (node: Node, yType: Y.AbstractType<any>, callback: any) => () => {},
       ),
     };
 
@@ -186,10 +186,10 @@ describe("createYjsAdapter", () => {
     const customStrategy: NodeBindingStrategy = {
       toYjs: vi.fn((node: Node) => new Y.Text("custom")),
       fromYjs: vi.fn(
-        (yType: Y.AbstractType<any>) => ({ type: "custom" }) as Node
+        (yType: Y.AbstractType<any>) => ({ type: "custom" }) as Node,
       ),
       observe: vi.fn(
-        (node: Node, yType: Y.AbstractType<any>, callback: any) => () => {}
+        (node: Node, yType: Y.AbstractType<any>, callback: any) => () => {},
       ),
     };
 
