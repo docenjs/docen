@@ -1,130 +1,79 @@
 <!doctype html>
-<html lang="en">
+<html>
   <head>
+    <title>Sample HTML Document</title>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HTML Sample</title>
-    <style>
-      table,
-      th,
-      td {
-        border: 1px solid black;
-        border-collapse: collapse;
-        padding: 5px;
-      }
-      th:nth-child(1),
-      td:nth-child(1) {
-        text-align: left;
-      }
-      th:nth-child(2),
-      td:nth-child(2) {
-        text-align: center;
-      }
-      th:nth-child(3),
-      td:nth-child(3) {
-        text-align: right;
-      }
-    </style>
   </head>
   <body>
-    <h1>Heading 1</h1>
+    <h1>Sample HTML Document</h1>
 
     <p>
-      This is a paragraph with <strong>bold text</strong>, <em>italic text</em>,
-      and <code>inline code</code>.
+      This is a <strong>sample HTML document</strong> for testing
+      <em>HTML to Markdown</em> conversion.
     </p>
 
-    <p>Here's a link: <a href="https://example.com">Example Site</a></p>
+    <h2>Features</h2>
 
-    <p>
-      And an image:
-      <img
-        src="https://placehold.co/150x150"
-        alt="Alt text"
-        title="Image Title"
-      />
-    </p>
-
-    <h2>Heading 2</h2>
-
-    <blockquote>
-      <p>This is a blockquote.</p>
-      <p>It can span multiple lines.</p>
-    </blockquote>
-
-    <h3>Heading 3</h3>
-
-    <p>An ordered list:</p>
-    <ol>
-      <li>First item</li>
-      <li>
-        Second item
-        <ul>
-          <li>Nested unordered item A</li>
-          <li>Nested unordered item B</li>
-        </ul>
-      </li>
-      <li>Third item</li>
-    </ol>
-
-    <p>An unordered list:</p>
     <ul>
-      <li>Item X</li>
-      <li>Item Y</li>
-      <li>Item Z</li>
+      <li>Bold and italic text formatting</li>
+      <li>Multiple heading levels</li>
+      <li>Lists and tables</li>
+      <li>Links and images</li>
     </ul>
 
-    <h4>Heading 4</h4>
-
-    <pre><code class="language-javascript">// This is a fenced code block
-function greet(name) {
-  console.log(`Hello, ${name}!`);
-}
-greet('World');
-</code></pre>
-
-    <h5>Heading 5</h5>
-
-    <p>GFM Table:</p>
+    <h3>Table Example</h3>
 
     <table>
       <thead>
         <tr>
-          <th>Header 1</th>
-          <th>Header 2</th>
-          <th>Header 3</th>
+          <th>Feature</th>
+          <th>Status</th>
+          <th>Description</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Align L</td>
-          <td>Center</td>
-          <td>Align R</td>
+          <td>HTML Parsing</td>
+          <td>✅ Complete</td>
+          <td>Parse HTML to AST</td>
         </tr>
         <tr>
-          <td>Cell 1</td>
-          <td>Cell 2</td>
-          <td>Cell 3</td>
+          <td>Markdown Output</td>
+          <td>✅ Complete</td>
+          <td>Convert AST to Markdown</td>
         </tr>
         <tr>
-          <td>Cell 4</td>
-          <td>Cell 5</td>
-          <td>Cell 6</td>
+          <td>GFM Support</td>
+          <td>✅ Complete</td>
+          <td>GitHub Flavored Markdown</td>
         </tr>
       </tbody>
     </table>
 
-    <!-- Task lists are not standard HTML, but often rendered from Markdown -->
-    <!-- Representing as a simple list for HTML conversion demonstration -->
-    <h6>Heading 6</h6>
-    <p>Task List Representation:</p>
-    <ul>
-      <li>Completed task (represented as checked)</li>
-      <li>Incomplete task</li>
-    </ul>
+    <h3>Links and Images</h3>
 
-    <hr />
+    <p>
+      Visit the <a href="https://unifiedjs.com/">unified.js website</a> for more
+      information.
+    </p>
 
-    <p>Another paragraph.</p>
+    <p>Here's an example image:</p>
+    <img src="https://via.placeholder.com/150" alt="Placeholder Image" />
+
+    <h3>Code Examples</h3>
+
+    <p>Inline code: <code>processor.parse(html)</code></p>
+
+    <pre><code>// Block code example
+const processor = createHtmlToMarkdownProcessor({ gfm: true });
+const result = await processor.process(htmlContent);
+</code></pre>
+
+    <blockquote>
+      <p>
+        This is a blockquote demonstrating that HTML can be converted to
+        Markdown while preserving formatting and structure.
+      </p>
+    </blockquote>
   </body>
 </html>

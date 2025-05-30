@@ -42,11 +42,11 @@
     "@docen/core": "workspace:*",
     "json5": "2.2.3",
     "ofetch": "1.4.1",
-    "papaparse": "5.5.2",
+    "papaparse": "5.5.3",
     "unified-engine": "11.2.2",
-    "xast": "0.1.217",
+    "xast": "0.1.234",
     "xast-util-from-xml": "4.0.0",
     "xast-util-to-xml": "4.0.0",
-    "yaml": "2.7.1"
+    "yaml": "2.8.0"
   }
 }

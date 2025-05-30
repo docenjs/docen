@@ -1,11 +1,10 @@
 /**
  * Core plugin system for Docen
- * Defines plugin interfaces and provides basic plugins
+ * Defines plugin interfaces and provides basic plugin utilities
  */
 import type { Plugin } from "unified";
 import type { VFile } from "vfile";
-import type { Node } from "../types";
-import type { DocenProcessor } from "../types";
+import type { DocenPlugin, DocenVFileData, Node, PluginMeta } from "../types";
 
 /**
  * Interface for plugin discovery mechanisms
@@ -17,32 +16,49 @@ export interface PluginDiscovery {
 }
 
 /**
- * Collaborative processor plugin with Yjs integration
+ * Create a plugin with metadata
  */
-export function collaborativePlugin(): Plugin {
-  return () =>
-    function transformer(this: DocenProcessor, tree: Node, file: VFile) {
-      // Check if file has collaborative document attached
-      // Access the processor context to check if collaboration is active
-      // (Assuming transformer is run within the processor scope where 'this' is the processor)
-      const adapter = this.getYjsAdapter ? this.getYjsAdapter() : null;
+export function createPlugin(plugin: Plugin, meta?: PluginMeta): DocenPlugin {
+  const docenPlugin = plugin as DocenPlugin;
+  if (meta) {
+    docenPlugin.meta = meta;
+  }
+  return docenPlugin;
+}
 
-      if (!adapter) {
-        console.warn(
-          "collaborativePlugin: YjsAdapter not found on processor context. Collaboration features might be disabled or not initialized.",
-        );
-        return tree;
+/**
+ * Basic validation plugin
+ */
+export function validationPlugin(): Plugin {
+  return () =>
+    function transformer(tree: Node, file: VFile) {
+      // Basic AST validation
+      if (!tree || typeof tree !== "object") {
+        file.message("Invalid AST: tree must be an object");
       }
 
-      // This plugin's role is now mainly to signal that collaboration is active
-      // or potentially perform setup tasks that require the adapter.
-      // Actual node binding should happen elsewhere (e.g., when loading content into Yjs).
-      console.log("collaborativePlugin: Collaboration is active.");
+      if (!tree.type) {
+        file.message("Invalid AST: tree must have a type");
+      }
 
-      // Example: Potentially attach adapter info to VFile if needed by subsequent non-context-aware plugins?
-      // file.data = { ...(file.data || {}), yjsAdapterAvailable: true };
+      return tree;
+    };
+}
 
-      // Return the original tree, no modifications needed here for metadata.
+/**
+ * Basic metadata plugin
+ */
+export function metadataPlugin(): Plugin {
+  return () =>
+    function transformer(tree: Node, file: VFile) {
+      // Add processing metadata
+      const data = file.data as DocenVFileData;
+      if (!data.processing) {
+        data.processing = {};
+      }
+
+      data.processing.startTime = Date.now();
+
       return tree;
     };
 }
@@ -113,7 +129,8 @@ export function cursorTrackingPlugin(): Plugin {
  */
 export class BasicPluginDiscovery implements PluginDiscovery {
   private plugins: Plugin[] = [
-    collaborativePlugin(),
+    validationPlugin(),
+    metadataPlugin(),
     changeTrackingPlugin(),
     fragmentationPlugin(),
     cursorTrackingPlugin(),
@@ -123,16 +140,15 @@ export class BasicPluginDiscovery implements PluginDiscovery {
    * Scan a directory for plugins
    */
   async scanPlugins(path: string): Promise<Plugin[]> {
-    // In a real implementation, this would dynamically load plugins
-    // from the specified path using dynamic imports or require
-    return this.plugins;
+    // Basic implementation - just return registered plugins
+    return [...this.plugins];
   }
 
   /**
    * Get all available plugins
    */
   getAvailablePlugins(): Plugin[] {
-    return this.plugins;
+    return [...this.plugins];
   }
 
   /**

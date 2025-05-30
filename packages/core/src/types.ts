@@ -1,6 +1,6 @@
 /**
  * Core Type Definitions for Docen
- * This file consolidates shared types across the core package.
+ * Pure unified.js compatible types
  */
 
 import type {
@@ -9,13 +9,11 @@ import type {
 } from "unified";
 import type { Node as UnistNode, Parent as UnistParent } from "unist";
 import type { VFileData } from "vfile";
-import type * as Y from "yjs";
-import type { YjsAdapterOptions } from "./yjs/types";
 
-// --- Base AST Nodes (from ast/types) ---
+// --- Base AST Nodes ---
 
 export interface Node extends UnistNode {
-  collaborationMetadata?: CollaborationMetadata;
+  // Pure unist node, no collaboration metadata
 }
 
 export interface Parent extends Node, UnistParent {
@@ -37,12 +35,12 @@ export interface DocenNode extends Node {
   id?: string;
 }
 
-// --- Document Schema & Validation (from ast/types) ---
+// --- Document Schema & Validation ---
 
 export interface DocumentSchema {
   nodeTypes: Record<string, NodeTypeDefinition>;
   validationRules: ValidationRule[];
-  onValidationError?: (error: ValidationError) => "ignore" | "fix" | "reject";
+  onValidationError?: (error: string) => "ignore" | "fix" | "reject";
 }
 
 export interface NodeTypeDefinition {
@@ -51,269 +49,77 @@ export interface NodeTypeDefinition {
     string,
     {
       type: "string" | "number" | "boolean" | "object" | "array";
-      items?: NodeTypeDefinition; // Recursive definition
+      items?: NodeTypeDefinition;
     }
   >;
   allowedChildren?: string[];
-  bindingStrategy?: "deep" | "shallow" | "lazy"; // Reference string type
-}
-
-export interface ValidationError {
-  message: string;
-  node: Node;
-  ruleId?: string;
-  severity?: "error" | "warning";
 }
 
 export interface ValidationRule {
   selector: string | ((node: Node) => boolean);
-  validate: (node: Node) => boolean | ValidationError;
+  validate: (node: Node) => boolean | string;
 }
 
-// --- Collaboration & Yjs Core Types ---
+// --- Error Types ---
 
-/** Defines the collaboration metadata added to a Node */
-export interface CollaborationMetadata {
-  createdBy?: string;
-  createdAt?: number;
-  modifiedBy?: string;
-  modifiedAt?: number;
-  lastModifiedTimestamp?: number;
-  version?: number;
-  origin?: string;
-}
-
-/** Defines the structure added to a Node when bound to Yjs */
-export interface YjsBinding {
-  type: Y.AbstractType<any>;
-  path: (string | number)[];
-  observe(callback: (event: Y.YEvent<any>) => void): () => void;
-  update(newValue: any): void;
-}
-
-/** Node extended with collaborative capabilities */
-export interface CollaborativeNode extends Node {
-  binding?: YjsBinding;
-  collaborationMetadata?: CollaborationMetadata;
-}
-
-/** Interface for cursor position using relative positions */
-export interface CursorPosition {
-  relativePosition: Y.RelativePosition;
-  // Optional range for selection, start/end using relative positions
-  range?: { start: Y.RelativePosition; end: Y.RelativePosition } | null;
-}
-
-/** Interface for user awareness state */
-export interface AwarenessState {
-  user: {
-    id: string; // ID is required
-    name?: string;
-    color?: string;
-    avatar?: string;
-    [key: string]: unknown;
-  };
-  cursor?: CursorPosition | null;
-  status?: "online" | "away" | "offline";
-  active?: boolean; // Add active status from usage in getAwarenessCursors
-  selection?: {
-    // Add selection info from usage in getAwarenessCursors
-    anchor?: Y.RelativePosition;
-    head?: Y.RelativePosition;
-  } | null;
+export interface ErrorContext {
   [key: string]: unknown;
 }
 
-/** Interface for processed cursor information from awareness state */
-export interface CursorInfo {
-  clientId: number;
-  userName?: string;
-  color?: string;
-  position: { path: (string | number)[]; offset: number } | null; // Use path/offset from conversion
-  active: boolean;
-  selection: {
-    anchor: Y.AbsolutePosition | null;
-    head: Y.AbsolutePosition | null;
-  } | null;
-}
-
-/** Node binding strategy interface */
-export interface NodeBindingStrategy<N extends Node = Node> {
-  toYjs(node: N): Y.AbstractType<any>;
-  fromYjs(yType: Y.AbstractType<any>): N;
-  observe(
-    node: N,
-    yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void,
-  ): () => void;
-}
-
-// --- Synchronization Types ---
-
-/** Interface for handling synchronization conflicts */
-export interface SyncConflict {
-  localNode: Node;
-  remoteNode: Node;
-  localTimestamp: number;
-  remoteTimestamp: number;
-  path: (string | number)[];
-}
-
-/** Resolved node from conflict resolution */
-export interface ResolvedNode {
-  node: Node;
-  origin: "local" | "remote" | "merged"; // Specific origins
-}
-
-/** Type for sync strategy */
-export type SyncStrategy = "timestamp" | "intent-based" | "custom";
-
-/** Handler for sync conflicts */
-export type SyncHandler = (conflict: SyncConflict) => ResolvedNode;
-
-// --- Document & Processor Core Types ---
-
-/** Core collaborative document interface */
-export interface CollaborativeDocument {
-  readonly ydoc: Y.Doc;
-  readonly awareness: Awareness; // Use Awareness type (defined below or imported)
-  readonly id: string; // Make ID readonly as it shouldn't change after creation
-  transact<T>(fn: () => T, origin?: string): T;
-  setSyncStrategy(strategy: SyncStrategy, handler?: SyncHandler): void; // Keep? Or should this be via Adapter? Likely Adapter.
-  getStateVector(): Uint8Array;
-  encodeStateAsUpdate(): Uint8Array;
-  applyUpdate(update: Uint8Array): void;
-  destroy(): void;
-  // Undo/Redo methods - These are often tied to the adapter/Yjs UndoManager
-  undo(): void;
-  redo(): void;
-  canUndo(): boolean;
-  canRedo(): boolean;
-  // Awareness methods remain relevant to the document state container
-  getAwarenessStates(): Map<number, AwarenessState>;
-  setLocalCursor(position: CursorPosition | null): void;
-  setLocalUser(user: AwarenessState["user"]): void;
-}
-
-/** Document options interface (from document/types) - May need renaming or merging */
-// Keeping this for potential non-Yjs specific document metadata/config if needed
-export interface DocumentOptions {
-  id?: string;
-  type?: string; // Document type (e.g., 'markdown', 'docx') - useful metadata
-}
-
-export interface CollaborationOptions {
-  // Perhaps only for enabling/disabling collaboration or passing an existing YDoc?
-  enabled?: boolean; // Explicitly enable/disable
-  ydoc?: Y.Doc; // Allow passing an existing YDoc
-}
-
-/** Document fragment for large document handling (from document/types) */
-export interface DocumentFragment {
-  path: (string | number)[];
-  doc: CollaborativeDocument | null; // Use the main interface
-  metadata?: {
-    createdAt: number;
-    lastAccessed: number;
-    size?: number;
-    [key: string]: unknown;
+export interface ParseErrorContext extends ErrorContext {
+  content?: string;
+  position?: {
+    line: number;
+    column: number;
+    offset: number;
   };
 }
 
-/** Fragment manager interface (from document/types) */
-export interface FragmentManager {
-  createFragment(
-    path: (string | number)[],
-    options?: { metadata?: Record<string, unknown> },
-  ): DocumentFragment;
-  getFragment(path: (string | number)[]): DocumentFragment | null;
-  hasFragment(path: (string | number)[]): boolean;
-  listFragments(): DocumentFragment[];
-  removeFragment(path: (string | number)[]): boolean;
+export interface TransformErrorContext extends ErrorContext {
+  node?: Node;
+  transformer?: string;
+  phase?: "parse" | "transform" | "compile";
 }
 
-// --- Processor Types (from processor/types) ---
-
-/** Types of document change events */
-export enum ChangeEventType {
-  YJS_TEXT = "yjs-text",
-  YJS_MAP = "yjs-map",
-  YJS_ARRAY = "yjs-array",
-  YJS_XML = "yjs-xml",
-  UNIFIED_PARSE = "unified-parse",
-  UNIFIED_TRANSFORM = "unified-transform",
-  UNIFIED_COMPILE = "unified-compile",
-  UNIFIED_PROCESS = "unified-process",
-  SYNC_APPLIED = "sync-applied",
-  SYNC_CONFLICT = "sync-conflict",
-  SYNC_RESOLVED = "sync-resolved",
+export interface ValidationErrorContext extends ErrorContext {
+  node?: Node;
+  rule?: string;
+  path?: (string | number)[];
 }
 
-/** Base change event interface */
-export interface ChangeEvent {
-  type: ChangeEventType;
-  timestamp: number;
-  source?: "local" | "remote" | "plugin" | "system";
-  path?: string[];
-  id?: string;
-  error?: Error; // Added optional error field
-  metadata?: Record<string, unknown>; // Added generic metadata
+export interface PluginErrorContext extends ErrorContext {
+  pluginName?: string;
+  phase?: "load" | "execute" | "configure";
 }
 
-// Specific change event interfaces can be defined here if needed,
-// or kept internal to the processor/event system.
+export interface FileErrorContext extends ErrorContext {
+  path?: string;
+  contents?: string;
+  position?: { line: number; column: number; offset: number };
+}
 
-/** Event listener type for change events */
-export type ChangeEventListener = (event: ChangeEvent) => void;
+// --- Result Pattern ---
 
-/** Collaborative transformer function type */
-export type CollaborativeTransformer = (node: Node) => Promise<Node> | Node;
+export type Result<T, E = Error> =
+  | { success: true; value: T }
+  | { success: false; error: E };
+
+// --- Processor Types ---
 
 /** DocenProcessor extends the standard unified processor */
-export interface DocenProcessor extends UnifiedProcessor {
-  // Add Docen specific methods
-  observeChanges(callback: (changes: Array<ChangeEvent>) => void): () => void;
-  getDocument(): CollaborativeDocument | null;
-  setCursor(position: { path: (string | number)[]; offset: number }): this;
-  setSelection(range: {
-    anchor: { path: (string | number)[]; offset: number };
-    head: { path: (string | number)[]; offset: number };
-  }): this;
-  getCursors(): Array<{
-    clientId: number;
-    user: AwarenessState["user"];
-    cursor: CursorPosition | null;
-  }>;
-  getYjsAdapter(): YjsAdapter | null;
-
-  // Add context if needed internally (though direct access might be discouraged)
-  // context?: any;
+export interface DocenProcessor
+  extends UnifiedProcessor<DocenRoot, DocenRoot, DocenRoot, DocenRoot> {
+  // Pure unified.js processor
 }
 
 /** Options for creating a Docen processor */
 export interface DocenProcessorOptions {
-  source?: string; // Keep source VFile option
-  plugins?: UnifiedPlugin[]; // Keep plugins
-  adapter?: "remark" | "rehype" | "retext" | "recma"; // Keep adapter hint
-  collaborative?: boolean; // Keep flag to enable collaboration mode
-  ydoc?: Y.Doc; // Allow passing initial Y.Doc
-  // Add yjsAdapterOptions to group all Yjs specific configs
-  yjsAdapterOptions?: YjsAdapterOptions;
-  // Keep fragmentOptions at processor level if it affects processing logic
-  fragmentOptions?: {
-    enabled: boolean;
-    threshold?: number;
-    maxFragments?: number;
-    nodeTypes?: string[];
-  };
-  // Plugin Discovery might remain a processor-level option
-  pluginDiscovery?: {
-    enabled: boolean;
-    paths?: string[];
-  };
+  source?: string;
+  plugins?: (UnifiedPlugin | [UnifiedPlugin, Record<string, unknown>])[];
+  adapter?: "remark" | "rehype" | "retext" | "recma";
 }
 
-// --- Plugin Types (from plugins/types) ---
+// --- Plugin Types ---
 
 /** Plugin metadata interface */
 export interface PluginMeta {
@@ -342,16 +148,10 @@ export interface PluginOptions {
   pluginSettings?: Record<string, Record<string, unknown>>;
 }
 
-// --- Utility Types (from utils/types) ---
+// --- Utility Types ---
 
-/** Extended data for VFile that includes collaborative properties */
-export interface CollaborativeVFileData extends VFileData {
-  collaborativeDocument?: CollaborativeDocument;
-  awareness?: {
-    clientId: number;
-    cursor?: { index: number; length: number; path: (string | number)[] };
-    user?: { name?: string; id?: string; color?: string };
-  };
+/** Extended data for VFile (without collaborative properties) */
+export interface DocenVFileData extends VFileData {
   processing?: {
     startTime?: number;
     endTime?: number;
@@ -367,64 +167,3 @@ export type DocId = string;
 
 /** Timestamp used for tracking modifications */
 export type Timestamp = number;
-
-/** User info for awareness and collaboration */
-export interface UserInfo {
-  id: string;
-  name?: string;
-  avatar?: string;
-  color?: string;
-  [key: string]: unknown;
-}
-
-// --- Yjs Adapter Specific Types (Keep in yjs/types) ---
-// Import YjsAdapterOptions from yjs/types when needed elsewhere
-// Define YjsAdapter interface here as it's a core concept
-export interface YjsAdapter {
-  doc: Y.Doc;
-  rootMap: Y.Map<any>;
-  undoManager: Y.UndoManager | null;
-  bindingStrategies: Record<string, NodeBindingStrategy>;
-  bindNode(node: Node): Node & CollaborativeNode;
-  unbindNode(node: Node & CollaborativeNode): Node;
-  resolveConflict(conflict: SyncConflict): ResolvedNode;
-  transact<T>(fn: () => T, origin?: string): T;
-  observeChanges(
-    callback: (
-      events: Array<Y.YEvent<any>>,
-      transaction: Y.Transaction,
-    ) => void,
-  ): () => void;
-}
-
-// --- Awareness type (needs definition) ---
-// Forward declare Awareness or import from ./yjs/awareness
-// Needs to be defined before CollaborativeDocument uses it.
-export interface Awareness {
-  readonly clientID: number;
-  doc: Y.Doc;
-  getLocalState(): AwarenessState | null;
-  setLocalState(state: Partial<AwarenessState> | null): void;
-  setLocalStateField(field: string, value: any): void;
-  getStates(): Map<number, AwarenessState>;
-  on(
-    event: "change" | "update",
-    cb: (
-      changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: any,
-    ) => void,
-  ): void;
-  off(
-    event: "change" | "update",
-    cb: (
-      changes: { added: number[]; updated: number[]; removed: number[] },
-      origin: unknown,
-    ) => void,
-  ): void;
-  destroy(): void;
-}
-
-// --- Yjs Adapter Options Import/Export ---
-// Keep YjsAdapterOptions defined in yjs/types, but re-export it from here
-// if it should be part of the core package's public API.
-export type { YjsAdapterOptions } from "./yjs/types";

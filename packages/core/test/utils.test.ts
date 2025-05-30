@@ -1,15 +1,10 @@
+import { find } from "unist-util-find";
 import { describe, expect, it } from "vitest";
 import type { Node, Parent, TextNode } from "../src/types";
-import {
-  findNode,
-  findNodePath,
-  getNodeTimestamp,
-  setNodeTimestamp,
-  transform,
-} from "../src/utils";
+import { findNodePath, transform } from "../src/utils";
 
 describe("Utils", () => {
-  describe("findNode", () => {
+  describe("find (from unist-util-find)", () => {
     it("should find a node that matches the predicate", () => {
       const tree: Parent = {
         type: "root",
@@ -30,7 +25,7 @@ describe("Utils", () => {
         ],
       };
 
-      const result = findNode(tree, (node) => node.type === "text");
+      const result = find(tree, (node) => node.type === "text");
       expect(result).toBeDefined();
       expect(result?.type).toBe("text");
       expect((result as TextNode).value).toBe("Hello");
@@ -47,7 +42,7 @@ describe("Utils", () => {
         ],
       };
 
-      const result = findNode(tree, (node) => node.type === "nonexistent");
+      const result = find(tree, (node) => node.type === "nonexistent");
       expect(result).toBeUndefined();
     });
   });
@@ -86,62 +81,6 @@ describe("Utils", () => {
 
       const path = findNodePath(tree, nonExistentNode);
       expect(path).toBeNull();
-    });
-  });
-
-  describe("getNodeTimestamp and setNodeTimestamp", () => {
-    it("should get timestamp from collaboration metadata", () => {
-      const now = Date.now();
-      const node: Node = {
-        type: "text",
-        collaborationMetadata: {
-          lastModifiedTimestamp: now,
-          modifiedAt: now - 1000,
-        },
-      };
-
-      expect(getNodeTimestamp(node)).toBe(now);
-    });
-
-    it("should fallback to modifiedAt if lastModifiedTimestamp is not available", () => {
-      const now = Date.now();
-      const node: Node = {
-        type: "text",
-        collaborationMetadata: {
-          modifiedAt: now,
-        },
-      };
-
-      expect(getNodeTimestamp(node)).toBe(now);
-    });
-
-    it("should set timestamp in collaboration metadata", () => {
-      const node: Node = {
-        type: "text",
-      };
-
-      const timestamp = Date.now();
-      const result = setNodeTimestamp(node, timestamp);
-
-      expect(result.collaborationMetadata).toBeDefined();
-      expect(result.collaborationMetadata?.lastModifiedTimestamp).toBe(
-        timestamp,
-      );
-      expect(result.collaborationMetadata?.modifiedAt).toBe(timestamp);
-    });
-
-    it("should use current time if no timestamp provided", () => {
-      const node: Node = {
-        type: "text",
-      };
-
-      const result = setNodeTimestamp(node);
-
-      expect(result.collaborationMetadata).toBeDefined();
-      expect(typeof result.collaborationMetadata?.lastModifiedTimestamp).toBe(
-        "number",
-      );
-      expect(typeof result.collaborationMetadata?.modifiedAt).toBe("number");
     });
   });
 

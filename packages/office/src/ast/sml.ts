@@ -1,13 +1,3 @@
-// ast/sml.ts
-// Defines AST nodes specific to SpreadsheetML (SML)
-
-import type {
-  OoxmlData,
-  OoxmlNode,
-  OoxmlParent,
-  // Import shared formatting types if needed (e.g., FontProperties, FillProperties)
-} from "./shared";
-
 // --- SML Specific Element Types --- //
 
 /*

@@ -18,21 +18,18 @@ import type {
   Text as XastText,
 } from "xast";
 
-// Ensure CollaborationMetadata is imported or defined if not already
-import type { CollaborationMetadata } from "@docen/core"; // Import from core
-
 // Define the OOXML Data enrichment interface
 export interface OoxmlData extends XastData {
   ooxmlType?: string; // Semantic OOXML type (e.g., 'paragraph', 'textRun')
-  properties?: Record<string, any>; // Parsed OOXML properties
+  properties?: Record<string, unknown> | object; // Parsed OOXML properties - allow any object structure
   relationId?: string;
-  collaborationMetadata?: CollaborationMetadata; // Use specific type
+  collaborationMetadata?: Record<string, unknown>; // Placeholder for collaboration metadata
 }
 
 // Define a specific data type for the Root node
 export interface OoxmlRootData extends OoxmlData {
   sharedResources?: SharedResources;
-  metadata?: Record<string, any>; // Add optional metadata field
+  metadata?: Record<string, unknown>; // Add optional metadata field
   // Add other root-specific metadata if needed
 }
 
@@ -118,10 +115,8 @@ export type AnyOoxmlNode =
 export type OoxmlAttributes = XastAttributes; // Alias for clarity
 export type OoxmlElementContent = XastElementContent;
 
-// --- Shared Formatting Properties (Consolidated from common-types.ts and shared.ts) --- //
-
 /**
- * Defines comprehensive font properties based on common-types.ts.
+ * Defines comprehensive font properties.
  */
 export interface FontProperties {
   name?: string; // Font name (e.g., 'Calibri') <w:rFonts w:ascii=".." w:hAnsi=".." w:cs=".." w:eastAsia=".."/>
@@ -218,7 +213,6 @@ export interface SpacingProperties {
 
 /**
  * Defines numbering properties reference used in ParagraphFormatting.
- * Based on common-types.ts NumberingProperties.
  */
 export interface NumberingProperties {
   id: string; // ID of the numbering definition (numId in OOXML)
@@ -227,7 +221,6 @@ export interface NumberingProperties {
 
 /**
  * Defines comprehensive border style properties.
- * Based on common-types.ts BorderStyleProperties.
  */
 export interface BorderStyleProperties {
   style?: string; // OOXML border styles: single, double, dotted, dashed, thick, wave, etc. <w:bdr w:val="..."/>
@@ -288,7 +281,6 @@ export interface ColorDefinition {
 
 /**
  * Defines positional properties for DrawingML objects.
- * Based on common-types.ts PositionalProperties.
  */
 export interface PositionalProperties {
   positionH?: {
@@ -379,20 +371,27 @@ export interface SharedResources {
   numberingInstances?: Record<string, SharedNumInstanceDefinition>; // Keyed by numId
   themes?: SharedTheme[]; // From common-types (use specific type if defined later)
   fonts?: SharedFont[]; // From common-types (use specific type if defined later)
-  settings?: any; // Placeholder from shared.ts
+  settings?: Record<string, unknown>; // Document settings
   comments?: Record<string, SharedCommentDefinition>; // Updated to use SharedCommentDefinition
   footnotes?: Record<string, SharedFootnoteDefinition>; // Use specific definition type
   endnotes?: Record<string, SharedEndnoteDefinition>; // Use specific definition type
   headers?: Record<string, OoxmlRoot>; // Keyed by relationId (rId), stores the parsed header content
   footers?: Record<string, OoxmlRoot>; // Keyed by relationId (rId), stores the parsed footer content
-  media?: Record<string, any>; // Placeholder for image/media data (keyed by rId?)
+  media?: Record<string, MediaData>; // Media data keyed by relationId
   relationships?: RelationshipMap; // Top-level relationships? Or per-part?
   // Add other shared resources as needed
 }
 
+// Define media data interface
+export interface MediaData {
+  contentType: string;
+  data: Uint8Array;
+  fileName?: string;
+  size?: number;
+}
+
 /**
  * Represents a style definition (paragraph, character, table, numbering).
- * Based on common-types.ts definition, adding 'next' and 'tableProperties' from shared.ts.
  */
 export interface SharedStyleDefinition {
   styleId: string;
@@ -403,13 +402,26 @@ export interface SharedStyleDefinition {
   isDefault?: boolean;
   paragraphProperties?: ParagraphFormatting; // Renamed from paragraphProps
   runProperties?: FontProperties; // Renamed from runProps
-  tableProperties?: any; // Placeholder for table style properties (from shared.ts)
+  tableProperties?: TableStyleProperties; // Table style properties
   // Add other style properties (linked style, UI priority, etc.)
+}
+
+// Define table style properties interface
+export interface TableStyleProperties {
+  borders?: TableBorderProperties;
+  shading?: ShadingProperties;
+  cellMargins?: {
+    top?: Measurement;
+    bottom?: Measurement;
+    left?: Measurement;
+    right?: Measurement;
+  };
+  rowBanding?: boolean;
+  columnBanding?: boolean;
 }
 
 /**
  * Represents document default formatting.
- * From common-types.ts.
  */
 export interface SharedDocumentDefaults {
   paragraph?: ParagraphFormatting;
@@ -418,7 +430,6 @@ export interface SharedDocumentDefaults {
 
 /**
  * Represents an abstract numbering definition (<w:abstractNum>).
- * Based on detailed common-types.ts definition.
  */
 export interface SharedAbstractNumDefinition {
   abstractNumId: string; // <w:abstractNumId w:val="..."/>
@@ -430,7 +441,6 @@ export interface SharedAbstractNumDefinition {
 
 /**
  * Represents a numbering level definition within an abstractNum (<w:lvl>).
- * Based on detailed common-types.ts definition.
  */
 export interface SharedNumberingLevelDefinition {
   level: number;
@@ -445,7 +455,6 @@ export interface SharedNumberingLevelDefinition {
 
 /**
  * Represents a concrete numbering instance (<w:num>).
- * Based on detailed common-types.ts definition.
  */
 export interface SharedNumInstanceDefinition {
   numId: string; // <w:numId w:val="..."/>
@@ -458,12 +467,28 @@ export interface SharedNumInstanceDefinition {
   };
 }
 
-// Placeholders from common-types.ts, define properly if needed
 export interface SharedTheme {
-  definition?: any;
+  definition?: ThemeDefinition;
 }
+
 export interface SharedFont {
-  definition?: any;
+  definition?: FontDefinition;
+}
+
+// Define theme and font definition interfaces
+export interface ThemeDefinition {
+  name?: string;
+  colorScheme?: Record<string, string>;
+  fontScheme?: Record<string, string>;
+  formatScheme?: Record<string, unknown>;
+}
+
+export interface FontDefinition {
+  name: string;
+  panose?: string;
+  charset?: number;
+  family?: number;
+  pitch?: number;
 }
 
 // --- Utility Shared Types --- //

@@ -1,15 +1,19 @@
 /**
- * Main entry point for the @docen/document package.
- * Exports plugins and utilities for document processing (Markdown, HTML).
+ * @docen/document - Pure document processing
+ * Handles text-based formats (Markdown, HTML)
  */
 
-export { docenMarkdown } from "./plugins/markdown";
-export type { DocenMarkdownOptions } from "./plugins/markdown";
+// Export processors
+export * from "./processors";
 
-export { docenHtml } from "./plugins/html";
-export type { DocenHtmlOptions } from "./plugins/html";
+// Export AST utilities
+export * from "./ast";
 
-// Export core AST types re-exported from @docen/core if needed by consumers
-// export type { Node, Parent, TextNode, DocenRoot } from "@docen/core";
+// Export schema definitions
+export * from "./schema";
 
-// Export conversion utilities or other functions as they are developed.
+// Export plugins
+export * from "./plugins";
+
+// Export types
+export * from "./types";

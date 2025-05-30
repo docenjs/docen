@@ -21,7 +21,7 @@
     "dev": "unbuild --stub",
     "prepack": "pnpm build",
     "test": "vitest run",
-    "test:watch": "vitest",
+    "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [
@@ -30,7 +30,6 @@
     "ast",
     "unist",
     "vfile",
-    "yjs",
     "utilities",
     "typescript"
   ],
@@ -43,17 +42,17 @@
   "dependencies": {
     "unified": "11.0.5",
     "unist": "0.0.1",
-    "unist-builder": "^4.0.0",
-    "unist-util-assert": "^4.0.0",
-    "unist-util-filter": "^5.0.1",
-    "unist-util-is": "^6.0.0",
-    "unist-util-map": "^4.0.0",
-    "unist-util-remove": "^4.0.0",
-    "unist-util-select": "^5.1.0",
+    "unist-builder": "4.0.0",
+    "unist-util-assert": "4.0.0",
+    "unist-util-filter": "5.0.1",
+    "unist-util-find": "3.0.0",
+    "unist-util-is": "6.0.0",
+    "unist-util-map": "4.0.0",
+    "unist-util-remove": "4.0.0",
+    "unist-util-select": "5.1.0",
     "unist-util-visit": "5.0.0",
-    "unist-util-visit-parents": "^6.0.1",
-    "vfile": "6.0.3",
-    "yjs": "13.6.26"
+    "unist-util-visit-parents": "6.0.1",
+    "vfile": "6.0.3"
   },
   "devDependencies": {
     "@types/unist": "3.0.3"

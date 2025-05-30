@@ -1,11 +1,6 @@
 import type {
-  BlockContent,
   Blockquote,
-  Break,
   Definition,
-  DefinitionContent,
-  Delete,
-  Emphasis,
   FootnoteDefinition,
   FootnoteReference,
   HTML,
@@ -16,17 +11,11 @@ import type {
   LinkReference,
   List,
   ListItem,
-  Code as MdastCode,
   RootContent as MdastContent,
   Paragraph as MdastParagraph,
   Root as MdastRoot,
   Table as MdastTable,
-  TableCell as MdastTableCell,
-  TableRow as MdastTableRow,
-  Text as MdastText,
-  ThematicBreak as MdastThematicBreak,
   PhrasingContent,
-  Strong,
 } from "mdast";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
@@ -37,7 +26,6 @@ import type {
   OoxmlData,
   OoxmlElement,
   OoxmlElementContent,
-  OoxmlNode,
   OoxmlRoot,
   OoxmlText,
   ParagraphFormatting,
@@ -57,7 +45,7 @@ import type {
 /**
  * Checks if a value represents an "on" state in OOXML.
  */
-function isOnOffTrue(value: any): boolean {
+function isOnOffTrue(value: unknown): boolean {
   return value === true || value === "true" || value === "on" || value === "1";
 }
 
@@ -724,7 +712,9 @@ function convertMdastNodeToOoxml(
     console.warn("Skipping block-level HTML node during conversion.");
   } else {
     console.warn(
-      `Unhandled MDAST node type during conversion: ${(node as any).type}`,
+      `Unhandled MDAST node type during conversion: ${
+        "type" in node ? (node as { type: string }).type : "unknown"
+      }`,
     );
   }
 

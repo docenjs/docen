@@ -1,8 +1,5 @@
 import type { Plugin } from "unified";
 import { getResolvedPDFJS } from "unpdf"; // Use getResolvedPDFJS
-import type * as PDFJS from "unpdf/pdfjs"; // Import types for PDF.js API
-import type { TextItem } from "unpdf/types/src/display/api";
-import type { PageViewport } from "unpdf/types/src/display/display_utils";
 import type { VFile } from "vfile";
 import type {
   ColorDefinition,
@@ -20,6 +17,79 @@ import type {
   PositionalProperties,
 } from "../ast";
 
+// Define unpdf/PDF.js types based on actual API
+interface PDFJSNamespace {
+  getDocument: (data: { data: Uint8Array } | Uint8Array) => {
+    promise: Promise<PDFDocumentProxy>;
+  };
+  OPS: Record<string, number>;
+  Util: {
+    normalizeRect: (rect: number[]) => number[];
+    transform: (m1: number[], m2: number[]) => number[];
+  };
+  XObjectKind: {
+    IMAGE: string;
+  };
+  version: string;
+}
+
+// Define interface for PDF image data
+interface PDFImageData {
+  kind: string;
+  width: number;
+  height: number;
+  data?: Uint8Array;
+}
+
+interface PDFDocumentProxy {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<PDFPageProxy>;
+  getMetadata: () => Promise<PDFMetadata>;
+}
+
+interface PDFPageProxy {
+  getTextContent: () => Promise<PDFTextContent>;
+  getViewport: (params: { scale: number }) => PDFViewport;
+  getOperatorList: () => Promise<PDFOperatorList>;
+  getAnnotations: () => Promise<PDFAnnotation[]>;
+  commonObjs: {
+    get: (ref: string) => Promise<unknown>;
+  };
+}
+
+interface PDFTextContent {
+  items: PDFTextItem[];
+}
+
+interface PDFTextItem {
+  str: string;
+  transform: number[];
+  width: number;
+  height: number;
+  fontName: string;
+}
+
+interface PDFViewport {
+  width: number;
+  height: number;
+}
+
+interface PDFOperatorList {
+  fnArray: number[];
+  argsArray: unknown[][];
+}
+
+interface PDFAnnotation {
+  subtype: string;
+  url?: string;
+  rect?: number[];
+}
+
+interface PDFMetadata {
+  info: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+}
+
 // Local alias for TransformMatrix to avoid import issues
 type TransformMatrix = number[]; // PDFJS.TransformMatrix is [number, number, number, number, number, number]
 
@@ -31,7 +101,7 @@ interface RawPdfContentItem {
   type: "text" | "imagePlaceholder";
   node: OoxmlElement; // Both text runs and drawing placeholders are OoxmlElements
   bbox: { x1: number; y1: number; x2: number; y2: number };
-  originalItem?: TextItem;
+  originalItem?: PDFTextItem;
 }
 
 // Structure for Link Annotations
@@ -134,11 +204,11 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       return undefined;
     }
 
-    let pdfjs: any;
-    let doc: PDFJS.PDFDocumentProxy;
+    let pdfjs: PDFJSNamespace;
+    let doc: PDFDocumentProxy;
     try {
-      pdfjs = await getResolvedPDFJS();
-      doc = await pdfjs.getDocument(file.value).promise;
+      pdfjs = (await getResolvedPDFJS()) as unknown as PDFJSNamespace;
+      doc = await pdfjs.getDocument({ data: file.value }).promise;
     } catch (error: unknown) {
       console.error("Error loading PDF document with PDF.js:", error);
       file.message(
@@ -150,12 +220,12 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
     }
 
     const numPages = doc.numPages;
-    let pdfMetadata: any = {};
-    let pdfInfo: any = {};
+    let pdfMetadata: Record<string, unknown> = {};
+    let pdfInfo: Record<string, unknown> = {};
     try {
       const meta = await doc.getMetadata();
-      pdfMetadata = meta.metadata;
-      pdfInfo = meta.info;
+      pdfMetadata = meta.metadata as Record<string, unknown>;
+      pdfInfo = meta.info as Record<string, unknown>;
     } catch (metaError) {
       console.warn("Could not retrieve PDF metadata:", metaError);
     }
@@ -164,23 +234,23 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
     const newRoot: OoxmlRoot = {
       type: "root",
       children: [],
-      // Assert data as any to allow metadata property
+      // Use proper typing for metadata
       data: {
-        ooxmlType: "root", // Use generic 'root' or specific 'wmlRoot' if preferred
+        ooxmlType: "root" as const, // Use specific type instead of generic 'root'
         metadata: {
           source: "unpdf/pdfjs",
           totalPages: numPages,
           info: pdfInfo || {},
           metadata: pdfMetadata || {},
         },
-      } as any,
+      } as OoxmlData & { metadata: Record<string, unknown> },
     };
 
     try {
       // --- Page Processing Loop ---
       for (let pageNum = 1; pageNum <= numPages; pageNum++) {
         const page = await doc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.0 }) as PageViewport;
+        const viewport = page.getViewport({ scale: 1.0 });
         const textContent = await page.getTextContent();
         const operatorList = await page.getOperatorList();
         const annotations = await page.getAnnotations();
@@ -216,9 +286,13 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
 
           // Track fill color changes (simplified)
           if (fn === OPS.setFillGray) {
-            currentFillColor = [args[0]];
+            currentFillColor = [args[0] as number];
           } else if (fn === OPS.setFillRGBColor) {
-            currentFillColor = [args[0], args[1], args[2]];
+            currentFillColor = [
+              args[0] as number,
+              args[1] as number,
+              args[2] as number,
+            ];
           } else if (fn === OPS.setFillCMYKColor) {
             // TODO: Convert CMYK to RGB - complex, using fallback for now
             console.warn("CMYK color conversion not implemented, using black.");
@@ -233,7 +307,7 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
         const lastFillColorHex = pdfColorToHex(currentFillColor);
 
         // --- 1. Process Text Content (Create RawPdfContentItem) ---
-        for (const item of textContent.items as TextItem[]) {
+        for (const item of textContent.items as PDFTextItem[]) {
           if (item.str.trim() === "") continue;
 
           // Calculate bounding box (approximate)
@@ -317,24 +391,24 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
           } else if (fn === OPS.transform) {
             const [a, b, c, d, e, f] = args;
             currentCtm = pdfjs.Util.transform(currentCtm, [
-              a,
-              b,
-              c,
-              d,
-              e,
-              f,
+              a as number,
+              b as number,
+              c as number,
+              d as number,
+              e as number,
+              f as number,
             ] as TransformMatrix);
             ctmStack[ctmStack.length - 1] = currentCtm;
           } else if (fn === OPS.paintImageXObject) {
-            const imgRef = args[0];
+            const imgRef = args[0] as string;
             try {
               const imgData = await page.commonObjs.get(imgRef);
               if (
                 imgData &&
                 typeof imgData === "object" &&
-                (imgData as any).kind === pdfjs.XObjectKind.IMAGE
+                (imgData as PDFImageData).kind === pdfjs.XObjectKind.IMAGE
               ) {
-                const pdfImage = imgData as any;
+                const pdfImage = imgData as PDFImageData;
                 const imgX = currentCtm[4];
                 const imgY = currentCtm[5];
                 const imgWidth = Math.abs(currentCtm[0]) * pdfImage.width;

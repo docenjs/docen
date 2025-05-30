@@ -1,331 +1,279 @@
 # Docen Implementation Plan
 
-This document outlines the implementation plan for the Docen project based on the requirements specified in `requirements.md`. Each task can be marked as complete when finished.
+This document outlines the implementation plan for the Docen project based on the container-level collaboration architecture specified in `requirements.md`.
+
+## Core Architecture Principle
+
+**Key Insight**: Yjs integration is simple enough (Y.Text, Y.Array, Y.Map) that complex package-level collaboration mechanisms are unnecessary. Instead, packages focus on format processing while containers handle collaboration.
 
 ## Phase 1: Project Setup and Infrastructure
 
 - [x] Initialize project workspace
 
-  - [x] Set up monorepo structure with appropriate package manager (pnpm)
+  - [x] Set up monorepo structure with pnpm
   - [x] Configure TypeScript for all packages
   - [x] Set up Biome and Prettier configurations
   - [x] Configure testing framework (Vitest)
   - [ ] Set up CI/CD pipeline
 
-- [x] Create initial package structure
+- [x] Create package structure
 
-  - [x] @docen/core
-  - [x] @docen/document
-  - [x] @docen/data
-  - [x] @docen/media
-  - [x] @docen/office
-  - [ ] @docen/editor
-  - [ ] @docen/mdoc
-  - [x] @docen/providers
-  - [x] docen (main package)
+  - [x] @docen/core - Basic types, no collaboration
+  - [x] @docen/document - Pure format processing
+  - [x] @docen/data - Pure data processing
+  - [x] @docen/media - Independent processing
+  - [x] @docen/office - Format routing
+  - [ ] @docen/containers - **Only package with Yjs code**
+  - [ ] @docen/editor - Container-aware editor
+  - [x] @docen/providers - Transport layer
+  - [x] docen - Main package
 
 - [ ] Set up shared configurations
   - [x] Shared TypeScript types
   - [ ] Shared testing utilities
   - [x] Shared build configurations
 
-## Phase 2: Core Module (@docen/core)
+## Phase 2: Core Module (@docen/core) - Pure Unified.js
 
 - [x] Implement core interfaces
 
   - [x] Define DocenProcessor interface extending UnifiedProcessor
   - [x] Implement Node and Parent interfaces extending unist
-  - [x] Create CollaborationOptions interface
+  - [ ] Add format detection utilities
 
-- [x] Build AST-Yjs binding system
+- [ ] Pure unified.js functionality
+  - [x] Extend unified processor
+  - [ ] Implement format detection and processor creation
+  - [ ] Create plugin adaptation system
+  - [ ] Integration with vfile for virtual file handling
 
-  - [x] Implement NodeBindingStrategy interface
-  - [x] Create default binding strategies for different node types
-  - [x] Implement createYjsAdapter factory function
+**Key Point**: No collaboration code in core - pure unified.js compatibility.
 
-- [x] Implement synchronization strategies
-
-  - [x] Timestamp-based synchronization (default)
-  - [x] Intent-based synchronization
-  - [x] Custom synchronization hook
-
-- [x] Implement core processor enhancement
-
-  - [x] Extend unified processor with collaborative capabilities
-  - [x] Implement observeChanges functionality
-  - [x] Create plugin adaptation system
-
-- [x] Integration with vfile
-  - [x] Extend VFile with collaborative metadata
-  - [x] Implement change event messaging
-
-## Phase 3: Document Processing (@docen/document)
+## Phase 3: Document Processing (@docen/document) - Pure AST Processing
 
 - [ ] Integrate with remark and rehype
 
-  - [x] Create adapters for mdast (Initial structure and basic mappings)
-  - [x] Create adapters for hast (Initial structure and basic mappings)
+  - [x] Create adapters for mdast
+  - [x] Create adapters for hast
   - [ ] Ensure compatibility with existing plugins
 
-- [x] Implement collaborative document interface
+- [ ] Pure document processing
+  - [ ] Document transformation utilities
+  - [ ] Format conversion (markdown ↔ HTML)
+  - [ ] Schema validation for text document formats
 
-  - [x] Implement CollaborativeDocument interface (`DocenCollabDocument`)
-  - [ ] Create document transformation utilities
-  - [ ] Implement document synchronization
+**Key Point**: No Yjs dependencies - pure unified.js text processing only. No presentation support.
 
-- [ ] Implement document schema validation
+## Phase 4: Data Processing (@docen/data) - Pure Data Formats
 
-  - [ ] Create DocumentSchema interface
-  - [ ] Implement validation rules system
-  - [ ] Implement error handling for validation
+- [ ] Standard unified.js data processing
 
-- [ ] Create collaborative cursor system
-  - [ ] Implement CursorPosition interfaces
-  - [ ] Create position mapping utilities
-  - [ ] Enable cursor and selection tracking
-
-## Phase 4: Office Document Processing (@docen/office)
-
-- [ ] Implement PDF document processing
-
-  - [x] Integrate with UnJS's unpdf for platform-agnostic PDF handling
-  - [ ] Create PDF AST representation
-  - [ ] Implement PDF text extraction and manipulation
-  - [ ] Add PDF rendering capabilities
-
-- [ ] Implement OOXML AST (ooxast) for unified processing
-
-  - [ ] Design core node types for OOXML representation
-  - [ ] Create transformers between ooxast and other AST types
-  - [ ] Implement serialization/deserialization for OOXML formats
-
-- [ ] Implement DOCX document processing
-
-  - [x] Integrate with DOCX manipulation libraries (using docx.js)
-  - [ ] Create unified plugin (MDAST -> docx objects)
-  - [ ] Implement MDAST -> DOCX conversion using docx.js
-  - [ ] Add template-based DOCX generation
-
-- [ ] Implement other Office formats
-
-  - [ ] Add support for Excel documents (XLSX)
-  - [ ] Add support for PowerPoint presentations (PPTX)
-  - [ ] Create unified API for all Office document types
-
-- [ ] Add collaborative editing for Office documents
-  - [ ] Implement Yjs binding for Office document structures
-  - [ ] Create specialized conflict resolution for Office formats
-  - [ ] Add collaborative annotations for PDF documents
-
-## Phase 5: Data Processing (@docen/data)
+  - [ ] Implement pure data format parsing (JSON, YAML, CSV, XML)
+  - [ ] Create standard unified.js processors for each format
+  - [ ] Implement bidirectional format conversion
+  - [ ] Add data schema validation
 
 - [ ] Integrate with xast for XML processing
-
-  - [ ] Create XastNodeAdapter for Yjs binding
-  - [ ] Implement XML synchronization strategies
+  - [ ] Create standard XastNodeAdapter
+  - [ ] Implement XML processing
   - [ ] Ensure compatibility with unified XML plugins
 
-- [ ] Create data transformation pipelines
+**Key Point**: No collaboration features - standard unified.js data processing.
 
-  - [ ] Implement bidirectional format converters
-  - [ ] Create data schema preservation utilities
-  - [ ] Build specialized data processors
+## Phase 5: Media Processing (@docen/media) - Independent Processing
 
-- [ ] Implement data structure editing
-  - [ ] Create collaborative editing interface for structured data
-  - [ ] Implement operation-based conflict resolution for data
-  - [ ] Add data-specific transformers
+- [ ] Independent media processing toolkit
 
-## Phase 6: Media Processing (@docen/media)
+  - [ ] Implement browser-compatible processing with jimp-compact
+  - [ ] Add Sharp-WASM integration for high-performance processing
+  - [ ] Create FFmpeg-WASM integration for video processing
+  - [ ] Implement optimization pipeline
 
-- [ ] Extend unified processing to binary content
+- [ ] Metadata and analysis
 
-  - [ ] Implement specialized media node types
-  - [ ] Create binary data handling utilities
-  - [ ] Build chunked binary data support
+  - [ ] Comprehensive metadata extraction (EXIF, XMP, IPTC)
+  - [ ] File type detection and validation
+  - [ ] Content-aware optimization
 
-- [ ] Implement collaborative annotation
+- [ ] Unified.js integration (pipeline compatibility only)
+  - [ ] Create unified plugin for media processing
+  - [ ] Implement media node types for AST compatibility
 
-  - [ ] Create annotation data structures
-  - [ ] Implement annotation synchronization
-  - [ ] Build annotation rendering utilities
+**Key Point**: No collaboration features - independent processing toolkit only.
 
-- [ ] Media-specific synchronization
-  - [ ] Implement efficient binary diff algorithms
-  - [ ] Create media fragment management
-  - [ ] Optimize for large media files
+## Phase 6: Office Document Processing (@docen/office) - Format Routing
 
-## Phase 7: Custom Editor (@docen/editor)
+- [ ] Format detection and routing
 
-- [ ] Implement core editor architecture
+  - [ ] Implement automatic format detection
+  - [ ] Route DOCX/RTF/ODT → @docen/document
+  - [ ] Route XLSX/ODS → @docen/data
+  - [ ] Route PPTX/ODP → @docen/document (presentations)
+  - [ ] Handle PDF documents locally
 
-  - [ ] Create DocenEditor class with Yjs integration
-  - [ ] Implement DOM rendering system without external editor dependencies
-  - [ ] Build input handling and event management
-  - [ ] Create cursor and selection management system
+- [ ] Office format processing
+  - [x] Integrate with unpdf for PDF handling
+  - [ ] Implement DOCX processing with docx.js
+  - [ ] Add Excel file processing for routing to data package
+  - [ ] Support legacy format reading (DOC/XLS/PPT)
 
-- [ ] Implement collaborative features
+**Key Point**: No collaboration code - pure format detection and routing.
 
-  - [ ] Real-time cursor synchronization using Yjs awareness
-  - [ ] Conflict-free text editing with Y.Text integration
-  - [ ] User presence and awareness indicators
-  - [ ] Operational transform for complex edits
+## Phase 7: Container Formats (@docen/containers) - **ONLY COLLABORATION PACKAGE**
 
-- [ ] Build editor UI components
+- [ ] **Simple Yjs Integration**
 
-  - [ ] Toolbar and formatting controls
-  - [ ] Context menus and shortcuts
-  - [ ] Status bar and document info
-  - [ ] Plugin system for extensions
+  - [ ] Implement Y.Text for document containers (.mdcx)
+  - [ ] Implement Y.Array/Y.Map for data containers (.dtcx)
+  - [ ] Implement Y.Text + Y.Map for presentation containers (.ptcx)
+  - [ ] Create unified container API
 
-- [ ] Document format support
+- [ ] **Container Format Implementation**
 
-  - [ ] Markdown editing with live preview
-  - [ ] MDOC format editing support
-  - [ ] Rich text formatting capabilities
-  - [ ] Table and media insertion
+  - [ ] Design .mdcx/.dtcx/.ptcx ZIP-based containers
+  - [ ] Implement container parser and stringifier
+  - [ ] Add collaboration metadata management
+  - [ ] Create version control and compatibility handling
 
-## Phase 8: MDOC Format (@docen/mdoc)
+- [ ] **Cross-format Integration**
+  - [ ] Integration with @docen/document for content processing
+  - [ ] Integration with @docen/data for data processing
+  - [ ] Integration with @docen/media for embedded files
+  - [ ] Unified collaboration interface for all container types
 
-- [ ] Define MDOC container format
+**Key Point**: This is the ONLY package with Yjs code. All collaboration happens here.
 
-  - [ ] Specify .mdoc file structure (ZIP-based)
-  - [ ] Design frontmatter metadata schema
-  - [ ] Create media embedding specifications
-  - [ ] Define version and compatibility rules
+## Phase 8: Custom Editor (@docen/editor) - Container-Aware Editing
 
-- [ ] Implement MDOC parser
+- [ ] **Container-based editor architecture**
 
-  - [ ] ZIP container extraction
-  - [ ] Frontmatter parsing and validation
-  - [ ] Media file handling and referencing
-  - [ ] Error handling and recovery
+  - [ ] Create DocenEditor class that loads containers from @docen/containers
+  - [ ] Implement format detection based on container type
+  - [ ] Build format-specific UI components (.mdcx/.dtcx/.ptcx)
+  - [ ] Create unified editing interface
 
-- [ ] Implement MDOC stringifier
+- [ ] **Editor UI by container type**
 
-  - [ ] ZIP container creation
-  - [ ] Frontmatter serialization
-  - [ ] Media file embedding and optimization
-  - [ ] Cross-platform file handling
+  - [ ] Document editor for .mdcx (rich text, live preview)
+  - [ ] Data editor for .dtcx (tables, formulas)
+  - [ ] Slide editor for .ptcx (slides, layout)
+  - [ ] Unified collaboration features across all modes
 
-- [ ] Integration with unified ecosystem
+- [ ] **Core editor functionality**
+  - [ ] DOM rendering without external editor dependencies
+  - [ ] Input handling and event management
+  - [ ] Cursor and selection management
+  - [ ] Real-time collaboration via @docen/containers
 
-  - [ ] Create unified plugin for MDOC processing
-  - [ ] Ensure compatibility with existing remark plugins
-  - [ ] Support bidirectional conversion (MDOC ↔ Markdown)
-  - [ ] Enable collaborative editing of MDOC files
+**Key Point**: All collaboration through @docen/containers package only.
 
-## Phase 9: Providers (@docen/providers)
+## Phase 9: Providers (@docen/providers) - Transport Layer
 
-- [ ] Implement standard Yjs providers
+- [ ] **Yjs transport providers**
 
-  - [ ] WebSocket provider
+  - [ ] WebSocket provider for server-based sync
   - [ ] IndexedDB persistence provider
-  - [ ] WebRTC provider
+  - [ ] WebRTC provider for peer-to-peer collaboration
 
-- [ ] Create subdocument synchronization
+- [ ] **Provider management**
+  - [ ] Connection lifecycle and recovery
+  - [ ] Automatic provider selection
+  - [ ] Offline capabilities with sync
 
-  - [ ] Implement document fragmentation
-  - [ ] Create cross-document references
-  - [ ] Build fragment loading/unloading strategies
+**Key Point**: Transport only - no container-specific logic, pure Yjs transport.
 
-- [ ] Implement connection lifecycle
-  - [ ] Create connection recovery mechanisms
-  - [ ] Implement offline capabilities
-  - [ ] Add awareness for collaborative presence
+## Phase 10: Main Package (docen) - Unified Interface
 
-## Phase 10: Main Package (docen)
+- [ ] **Unified API design**
 
-- [ ] Create unified.js-compatible factory functions
-
-  - [ ] Implement docen() factory
-  - [ ] Create createProcessor() utility
-  - [ ] Build processor configuration helpers
-
-- [ ] Integrate all modules
-
-  - [ ] Create consistent API across modules
-  - [ ] Implement automatic processor configuration
+  - [ ] Implement `docen(format)` for format processing
+  - [ ] Implement `docen.containers(type)` for collaboration
+  - [ ] Create automatic processor configuration
   - [ ] Build plugin discovery mechanism
 
-- [ ] Ensure cross-platform compatibility
-  - [ ] Test in Node.js
-  - [ ] Test in browsers
-  - [ ] Test in Deno
-  - [ ] Test in Edge environments
+- [ ] **Cross-platform integration**
+  - [ ] Test in Node.js, browsers, Deno, Edge environments
+  - [ ] Ensure WASM component compatibility
+  - [ ] Optimize bundle sizes for different platforms
 
-## Phase 11: Testing and Optimization
+**Key Point**: Clear separation between processing and collaboration APIs.
 
-- [ ] Create comprehensive test suite
+## Phase 11: Testing and Documentation
 
-  - [ ] Unit tests for all modules
-  - [ ] Integration tests for module interoperability
-  - [ ] End-to-end tests for complete workflows
-  - [ ] Editor interaction tests
+- [ ] **Comprehensive testing**
 
-- [ ] Performance optimization
+  - [ ] Unit tests for all packages
+  - [ ] Integration tests for format processing
+  - [ ] Collaboration tests for container functionality
+  - [ ] Cross-platform compatibility tests
 
-  - [ ] Benchmark core operations
-  - [ ] Optimize critical paths
-  - [ ] Improve memory usage
-  - [ ] Editor rendering performance
+- [ ] **Performance optimization**
 
-- [ ] Compatibility testing
-  - [ ] Test with existing unified.js plugins
-  - [ ] Test with different Yjs providers
-  - [ ] Verify cross-platform functionality
-  - [ ] Editor cross-browser compatibility
+  - [ ] Benchmark format processing performance
+  - [ ] Optimize collaboration latency
+  - [ ] Memory usage optimization
+  - [ ] Bundle size optimization
 
-## Phase 12: Documentation and Examples
-
-- [ ] Create developer documentation
-
-  - [ ] API reference
-  - [ ] Integration guides
+- [ ] **Documentation**
+  - [ ] API reference for all packages
+  - [ ] Format processing examples
+  - [ ] Collaboration integration guides
   - [ ] Plugin development documentation
-  - [ ] Editor customization guide
 
-- [ ] Build examples
+## Implementation Priorities
 
-  - [ ] Simple collaborative editor
-  - [ ] Document conversion example
-  - [ ] Data processing example
-  - [ ] Media annotation example
-  - [ ] Office document processing example
-  - [ ] MDOC format usage example
+### Critical Path: Container-Level Collaboration
 
-- [ ] User guides
-  - [ ] Getting started guide
-  - [ ] Advanced usage patterns
-  - [ ] Troubleshooting guide
-  - [ ] Editor deployment guide
+1. **Phase 7 (@docen/containers)** - The core innovation
 
-## Phase 13: Release and Maintenance
+   - Simple Yjs integration patterns
+   - Container format specification
+   - Unified collaboration API
 
-- [ ] Prepare for first release
+2. **Phase 8 (@docen/editor)** - Container-aware editing
 
-  - [ ] Complete all critical features
-  - [ ] Ensure test coverage
-  - [ ] Finalize documentation
+   - Format-specific UIs based on container type
+   - All collaboration via containers package
 
-- [ ] Release process
+3. **Phase 3-6 (Format packages)** - Pure processing
+   - Can be developed in parallel
+   - No collaboration dependencies
+   - Standard unified.js patterns
 
-  - [ ] Implement semantic versioning
-  - [ ] Create release notes
-  - [ ] Publish packages to npm
+### Architecture Validation
 
-- [ ] Maintenance plan
-  - [ ] Set up issue triage process
-  - [ ] Create contribution guidelines
-  - [ ] Plan feature roadmap
+Before implementation, validate:
 
-## Next Steps
+1. **Yjs Simplicity**: Confirm Y.Text/Y.Array/Y.Map patterns are sufficient
+2. **Container Format**: Validate ZIP-based container performance
+3. **Cross-format Integration**: Test container integration with format packages
+4. **Bundle Size**: Ensure reasonable bundle sizes with WASM components
+5. **Performance**: Test collaboration performance across container types
 
-After completing the implementation plan, focus on:
+## Key Benefits of This Architecture
 
-1. Gathering user feedback on editor usability
-2. Expanding the plugin ecosystem for editor and MDOC
-3. Improving performance for large documents and many users
-4. Adding support for additional document formats
-5. Enhancing collaborative features based on real-world usage
-6. Building desktop and mobile applications using the editor
+### 1. **Simplified Codebase**
+
+- Only @docen/containers has collaboration complexity
+- Format packages focus on pure AST processing
+- Clear separation of concerns
+
+### 2. **Better Maintenance**
+
+- Collaboration bugs isolated to one package
+- Format processing bugs isolated to specific packages
+- Easier testing strategy
+
+### 3. **Unified User Experience**
+
+- Same collaboration interface for all formats
+- Consistent API: `docen(format)` vs `docen.containers(type)`
+- Seamless switching between content types
+
+### 4. **Ecosystem Compatibility**
+
+- Full unified.js ecosystem compatibility for format processing
+- Standard Yjs collaboration patterns
+- No vendor lock-in or proprietary protocols
+
+This implementation plan focuses on the key insight that collaboration can be simple and unified while format processing remains pure and compatible with existing ecosystems.

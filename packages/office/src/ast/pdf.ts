@@ -1,5 +1,5 @@
 // packages/office/src/ast/pdf.ts
-import type { Measurement, OoxmlData, OoxmlElement } from "./shared";
+import type { OoxmlData, OoxmlElement } from "./shared";
 
 /**
  * Stores original information extracted from the PDF source for a specific node.

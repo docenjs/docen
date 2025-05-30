@@ -4,7 +4,14 @@
  * Following best practices from the article on clean error handling:
  * https://medium.com/with-orus/the-5-commandments-of-clean-error-handling-in-typescript-93a9cbdf1af5
  */
-import type { Node } from "./types";
+import type {
+  FileErrorContext,
+  ParseErrorContext,
+  PluginErrorContext,
+  Result,
+  TransformErrorContext,
+  ValidationErrorContext,
+} from "./types";
 
 /**
  * Base error class for all Docen errors
@@ -34,14 +41,7 @@ export class ParseError extends DocenError {
     message: string,
     options: {
       error?: Error;
-      context?: {
-        content?: string;
-        position?: {
-          line: number;
-          column: number;
-          offset: number;
-        };
-      };
+      context?: ParseErrorContext;
     } = {},
   ) {
     super(message, options);
@@ -49,18 +49,14 @@ export class ParseError extends DocenError {
 }
 
 /**
- * Error thrown when there's an issue with transforming the AST
+ * Error thrown when there's an issue with transforming content
  */
 export class TransformError extends DocenError {
   constructor(
     message: string,
     options: {
       error?: Error;
-      context?: {
-        node?: Node;
-        path?: (string | number)[];
-        pluginName?: string;
-      };
+      context?: TransformErrorContext;
     } = {},
   ) {
     super(message, options);
@@ -68,17 +64,14 @@ export class TransformError extends DocenError {
 }
 
 /**
- * Error thrown when there's an issue with compiling the AST to output
+ * Error thrown when there's an issue with validation
  */
-export class CompileError extends DocenError {
+export class ValidationError extends DocenError {
   constructor(
     message: string,
     options: {
       error?: Error;
-      context?: {
-        node?: Node;
-        format?: string;
-      };
+      context?: ValidationErrorContext;
     } = {},
   ) {
     super(message, options);
@@ -86,69 +79,19 @@ export class CompileError extends DocenError {
 }
 
 /**
- * Error thrown when there's an issue with collaborative editing
- */
-export class CollaborationError extends DocenError {
-  constructor(
-    message: string,
-    options: {
-      error?: Error;
-      context?: {
-        nodeType?: string;
-        path?: (string | number)[];
-        localUpdate?: Uint8Array;
-        remoteUpdate?: Uint8Array;
-      };
-    } = {},
-  ) {
-    super(message, options);
-  }
-}
-
-/**
- * Error thrown when there's a synchronization conflict that can't be resolved
- */
-export class SyncConflictError extends DocenError {
-  constructor(
-    message: string,
-    options: {
-      error?: Error;
-      context?: {
-        localNode?: Node;
-        remoteNode?: Node;
-        path?: (string | number)[];
-        strategy?: string;
-      };
-    } = {},
-  ) {
-    super(message, options);
-  }
-}
-
-/**
- * Error thrown when a processor plugin is incorrectly configured or executed
+ * Error thrown when there's an issue with plugin loading or execution
  */
 export class PluginError extends DocenError {
   constructor(
     message: string,
     options: {
       error?: Error;
-      context?: {
-        pluginName?: string;
-        phase?: "parse" | "transform" | "compile";
-      };
+      context?: PluginErrorContext;
     } = {},
   ) {
     super(message, options);
   }
 }
-
-/**
- * Utility to safely handle errors using Result pattern
- */
-export type Result<T, E extends DocenError = DocenError> =
-  | { success: true; value: T }
-  | { success: false; error: E };
 
 /**
  * Ensure that any thrown value is properly converted to a DocenError
@@ -173,7 +116,9 @@ export function ensureDocenError(value: unknown): DocenError {
 /**
  * Helper function to wrap code in try/catch and return a Result
  */
-export async function tryCatch<T>(fn: () => Promise<T>): Promise<Result<T>> {
+export async function tryCatch<T>(
+  fn: () => Promise<T>,
+): Promise<Result<T, DocenError>> {
   try {
     const value = await fn();
     return { success: true, value };
@@ -188,7 +133,7 @@ export async function tryCatch<T>(fn: () => Promise<T>): Promise<Result<T>> {
 /**
  * Synchronous version of tryCatch
  */
-export function tryCatchSync<T>(fn: () => T): Result<T> {
+export function tryCatchSync<T>(fn: () => T): Result<T, DocenError> {
   try {
     const value = fn();
     return { success: true, value };
@@ -205,11 +150,7 @@ export function tryCatchSync<T>(fn: () => T): Result<T> {
  */
 export function addFileContext(
   error: DocenError,
-  fileContext: {
-    path?: string;
-    contents?: string;
-    position?: { line: number; column: number; offset: number };
-  },
+  fileContext: FileErrorContext,
 ): DocenError {
   // Create a combined context with file information
   const combinedContext = error.context
@@ -223,9 +164,9 @@ export function addFileContext(
 }
 
 /**
- * Convert unified-style errors to DocenErrors
+ * Convert an unknown error to a DocenError
  */
-export function fromUnifiedError(
+export function fromUnknownError(
   error: Error & { name?: string; position?: unknown },
 ): DocenError {
   if (error.name === "ParseError") {
@@ -241,8 +182,16 @@ export function fromUnifiedError(
     });
   }
 
-  if (error.name === "CompileError") {
-    return new CompileError(error.message, { error });
+  if (error.name === "TransformError") {
+    return new TransformError(error.message, { error });
+  }
+
+  if (error.name === "ValidationError") {
+    return new ValidationError(error.message, { error });
+  }
+
+  if (error.name === "PluginError") {
+    return new PluginError(error.message, { error });
   }
 
   return new DocenError(error.message, { error });

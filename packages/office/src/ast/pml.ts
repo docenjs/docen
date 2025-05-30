@@ -1,13 +1,3 @@
-// ast/pml.ts
-// Defines AST nodes specific to PresentationML (PML)
-
-import type {
-  OoxmlData,
-  OoxmlNode,
-  OoxmlParent,
-  // Import shared formatting types if needed
-} from "./shared";
-
 // --- PML Specific Element Types --- //
 
 /*

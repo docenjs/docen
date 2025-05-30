@@ -1,27 +1,31 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createProcessor } from "@docen/core";
-import { docenMarkdown } from "@docen/document"; // Use the wrapper plugin
+import { createMarkdownToHtmlProcessor } from "@docen/document";
 
 // Get current directory using import.meta.url for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const samplesDir = join(__dirname, "../samples"); // Assume __dirname is defined elsewhere or adjust
+const samplesDir = join(__dirname, "../samples");
 const inputFile = join(samplesDir, "sample.md");
 const outputDir = join(__dirname, "..", "..", "drafts");
-const outputFile = join(outputDir, "markdown_to_html.draft.html"); // Output in examples dir
+const outputFile = join(outputDir, "markdown_to_html.draft.html");
+
+// Ensure output directory exists
+mkdirSync(outputDir, { recursive: true });
 
 async function convertMarkdownToHtml() {
-  console.log("Running: Markdown -> HTML Example (Using docenMarkdown)");
+  console.log(
+    "Running: Markdown -> HTML Example (Using createMarkdownToHtmlProcessor)",
+  );
 
   try {
     const markdownContent = readFileSync(inputFile, "utf-8");
     console.log(`Read input from: ${inputFile}`);
 
-    // Use the docenMarkdown plugin with the 'to' option
-    const processor = createProcessor().use(docenMarkdown, { to: "html" });
+    // Use the new Markdown to HTML processor with GFM support
+    const processor = createMarkdownToHtmlProcessor({ gfm: true });
 
     const result = await processor.process(markdownContent);
 

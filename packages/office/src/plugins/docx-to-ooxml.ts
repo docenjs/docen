@@ -6,7 +6,6 @@ import type { VFile } from "vfile";
 import { fromXml } from "xast-util-from-xml";
 import type {
   ColorDefinition,
-  DmlDrawingProperties,
   FontProperties,
   IndentationProperties,
   Measurement,
@@ -15,7 +14,6 @@ import type {
   MeasurementUnit,
   NumberingProperties,
   OnOffValue,
-  OoxmlAttributes,
   OoxmlData,
   OoxmlElement,
   OoxmlElementContent,
@@ -25,7 +23,6 @@ import type {
   OoxmlText,
   ParagraphBorderProperties,
   ParagraphFormatting,
-  PositionalProperties,
   RelationshipMap,
   ShadingProperties,
   SharedAbstractNumDefinition,
@@ -41,14 +38,8 @@ import type {
   WmlBookmarkStartProperties,
   WmlBreakProperties,
   WmlCommentRefProperties,
-  WmlDrawingProperties,
-  WmlEndnoteReferenceProperties,
-  WmlFootnoteReferenceProperties,
   WmlHyperlinkProperties,
-  WmlPictureProperties,
   WmlTableCellProperties,
-  WmlTableGridColProperties,
-  WmlTableGridProperties,
   WmlTableProperties,
   WmlTableRowProperties,
 } from "../ast";
@@ -154,7 +145,9 @@ function parseTableLayout(
 ): WmlTableProperties["layout"] {
   return undefined;
 }
-function parseCellMargins(marElement: OoxmlElement | undefined): any {
+function parseCellMargins(
+  marElement: OoxmlElement | undefined,
+): WmlTableCellProperties["margins"] {
   return undefined;
 }
 function parseHeight(
@@ -197,14 +190,18 @@ function mergeProps<T extends object>(...objects: (T | undefined | null)[]): T {
   return result as T;
 }
 
-// Helper to resolve style inheritance (Keep as is)
+// Define a type for resolved style properties
+interface ResolvedStyleProperties {
+  [key: string]: unknown;
+}
+
+// Resolve a style chain by walking up basedOn relationships
 function resolveStyleChain(
   styleId: string | undefined,
   styles: Record<string, SharedStyleDefinition> | undefined,
   type: "paragraph" | "character",
   depth = 0,
-): any {
-  // Return type 'any' might need refinement later
+): ResolvedStyleProperties {
   if (!styleId || !styles?.[styleId] || depth > 10) {
     return {};
   }
@@ -786,7 +783,9 @@ async function parseNumberingXml(
                   if (startVal !== undefined) {
                     // This assumes SharedNumberingLevelDefinition can hold startOverride
                     // Need to verify/adjust SharedNumInstanceDefinition structure if necessary
-                    (levelDefOverride as any).startOverride = Number(startVal);
+                    (
+                      levelDefOverride as Record<string, unknown>
+                    ).startOverride = Number(startVal);
                   }
                   instance.levelOverrides[levelIndex] = levelDefOverride;
                 }
@@ -958,7 +957,9 @@ function groupListItems(
       const currentListData: OoxmlData | undefined =
         currentListElement?.data as OoxmlData | undefined;
       const currentListNumId: string | undefined = currentListData
-        ? (currentListData.properties as any)?.numId
+        ? ((currentListData.properties as Record<string, unknown>)?.numId as
+            | string
+            | undefined)
         : undefined;
 
       if (currentListNumId === numberingProps.id) {
@@ -1042,7 +1043,8 @@ function transformXastToOoxmlAst(
         nodeData.ooxmlType = "textRun";
         nodeData.properties = directProps;
         // Pass paragraph context to run data for text nodes to use
-        (nodeData as any).parentParagraphProps = currentParagraphProps;
+        (nodeData as Record<string, unknown>).parentParagraphProps =
+          currentParagraphProps;
       } else if (tagName === "w:drawing") {
         nodeData.ooxmlType = "drawing";
         let embedId: string | undefined;
@@ -1206,9 +1208,8 @@ function transformXastToOoxmlAst(
           parentParagraphProps?: ParagraphFormatting;
         }; // Keep this for type hint
         const runProps = runData.properties as FontProperties | undefined;
-        const parentParaPropsContext = (runData as any).parentParagraphProps as
-          | ParagraphFormatting
-          | undefined; // Assert as any to read
+        const parentParaPropsContext = (runData as Record<string, unknown>)
+          .parentParagraphProps as ParagraphFormatting | undefined; // Use Record<string, unknown> instead of any
         const runStyleId = runProps?.styleId;
         const paraStyleId =
           parentParaPropsContext?.styleId ||

@@ -2,112 +2,123 @@
 
 ## Project Overview
 
-Docen is a universal document conversion and processing library that supports parsing, transformation, and serialization of multiple file formats with built-in collaborative editing. It integrates the unified.js ecosystem for content transformation with Yjs for real-time collaboration, designed to run in any JavaScript runtime environment, including browsers, Node.js, Deno, Cloudflare Workers, and Edge Functions.
+Docen is a universal document conversion and processing library that supports parsing, transformation, and serialization of multiple file formats with built-in collaborative editing. It integrates the unified.js ecosystem for content transformation with multiple collaboration strategies optimized for different data types, designed to run in any JavaScript runtime environment, including browsers, Node.js, Deno, Cloudflare Workers, and Edge Functions.
 
 ## Architecture Design
 
-### Core Philosophy: Collaboration-First
+### Core Philosophy: Container-Level Collaboration with Format-Focused Processing
 
-Docen follows a collaboration-first approach, with Yjs as the foundation for real-time document collaboration integrated with unified.js processing pipeline:
+Docen follows a layered architecture where format processing and collaboration are clearly separated:
 
 ```
-| ........................ collaborative process ........................... |
-| ... parse ... | ... transform(async) ... | ... stringify ... | ... sync ... |
+| ................... unified.js processing ................... |
+| ... parse ... | ... transform ... | ... stringify ... |
 
-          +--------+                 +----------+        +----------+
-Input ->- | Parser | -> AST -> | -> | Compiler | -> | -> |   Yjs    | -> Collaborative
-          +--------+     |          +----------+     |    | Provider |    Document
-                         |                           |    +----------+
-                   +--------------+            +--------------+
-                   | Transformers |            | Synchronizers |
-                   +--------------+            +--------------+
+          +--------+                 +----------+
+Input ->- | Parser | -> AST -> | -> | Compiler | -> Standard Format
+          +--------+     |          +----------+     (markdown, json, etc.)
+                         |
+                   +--------------+
+                   | Transformers |
+                   +--------------+
+
+| ................... container collaboration ................... |
+| ... wrap ... | ... collaborate ... | ... sync ... |
+
+Standard Format -> Container -> Yjs Integration -> Collaborative Container
+(.md, .json)       (.mdcx)     (Y.Text, Y.Array)   (real-time sync)
 ```
 
-### Modular Structure
+**Architecture Layers:**
 
-The project follows a modular design that maintains strict compatibility with unified.js while adding collaborative capabilities:
+- **Layer 1**: Format Processing - Pure AST parsing and transformation (unified.js standard)
+- **Layer 2**: Container Formats - Collaboration integration at container level
+- **Layer 3**: Editor - Multi-format collaborative editing based on containers
+
+### Refined Modular Structure
+
+The project follows a three-layer architecture with clear separation of concerns:
 
 1. **Core Module (@docen/core)**
 
-   - Provides a processor interface that extends unified.js
-   - Implements unified-compatible plugin system
-   - Creates bidirectional bindings between AST and Yjs
+   - Provides basic processor interface that extends unified.js
+   - Defines fundamental types and interfaces
+   - Implements factory functions for processor creation
+   - **No collaboration code** - pure unified.js compatibility
    - Uses unist/unified types with minimal extensions
-   - Leverages unified.js utilities (unist-util-\*)
-   - Follows unified.js architectural patterns
 
 2. **Document Processing (@docen/document)**
 
-   - Directly uses remark and rehype processors
-   - Provides adapters for various syntax trees (mdast, hast, etc.)
-   - Enables collaborative editing for text documents
+   - **Pure format processing**: Markdown and HTML text document parsing
+   - Uses remark and rehype processors following unified.js patterns
+   - Provides adapters for syntax trees (mdast, hast)
+   - **No collaboration features** - focuses on AST transformation
    - Maintains compatibility with existing unified.js plugins
-   - Implements specialized processors for different formats
-   - Preserves document structure during collaboration
-   - _Note: The core `DocenDocument` class and related logic reside within this package._
+   - Handles linear text documents only (markdown, html, plain text)
 
 3. **Data Processing (@docen/data)**
 
-   - Integrates with xast for XML processing
-   - Provides collaborative data structure editing
+   - **Pure data format processing**: JSON, YAML, CSV, TSV, XML parsing
+   - Integrates with xast for XML processing following unified.js patterns
+   - Provides format conversion between supported data formats
+   - **No collaboration features** - focuses on data AST transformation
    - Implements unified-based transformation pipelines
-   - Supports bidirectional format conversion
-   - Preserves data schemas in collaborative context
-   - Extends unified for structured data processing
+   - Consistent AST representation for all data formats
 
 4. **Media Processing (@docen/media)**
 
-   - Extends unified processing to binary content
-   - Implements specialized media node types
-   - Provides collaborative annotation capabilities
-   - Uses chunked binary data handling
-   - Integrates with Yjs for real-time updates
-   - Maintains unified.js architectural patterns
+   - **Independent media processing toolkit** (no collaboration)
+   - Uses browser-compatible libraries (jimp-compact, sharp-wasm, ffmpeg-wasm)
+   - Implements specialized media node types for unified.js pipeline integration
+   - Provides media optimization and format conversion
+   - Handles metadata extraction and manipulation
 
 5. **Office Document Processing (@docen/office)**
 
+   - **Format detection and conversion hub**
    - Handles PDF documents using unpdf from UnJS
-   - Processes Office formats (DOCX, XLSX, PPTX)
-   - Provides document conversion between formats
-   - Implements AST representations for Office documents
-   - Enables collaborative editing of Office documents
-   - Integrates with Yjs for real-time document updates
-   - Maintains cross-platform compatibility
+   - Processes legacy Office formats (DOC, XLS, PPT) - read-only
+   - **Format Routing**: Converts and routes to appropriate format packages
+     - DOCX → @docen/document (convert to markdown/html)
+     - XLSX → @docen/data (convert to JSON/CSV)
+     - PPTX → local processing or container format (.ptcx)
+   - **No collaboration code** - pure format conversion
 
-6. **Custom Editor (@docen/editor)**
+6. **Container Formats (@docen/containers)**
 
-   - Provides a custom collaborative editor built entirely on Yjs
+   - **Collaboration integration layer** - the only package with Yjs code
+   - **Container specifications**: `.mdcx` (documents), `.dtcx` (data), `.ptcx` (presentations)
+   - ZIP-based containers with embedded collaboration metadata
+   - **Simple Yjs integration**:
+     - Text documents: Y.Text for content collaboration
+     - Data documents: Y.Array/Y.Map for structural collaboration
+     - Presentations: Y.Text (content) + Y.Map (layout) hybrid
+   - Shared base implementation for all container types
+   - Integrates with format packages for content processing
+
+7. **Custom Editor (@docen/editor)**
+
+   - **Container-aware collaborative editor**
+   - Builds on container formats (.mdcx, .dtcx, .ptcx) for collaboration
+   - **Format-specific UI**: Different interfaces for documents, data, presentations
    - Implements DOM rendering without external editor dependencies
-   - Handles input processing, cursor management, and user interactions
-   - Supports real-time collaboration with awareness and presence
-   - Offers extensible plugin architecture for customization
-   - Maintains high performance with large documents and many users
-
-7. **MDOC Format (@docen/mdoc)**
-
-   - Implements enhanced Markdown container format (.mdoc)
-   - Uses ZIP-based containers with embedded media support
-   - Leverages frontmatter for metadata instead of separate files
-   - Provides seamless integration with unified.js ecosystem
-   - Supports collaborative editing of container documents
-   - Enables bidirectional conversion with standard Markdown
+   - **Unified collaboration interface**: All collaboration via containers package
+   - Handles input processing and user interactions per format type
 
 8. **Providers (@docen/providers)**
 
-   - Implements standard Yjs providers
-   - Supports subdocument synchronization
+   - **Transport layer** for Yjs collaboration
+   - Implements transport providers (WebSocket, WebRTC, IndexedDB)
+   - **Container-agnostic**: Works with any Yjs document from containers
    - Handles connection lifecycle and recovery
-   - Implements awareness for collaborative presence
    - Provides offline capabilities
-   - Creates unified interfaces for different backends
 
 9. **Main Package (docen)**
-   - Provides unified.js-compatible factory functions
+   - **Unified entry point**: `docen(format)` for processing, `docen.containers(type)` for collaboration
    - Integrates all modules with consistent APIs
-   - Implements automatic processor configuration
+   - Implements automatic processor configuration based on format
    - Supports unified.js plugin discovery
    - Handles cross-platform compatibility
-   - Exposes both unified and collaborative interfaces
 
 ### Code Organization
 
@@ -141,29 +152,33 @@ packages/[package-name]/
 
 ### Core Design Principles
 
-The editor is built entirely from scratch using Yjs as the foundation, without dependencies on existing editor frameworks like ProseMirror or Quill.
+The editor is built to handle multiple collaboration strategies depending on the document type:
 
 ```typescript
-// Core editor architecture
+// Core editor architecture with format-aware collaboration
 interface DocenEditor {
   // Core lifecycle
   mount(container: HTMLElement): void;
   unmount(): void;
   destroy(): void;
 
-  // Document management
-  loadDocument(doc: Y.Doc): Promise<void>;
-  saveDocument(): Promise<Uint8Array>;
+  // Document management with format detection
+  loadDocument(doc: Y.Doc | Database, format?: DocumentFormat): Promise<void>;
+  saveDocument(): Promise<Uint8Array | ArrayBuffer>;
 
-  // Editing operations
+  // Format-aware editing operations
   insertText(text: string, position?: Position): void;
   deleteRange(range: Range): void;
   formatText(range: Range, formatting: TextFormatting): void;
 
-  // Collaborative features
+  // Data-specific operations (for spreadsheet-like editing)
+  setCellValue?(cell: CellReference, value: any): void;
+  executeFormula?(formula: string, context: FormulaContext): any;
+
+  // Collaborative features (format-dependent)
   setUser(user: UserInfo): void;
   getCursors(): CursorInfo[];
-  setProvider(provider: Provider): void;
+  setProvider(provider: YjsProvider | ElectricProvider): void;
 
   // Event system
   on(event: string, handler: Function): void;
@@ -171,14 +186,18 @@ interface DocenEditor {
   emit(event: string, data: any): void;
 }
 
-// Editor configuration
+// Enhanced editor configuration
 interface EditorConfig {
-  // Document type support
-  format: "markdown" | "mdoc" | "html" | "plaintext";
+  // Document type support with collaboration strategy
+  format: "markdown" | "mdoc" | "html" | "xlsx" | "csv" | "pptx" | "plaintext";
 
-  // Collaborative settings
+  // Collaboration strategy (auto-detected from format)
+  collaborationStrategy?: "yjs" | "electric" | "hybrid" | "none";
+
+  // Format-specific settings
   collaborative: boolean;
-  ydoc?: Y.Doc;
+  ydoc?: Y.Doc; // For text-based formats
+  database?: Database; // For data-based formats
   awareness?: Awareness;
 
   // UI configuration
@@ -193,132 +212,80 @@ interface EditorConfig {
   virtualScrolling?: boolean;
   lazyLoading?: boolean;
   debounceMs?: number;
+
+  // Data-specific settings
+  formulaEngine?: boolean;
+  maxRows?: number;
+  maxColumns?: number;
 }
 ```
 
-### Editor Component Architecture
+### Format-Specific Collaboration Strategies
 
 ```typescript
-// Main editor class
-class DocenEditor {
-  // Core components
-  private renderer: DOMRenderer;
-  private inputHandler: InputHandler;
-  private selectionManager: SelectionManager;
-  private commandManager: CommandManager;
-  private pluginManager: PluginManager;
-
-  // Collaborative components
-  private yjsAdapter: YjsAdapter;
-  private awarenessManager: AwarenessManager;
-  private cursorManager: CursorManager;
-
-  // UI components
-  private toolbar?: Toolbar;
-  private statusbar?: Statusbar;
-  private contextMenu?: ContextMenu;
+// Text document collaboration (Markdown, HTML, etc.)
+interface TextCollaborationStrategy {
+  type: "yjs";
+  backend: Y.Doc;
+  awareness: Awareness;
+  textBinding: Y.Text;
+  conflictResolution: "operational-transform";
 }
 
-// DOM rendering system
-interface DOMRenderer {
-  render(root: Node, container: HTMLElement): void;
-  update(changes: ChangeEvent[]): void;
-  getElementAtPosition(position: Position): HTMLElement | null;
-  getPositionFromElement(element: HTMLElement): Position | null;
+// Data collaboration (CSV, XLSX, etc.)
+interface DataCollaborationStrategy {
+  type: "electric";
+  backend: Database; // PGlite instance
+  syncProvider: ElectricProvider;
+  formulaEngine: ExcelFormulaEngine;
+  conflictResolution: "database-constraints";
 }
 
-// Input handling system
-interface InputHandler {
-  handleKeydown(event: KeyboardEvent): boolean;
-  handleInput(event: InputEvent): boolean;
-  handleComposition(event: CompositionEvent): boolean;
-  handlePaste(event: ClipboardEvent): boolean;
-  handleDrop(event: DragEvent): boolean;
+// Presentation collaboration (PPTX, etc.)
+interface PresentationCollaborationStrategy {
+  type: "hybrid";
+  contentBackend: Y.Doc; // For text blocks
+  layoutBackend: OperationalTransform; // For positioning
+  awareness: Awareness;
+  conflictResolution: "hybrid";
 }
 
-// Selection management
-interface SelectionManager {
-  getSelection(): Selection | null;
-  setSelection(selection: Selection): void;
-  updateCursor(position: Position): void;
-  selectRange(range: Range): void;
-  selectAll(): void;
+// Media processing (no real-time collaboration)
+interface MediaProcessingStrategy {
+  type: "none";
+  processor: MediaProcessor;
+  operations: MediaOperation[];
+  conflictResolution: "last-write-wins";
 }
-```
-
-### Editor Plugin System
-
-```typescript
-interface EditorPlugin {
-  name: string;
-  version: string;
-
-  // Lifecycle hooks
-  init?(editor: DocenEditor): void;
-  destroy?(): void;
-
-  // Command registration
-  commands?: Record<string, Command>;
-
-  // Key bindings
-  keymap?: Record<string, string | Command>;
-
-  // UI extensions
-  toolbar?: ToolbarExtension[];
-  contextMenu?: ContextMenuExtension[];
-
-  // Event handlers
-  onSelectionChange?(selection: Selection): void;
-  onDocumentChange?(changes: ChangeEvent[]): void;
-  onCursorMove?(cursor: CursorInfo): void;
-}
-
-// Example plugin implementations
-const BoldPlugin: EditorPlugin = {
-  name: "bold",
-  version: "1.0.0",
-  commands: {
-    toggleBold: (editor) =>
-      editor.formatText(editor.getSelection(), { bold: true }),
-  },
-  keymap: {
-    "Ctrl+B": "toggleBold",
-    "Cmd+B": "toggleBold",
-  },
-  toolbar: [
-    {
-      id: "bold",
-      title: "Bold",
-      icon: "bold-icon",
-      command: "toggleBold",
-    },
-  ],
-};
 ```
 
 ## MDOC Format Specification (@docen/mdoc)
 
-### Container Structure
+### Enhanced Container Structure
 
-The MDOC format uses a ZIP-based container with the following structure:
+The MDOC format uses a ZIP-based container optimized for collaborative editing and media integration:
 
 ```
 document.mdoc (ZIP archive)
 ├── content.md           # Main Markdown content with frontmatter
-├── media/               # Embedded media directory
-│   ├── images/          # Image files
-│   │   ├── cover.jpg
+├── media/               # Embedded media directory (processed by @docen/media)
+│   ├── images/          # Optimized image files
+│   │   ├── cover.jpg    # Auto-optimized by media processor
+│   │   ├── cover.webp   # Multiple formats for compatibility
 │   │   └── diagram.svg
-│   ├── videos/          # Video files
-│   │   └── demo.mp4
+│   ├── videos/          # Video files with thumbnails
+│   │   ├── demo.mp4
+│   │   └── demo.thumb.jpg # Auto-generated thumbnail
 │   └── attachments/     # Other attachments
-│       └── data.json
-└── styles.css           # Optional custom styles
+│       ├── data.csv     # Can link to @docen/data for collaborative editing
+│       └── presentation.pptx
+├── styles.css           # Optional custom styles
+└── .mdoc/               # MDOC metadata directory
+    ├── collaboration.json # Collaboration settings
+    └── media-manifest.json # Media file metadata and optimization info
 ```
 
-### Frontmatter Schema
-
-MDOC uses YAML frontmatter embedded in content.md for metadata:
+### Enhanced Frontmatter Schema
 
 ```yaml
 ---
@@ -343,6 +310,10 @@ mdoc:
   version: "1.0"
   generator: "docen@1.0.0"
   compression: "deflate"
+  collaboration:
+    strategy: "yjs" # Text content collaboration
+    mediaStrategy: "processing" # Media processing only
+    attachmentStrategy: "auto" # Auto-detect based on format
 
 # Custom fields
 custom:
@@ -353,853 +324,121 @@ custom:
 # Document Content
 
 Your Markdown content here...
+
+<!-- Data attachments can be collaborative -->
+[Edit Spreadsheet](attachments/data.csv){.collaborative}
+
+<!-- Media is processed but not collaborative -->
+![Optimized Image](media/images/cover.jpg)
 ```
 
-### Media Reference System
+## Data Layer Architecture (@docen/data)
+
+### PGlite + Electric SQL Integration
+
+The data package now uses a completely different approach optimized for data collaboration:
 
 ```typescript
-interface MediaReference {
-  // Standard markdown image/link syntax
-  path: string; // Relative path within container
-  alt?: string; // Alt text for images
-  title?: string; // Title attribute
+// Data collaboration using PGlite and Electric SQL
+interface DataCollaborationAdapter {
+  // Database backend
+  database: PGlite; // WASM PostgreSQL
+  electric: ElectricClient; // Sync provider
 
-  // MDOC enhancements
-  optimize?: boolean; // Auto-optimize media files
-  thumbnail?: string; // Thumbnail path for videos
-  metadata?: MediaMetadata;
+  // Excel compatibility layer
+  formulaEngine: ExcelFormulaEngine;
+  functionLibrary: ExcelFunctionLibrary;
+
+  // Unified.js integration
+  processor: UnifiedProcessor;
+
+  // Data operations
+  query(sql: string): Promise<QueryResult>;
+  executeFormula(formula: string, context: CellContext): any;
+  syncChanges(): Promise<void>;
+
+  // Collaboration
+  onDataChange(callback: (changes: DataChange[]) => void): () => void;
+  resolveConflict(conflict: DataConflict): DataResolution;
 }
 
-interface MediaMetadata {
-  size: number; // File size in bytes
-  checksum: string; // File integrity hash
-  mimeType: string; // MIME type
-  dimensions?: {
-    // For images/videos
-    width: number;
-    height: number;
-  };
-  duration?: number; // For audio/video (seconds)
-}
-```
+// Excel formula compatibility
+interface ExcelFormulaEngine {
+  // Translate Excel formulas to SQL
+  translateFormula(excelFormula: string): string;
 
-### MDOC Processing Pipeline
+  // Execute Excel-style functions
+  executeFunction(name: string, args: any[]): any;
 
-```typescript
-// MDOC parser
-interface MdocParser {
-  parse(zipData: Uint8Array): Promise<MdocDocument>;
-  parseFromPath(filePath: string): Promise<MdocDocument>;
-
-  // Streaming for large files
-  parseStream(stream: ReadableStream): Promise<MdocDocument>;
+  // Supported function categories
+  math: MathFunctions;
+  text: TextFunctions;
+  date: DateFunctions;
+  lookup: LookupFunctions;
+  logical: LogicalFunctions;
 }
 
-// MDOC stringifier
-interface MdocStringifier {
-  stringify(doc: MdocDocument): Promise<Uint8Array>;
-  stringifyToPath(doc: MdocDocument, filePath: string): Promise<void>;
-
-  // Streaming for large outputs
-  stringifyStream(doc: MdocDocument): ReadableStream;
-}
-
-// MDOC document representation
-interface MdocDocument {
-  metadata: MdocMetadata;
-  content: string; // Markdown content
-  media: Map<string, MediaFile>;
-  styles?: string; // CSS styles
-
-  // Processing context
-  ast?: Node; // Unified AST representation
-  ydoc?: Y.Doc; // Yjs document for collaboration
-}
-
-interface MdocMetadata {
-  // Core fields
-  title?: string;
-  author?: string | string[];
-  created?: Date;
-  modified?: Date;
-  version?: string;
-
-  // Content fields
-  description?: string;
-  keywords?: string[];
-  tags?: string[];
-  language?: string;
-
-  // MDOC specific
-  mdoc: {
-    version: string;
-    generator?: string;
-    compression?: "store" | "deflate";
-  };
-
-  // Extensible custom fields
-  custom?: Record<string, unknown>;
+// Example: SUM(A1:A10) -> SELECT SUM(column_a) FROM sheet WHERE row_num BETWEEN 1 AND 10
+interface FormulaTranslation {
+  excel: string;
+  sql: string;
+  context: CellRange;
 }
 ```
 
-## Core Types and Interfaces
-
-### Integration with unified.js Flow
-
-Docen integrates collaborative features into the unified.js flow through a combination of processor extensions and plugins. Following the unified.js pattern, collaboration capabilities are primarily exposed through plugins and VFile extensions.
+### Data Processing Pipeline
 
 ```typescript
-import { unified } from "unified";
-import { docenCollaboration } from "@docen/core/plugins";
-
-// Create a unified processor with collaborative capabilities
-const processor = unified()
-  .use(remarkParse)
-  .use(docenCollaboration, {
-    // Collaboration options
+// Data processing with database backend
+const dataProcessor = unified()
+  .use(csvParse)
+  .use(dataCollaboration, {
+    backend: "pglite",
+    electric: electricConfig,
+    formulaSupport: true,
   })
-  .use(remarkRehype)
-  .use(rehypeStringify);
+  .use(excelCompatibility)
+  .use(csvStringify);
 
-// The processor now has collaboration capabilities
-// with minimal changes to the unified.js API
+// Process data with collaboration
+const result = await dataProcessor.process(csvFile);
 ```
 
-### VFile Extensions
+## Media Processing Strategy (@docen/media)
 
-Following unified.js patterns, Docen extends VFile to carry collaboration data through the pipeline:
+### Independent Processing Toolkit
+
+The media package is repositioned as a pure processing toolkit without real-time collaboration:
 
 ```typescript
-import { VFile } from "vfile";
-import * as Y from "yjs";
+// Media processing
+interface MediaProcessor {
+  // Core processing capabilities
+  processImage(input: ImageInput): Promise<ProcessedImage>;
+  processVideo(input: VideoInput): Promise<ProcessedVideo>;
+  processAudio(input: AudioInput): Promise<ProcessedAudio>;
 
-// Extend VFile with collaboration capabilities
-declare module "vfile" {
-  interface VFile {
-    // Attached Yjs document
-    ydoc?: Y.Doc;
+  // Optimization
+  optimize(media: MediaFile, options: OptimizationOptions): Promise<MediaFile>;
+  generateThumbnail(media: MediaFile): Promise<ThumbnailFile>;
 
-    // Collaborative document adapter
-    collaborativeDocument?: CollaborativeDocument;
+  // Format conversion
+  convert(media: MediaFile, targetFormat: string): Promise<MediaFile>;
 
-    // Awareness for user presence
-    awareness?: Awareness;
-  }
+  // Metadata
+  extractMetadata(media: MediaFile): Promise<MediaMetadata>;
+
+  // Integration with unified.js (for pipeline compatibility)
+  createUnifiedPlugin(): UnifiedPlugin;
 }
+
+// Usage in MDOC documents
+const mdocProcessor = unified()
+  .use(remarkParse)
+  .use(mdocMediaProcessor, {
+    autoOptimize: true,
+    generateThumbnails: true,
+    outputFormats: ["webp", "avif", "jpg"],
+  })
+  .use(mdocStringify);
 ```
-
-### Processor Interface
-
-````typescript
-import { Processor as UnifiedProcessor, Plugin } from "unified";
-import { VFile } from "vfile";
-import * as Y from "yjs";
-
-// Processor extension for collaborative features
-export interface DocenProcessor extends UnifiedProcessor {
-  // Collaborative processing aligned with unified API patterns
-  use(plugin: Plugin): this;
-  process(
-    fileOrDoc: VFile | CollaborativeDocument,
-    done?: ProcessCallback,
-  ): Promise<VFile & { collaborativeDocument?: CollaborativeDocument }>;
-
-  // Yjs integration - leveraging unified's data() for storing state
-  useCollaboration(options?: CollaborationOptions): this;
-  observeChanges(callback: (changes: Change[]) => void): () => void;
-}
-
-// Collaboration options interface
-export interface CollaborationOptions {
-  ydoc?: Y.Doc;
-  syncStrategy?: "timestamp" | "intent-based" | "custom";
-  undoManager?: boolean;
-  fragmentOptions?: {
-    enabled: boolean;
-    threshold?: number;
-    maxFragments?: number;
-  };
-  // Custom sync strategy implementation
-  customSyncHandler?: SyncHandler;
-}
-
-// Conflict definition for sync strategies
-export interface SyncConflict {
-  localNode: Node;
-  remoteNode: Node;
-  localTimestamp: number;
-  remoteTimestamp: number;
-  path: (string | number)[];
-}
-
-// Factory function that creates a docen processor
-export function docen(): DocenProcessor;
-
-// Factory function for creating a processor with a specific adapter
-export function createProcessor(options?: {
-  adapter?: "remark" | "rehype" | "retext" | "recma";
-  collaborative?: boolean;
-  syncStrategy?: "timestamp" | "intent-based" | "custom";
-  customSyncHandler?: SyncHandler;
-}): DocenProcessor {
-  // Implementation creates a unified processor with collaboration
-  // capabilities, following unified.js patterns
-  const processor = unified();
-
-  // Attach collaborative functionality via processor.data()
-  // to maintain unified.js patterns
-  if (options?.collaborative) {
-    processor.data('ydoc', options.ydoc || new Y.Doc());
-    processor.data('collaborationEnabled', true);
-    processor.data('syncStrategy', options.syncStrategy || 'timestamp');
-
-    if (options.customSyncHandler) {
-      processor.data('customSyncHandler', options.customSyncHandler);
-    }
-  }
-
-  return processor as DocenProcessor;
-}
-
-// Collaboration plugin follows unified.js plugin pattern
-export function docenCollaboration(options?: CollaborationOptions): Plugin {
-  return (tree: Node, file: VFile) => {
-    // Access processor from transformer context
-    const processor = this;
-    const ydoc = processor.data('ydoc') || options?.ydoc || new Y.Doc();
-
-    // Create and attach collaborative adapter to the file
-    file.collaborativeDocument = createYjsAdapter(ydoc, {
-      syncStrategy: processor.data('syncStrategy') || options?.syncStrategy,
-      customSyncHandler: processor.data('customSyncHandler') || options?.customSyncHandler,
-      // Other options
-    });
-
-    // Return the tree (following unified.js transformer pattern)
-    return tree;
-  };
-}
-
-### CollaborativeDocument Interface
-
-This interface defines the structure for managing a document with collaborative features, typically implemented alongside the YjsAdapter.
-
-```typescript
-import * as Y from 'yjs';
-import { Node } from 'unist';
-import { Awareness } from 'y-protocols/awareness'; // Assuming Awareness type is defined elsewhere or imported
-
-/**
- * Represents a document instance with collaborative capabilities.
- */
-export interface CollaborativeDocument {
-  /** Unique identifier for the document */
-  id: string;
-
-  /** The underlying Yjs document */
-  ydoc: Y.Doc;
-
-  /** The Yjs awareness protocol instance */
-  awareness: Awareness;
-
-  /** The root node of the document's AST */
-  tree: Node; // This might be more specific, e.g., DocenRoot
-
-  /** Binds an AST node to its Yjs representation */
-  bindNode(node: Node): void;
-
-  /** Unbinds an AST node from its Yjs representation */
-  unbindNode(node: Node): void;
-
-  /** Executes a function within a Yjs transaction */
-  transact<T>(fn: () => T, origin?: string): T;
-
-  /** Observe changes to the document */
-  onChange(callback: (changes: any, origin: string) => void): void;
-
-  /** Stop observing changes */
-  offChange(callback: (changes: any, origin: string) => void): void;
-
-  /** Observe changes to a specific node */
-  observeNode(node: Node, callback: (event: any) => void): () => void;
-
-  /** Destroy the collaborative document and clean up resources */
-  destroy(): void;
-}
-````
-
-### AST Structure
-
-The AST structure follows unist specifications with minimal collaboration extensions:
-
-```typescript
-import { Node as UnistNode, Parent as UnistParent } from "unist";
-
-// Base node interface extends unist Node
-export interface Node extends UnistNode {
-  // Optional collaboration metadata
-  collaborationMetadata?: {
-    createdBy?: string;
-    createdAt?: number;
-    modifiedBy?: string;
-    modifiedAt?: number;
-    version?: number;
-    // Timestamp for synchronization conflict resolution
-    lastModifiedTimestamp?: number;
-  };
-}
-
-// Parent node with children
-export interface Parent extends Node, UnistParent {
-  children: Node[];
-}
-
-// Root document node
-export interface DocenRoot extends Parent {
-  type: "root";
-  children: Node[];
-  metadata?: Record<string, unknown>;
-}
-```
-
-## Yjs Integration
-
-Docen provides tight integration with Yjs for real-time collaboration capabilities, offering powerful synchronization abilities while maintaining high performance and a clean API surface. The Yjs integration implements both the `YjsAdapter` and `CollaborativeDocument` interfaces.
-
-```typescript
-import * as Y from "yjs";
-import { Node } from "unist";
-import { VFile } from "vfile";
-import { Awareness } from "y-protocols/awareness";
-
-/**
- * Strategy to bind a specific Node type to Yjs data structures.
- * Each strategy defines how to convert a specific node type to and from Yjs,
- * and how to observe changes to the corresponding Yjs data structure.
- */
-export interface NodeBindingStrategy<N extends Node = Node> {
-  /**
-   * Converts a Node to a Yjs data structure
-   * @param node The node to convert to a Yjs data structure
-   * @returns A Yjs data structure representing the node
-   */
-  toYjs(node: N): Y.AbstractType<any>;
-
-  /**
-   * Converts a Yjs data structure back to a Node
-   * @param yType The Yjs data structure to convert
-   * @returns The corresponding Node
-   */
-  fromYjs(yType: Y.AbstractType<any>): N;
-
-  /**
-   * Observe changes to the Yjs representation of a Node
-   * @param node The corresponding AST node (may be needed for context)
-   * @param yType The Yjs data structure to observe
-   * @param callback The callback function for changes
-   * @returns A function to unobserve
-   */
-  observe(
-    node: N,
-    yType: Y.AbstractType<any>,
-    callback: (event: Y.YEvent<any>) => void,
-  ): () => void;
-}
-
-/**
- * Interface for managing a collaborative document with Yjs
- */
-export interface YjsAdapter {
-  /** The underlying Yjs document */
-  doc: Y.Doc;
-
-  /** Root map for document data */
-  rootMap: Y.Map<any>;
-
-  /** Undo manager (null if disabled) */
-  undoManager: Y.UndoManager | null;
-
-  /** Available binding strategies */
-  bindingStrategies: Record<string, NodeBindingStrategy>;
-
-  /** Bind a node to Yjs for real-time collaboration */
-  bindNode(node: Node): Node & CollaborativeNode;
-
-  /** Unbind a node from Yjs */
-  unbindNode(node: Node & CollaborativeNode): Node;
-
-  /** Resolve a conflict between concurrent edits */
-  resolveConflict(conflict: SyncConflict): ResolvedNode;
-
-  /** Execute a function within a Yjs transaction */
-  transact<T>(fn: () => T, origin?: string): T;
-
-  /** Observe changes in the Yjs document */
-  observeChanges(
-    callback: (
-      events: Array<Y.YEvent<any>>,
-      transaction: Y.Transaction,
-    ) => void,
-  ): () => void;
-}
-
-/**
- * Type representing the outcome of conflict resolution
- */
-export interface ResolvedNode {
-  /** The resolved node */
-  node: Node;
-  /** The origin of the resolved node */
-  origin: "local" | "remote" | "merged";
-}
-
-/**
- * Function type for handling synchronization conflicts
- */
-export type SyncHandler = (conflict: SyncConflict) => ResolvedNode;
-
-/**
- * Options for configuring collaboration features
- */
-export interface YjsAdapterOptions {
-  /**
-   * Whether to enable undo functionality (default: true)
-   */
-  enableUndo?: boolean;
-
-  /**
-   * Origins to track for undo operations (default: ['update'])
-   */
-  undoTrackOrigins?: Array<string>;
-
-  /**
-   * Strategy for resolving conflicts (default: timestamp-based)
-   */
-  conflictResolutionStrategy?: ConflictResolutionStrategy;
-
-  /**
-   * Custom binding strategies to use (will be merged with defaults)
-   */
-  bindingStrategies?: Record<string, NodeBindingStrategy>;
-}
-
-/**
- * Creates a Yjs adapter with the given options
- * Note: In a full unified integration, this adapter would typically be created
- * and attached to the VFile via a plugin.
- */
-export function createYjsAdapter(
-  doc: Y.Doc = new Y.Doc(),
-  options: YjsAdapterOptions = {},
-): YjsAdapter {
-  const rootMap = doc.getMap<any>("content");
-  const undoManager =
-    options.enableUndo !== false
-      ? new Y.UndoManager(rootMap, {
-          trackedOrigins: new Set(options.undoTrackOrigins || ["local-update"]),
-        })
-      : null;
-
-  // Define the default binding strategies
-  const defaultBindingStrategies: Record<string, NodeBindingStrategy> = {
-    // Text binding strategy
-    text: {
-      toYjs(node) {
-        const ytext = new Y.Text();
-        // Assuming TextNode has a 'value' property based on unist
-        if (node.type === "text" && typeof node.value === "string") {
-          ytext.insert(0, node.value);
-        }
-        return ytext;
-      },
-      fromYjs(data) {
-        if (!(data instanceof Y.Text)) {
-          throw new Error("Expected Y.Text for text node conversion");
-        }
-        return { type: "text", value: data.toString() } as Node; // Cast necessary?
-      },
-      observe(node, yType, callback) {
-        if (!(yType instanceof Y.Text)) {
-          throw new Error("Expected Y.Text for observation");
-        }
-        yType.observe(callback);
-        return () => yType.unobserve(callback);
-      },
-    },
-
-    // Map binding strategy (Generic fallback for object-like nodes)
-    map: {
-      toYjs(node) {
-        const ymap = new Y.Map();
-        for (const [key, value] of Object.entries(node)) {
-          if (key !== "type" && key !== "children") {
-            // Simple property setting, could be enhanced for nested structures
-            ymap.set(key, value);
-          }
-        }
-        ymap.set("type", node.type); // Store the original node type
-        return ymap;
-      },
-      fromYjs(data) {
-        if (!(data instanceof Y.Map)) {
-          throw new Error("Expected Y.Map for map node conversion");
-        }
-        const node: Record<string, any> = { type: data.get("type") || "map" };
-        data.forEach((value, key) => {
-          if (key !== "type") node[key] = value;
-        });
-        return node as Node;
-      },
-      observe(node, yType, callback) {
-        if (!(yType instanceof Y.Map)) {
-          throw new Error("Expected Y.Map for observation");
-        }
-        yType.observe(callback);
-        return () => yType.unobserve(callback);
-      },
-    },
-
-    // Array binding strategy (Generic for parent nodes with children)
-    array: {
-      toYjs(node) {
-        const yarray = new Y.Array();
-        // Using type guard for children access
-        if (isParent(node)) {
-          node.children.forEach((child) => {
-            // Recursively convert children using the appropriate strategy
-            const childStrategy =
-              bindingStrategies[child.type] || defaultBindingStrategy;
-            const yChild = childStrategy.toYjs(child);
-            yarray.push([yChild]);
-          });
-        }
-        return yarray;
-      },
-      fromYjs(data) {
-        if (!(data instanceof Y.Array)) {
-          throw new Error("Expected Y.Array for array node conversion");
-        }
-        const children: Node[] = [];
-        for (let i = 0; i < data.length; i++) {
-          const yChild = data.get(i);
-          if (yChild instanceof Y.AbstractType) {
-            // Determine type for recursive conversion
-            const type =
-              yChild instanceof Y.Map
-                ? yChild.get("type")
-                : yChild instanceof Y.Text
-                  ? "text"
-                  : "unknown";
-            const childStrategy =
-              bindingStrategies[type as string] || defaultBindingStrategy;
-            children.push(childStrategy.fromYjs(yChild));
-          }
-        }
-        // Assumes the parent node type should be inferred or handled elsewhere
-        return { type: "array-parent", children } as Node;
-      },
-      observe(node, yType, callback) {
-        if (!(yType instanceof Y.Array)) {
-          throw new Error("Expected Y.Array for observation");
-        }
-        // Use observeDeep for arrays to capture changes within children
-        yType.observeDeep((events) => {
-          events.forEach((event) => callback(event));
-        });
-        return () => yType.unobserveDeep(callback); // Needs adjustment for unobserveDeep
-      },
-    },
-  };
-
-  // Default strategy uses map or specific type if available
-  const defaultBindingStrategy: NodeBindingStrategy = {
-    toYjs(node) {
-      const strategy =
-        defaultBindingStrategies[node.type] || defaultBindingStrategies.map;
-      return strategy.toYjs(node);
-    },
-    fromYjs(data) {
-      let type = "unknown";
-      if (data instanceof Y.Map) type = data.get("type") || "map";
-      else if (data instanceof Y.Text) type = "text";
-      else if (data instanceof Y.Array) type = "array-parent"; // Assuming array represents children
-
-      const strategy =
-        defaultBindingStrategies[type] || defaultBindingStrategies.map;
-      return strategy.fromYjs(data);
-    },
-    observe(node, yType, callback) {
-      let type = "unknown";
-      if (yType instanceof Y.Map) type = yType.get("type") || "map";
-      else if (yType instanceof Y.Text) type = "text";
-      else if (yType instanceof Y.Array) type = "array-parent";
-
-      const strategy =
-        defaultBindingStrategies[type] || defaultBindingStrategies.map;
-      // Correctly call observe with only (node, yType, callback)
-      return strategy.observe(node, yType, callback);
-    },
-  };
-
-  // Merge custom binding strategies with defaults
-  const bindingStrategies = {
-    ...defaultBindingStrategies,
-    ...(options.bindingStrategies || {}),
-  };
-
-  // Default conflict resolution based on timestamps
-  const defaultConflictStrategy: ConflictResolutionStrategy = {
-    resolve(local, remote, origin) {
-      // Simple timestamp-based resolution (higher timestamp wins)
-      const localTime = local.timestamp || 0;
-      const remoteTime = remote.timestamp || 0;
-      return remoteTime > localTime ? remote : local;
-    },
-  };
-
-  // Use provided conflict strategy or default
-  const conflictStrategy =
-    options.conflictResolutionStrategy || defaultConflictStrategy;
-
-  // The adapter implements the YjsAdapter interface.
-  // Note: Awareness is typically managed by the CollaborativeDocument or processor context,
-  // not directly part of the adapter interface itself in this design.
-  const adapter: YjsAdapter = {
-    doc,
-    rootMap,
-    undoManager,
-    bindingStrategies,
-    // awareness is not directly on the adapter interface, see CollaborativeDocument
-    resolveConflict: conflictStrategy.resolve,
-
-    bindNode(node) {
-      const strategy = bindingStrategies[node.type] || defaultBindingStrategy;
-      const yNode = strategy.toYjs(node);
-      // Simplified binding logic example
-      rootMap.set(node.id || "root", yNode);
-      // In a real implementation, would return Node & CollaborativeNode
-      return node as Node & CollaborativeNode;
-    },
-
-    unbindNode(node) {
-      rootMap.delete(node.id || "root");
-      return node;
-    },
-
-    transact(fn, origin) {
-      let result: any;
-      doc.transact(() => {
-        result = fn();
-      }, origin);
-      return result;
-    },
-
-    onChange(callback) {
-      // Simplified onChange logic
-      rootMap.observeDeep((events) => {
-        callback(events, events[0]?.transaction.origin || "unknown");
-      });
-    },
-
-    offChange(callback) {
-      // This needs a way to map the wrapped callback to the original
-      // rootMap.unobserveDeep(callback);
-    },
-
-    observe(node, callback) {
-      // Simplified observe logic
-      const yNode = rootMap.get(node.id || "root");
-      if (yNode) {
-        const strategy = bindingStrategies[node.type] || defaultBindingStrategy;
-        return strategy.observe(node, yNode, callback);
-      }
-      return () => {}; // Return no-op unobserve if node not found
-    },
-
-    // ... (CollaborativeDocument methods implementation) ...
-  };
-
-  return adapter as YjsAdapter;
-}
-```
-
-## Cursor and Selection Tracking
-
-Docen utilizes Yjs relative positions for cursor and selection tracking in collaborative editing. This enables real-time visualization of cursor positions and selections across multiple users.
-
-```typescript
-import * as Y from "yjs";
-import { Awareness } from "y-protocols/awareness";
-
-// Interface for cursor position
-export interface CursorPosition {
-  // Relative position in the Yjs document (allows for stable position tracking during edits)
-  relativePosition: Y.RelativePosition;
-
-  // Selection range (null if no selection, just cursor position)
-  range?: {
-    start: Y.RelativePosition;
-    end: Y.RelativePosition;
-  } | null;
-}
-
-// Interface for user awareness state
-export interface AwarenessState {
-  // User information
-  user: {
-    id: string;
-    name: string;
-    color?: string;
-    avatar?: string;
-  };
-
-  // Current cursor position (null if not available)
-  cursor: CursorPosition | null;
-}
-
-// Interface for collaborative awareness management
-// Matches the definition in packages/core/src/types.ts
-export interface Awareness {
-  /** The underlying Yjs awareness instance */
-  readonly awareness: YAwareness;
-
-  /** Get the local client ID */
-  readonly clientID: number;
-
-  /** Get the current local state */
-  getLocalState(): AwarenessState | null;
-
-  /** Set the entire local state */
-  setLocalState(state: Partial<AwarenessState> | null): void;
-
-  /** Set a specific field in the local state */
-  setLocalStateField<K extends keyof AwarenessState>(
-    field: K,
-    value: AwarenessState[K],
-  ): void;
-
-  /** Get all states from awareness */
-  getStates(): Map<number, AwarenessState>;
-
-  /** Register an event listener */
-  on(event: "change" | "update", callback: (...args: any[]) => void): void;
-
-  /** Unregister an event listener */
-  off(event: "change" | "update", callback: (...args: any[]) => void): void;
-
-  /** Clean up resources */
-  destroy(): void;
-}
-
-// Helper functions for relative positions
-
-/**
- * Creates a relative position from an absolute position in the document
- */
-export function createRelativePosition(
-  doc: Y.Doc,
-  path: string[],
-  offset: number,
-): Y.RelativePosition {
-  // Find the target Yjs text at the given path
-  let target: Y.AbstractType<any> = doc.getMap("content");
-  for (const key of path) {
-    target = target.get(key);
-  }
-
-  // Create a relative position
-  if (target instanceof Y.Text) {
-    return Y.createRelativePositionFromTypeIndex(target, offset);
-  } else {
-    throw new Error("Target is not a Y.Text");
-  }
-}
-
-/**
- * Resolves a relative position to an absolute position
- */
-export function resolveRelativePosition(
-  doc: Y.Doc,
-  relativePosition: Y.RelativePosition,
-): { path: string[]; offset: number } | null {
-  const absPos = Y.createAbsolutePositionFromRelativePosition(
-    relativePosition,
-    doc,
-  );
-  if (!absPos) return null;
-
-  // Extract path and offset from absolute position
-  const path: string[] = [];
-  let current: Y.AbstractType<any> | null = absPos.type;
-  while (current && current !== doc.getMap("content")) {
-    // In a real implementation, we'd need to traverse up the Yjs structure
-    // This is a simplified example
-    const parentAndKey = findParentAndKey(current, doc);
-    if (parentAndKey) {
-      path.unshift(parentAndKey.key);
-      current = parentAndKey.parent;
-    } else {
-      break;
-    }
-  }
-
-  return { path, offset: absPos.index };
-}
-
-/**
- * Helper to find parent and key for a Yjs type
- * Note: This is a simplified example, actual implementation would be more complex
- */
-function findParentAndKey(
-  type: Y.AbstractType<any>,
-  doc: Y.Doc,
-): { parent: Y.AbstractType<any>; key: string } | null {
-  // Implementation would scan the doc for the parent of this type
-  return null;
-}
-
-/**
- * Creates a test awareness state for development/testing
- */
-export function createTestAwarenessState(userId: string): AwarenessState {
-  return {
-    user: {
-      id: userId,
-      name: `User ${userId}`,
-      color: `#${Math.floor(Math.random() * 16777215)
-        .toString(16)
-        .padStart(6, "0")}`,
-    },
-    cursor: null,
-  };
-}
-```
-
-## Performance Optimizations
-
-To ensure optimal performance, Docen implements several optimizations:
-
-1. **Batched Updates**: Using Yjs transactions to batch multiple changes
-2. **Delayed Binding**: Only binding nodes to Yjs when necessary
-3. **Update Throttling**: Limiting the frequency of awareness updates
-4. **Incremental Updates**: Updating only changed parts of the document
-
-```typescript
-// Example of batched updates with transactions
-adapter.transact(() => {
-  // Multiple operations in a single transaction
-  node1.value = "new value";
-  node2.children.push(newChild);
-  // ...more operations
-}, "batch-update");
-
-// Example of throttled cursor updates
-const throttledCursorUpdate = throttle((position) => {
-  adapter.setLocalCursor(position);
-}, 50); // Update at most every 50ms
-
-// Use throttled update instead of direct call
-throttledCursorUpdate(newPosition);
-```
-
-These performance optimizations maintain the design principles while ensuring Docen performs well even with large documents and many concurrent users.

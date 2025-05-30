@@ -1,7 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createProcessor } from "@docen/core";
-import { docenMarkdown } from "@docen/document";
+import { createMarkdownProcessor } from "@docen/document";
 import { mdastToOoxml, ooxmlToDocx } from "@docen/office";
 import { Document, Packer } from "docx";
 import { VFile } from "vfile";
@@ -39,9 +38,8 @@ async function convertMarkdownToDocx() {
   const vfile = new VFile({ value: markdownContent, path: "input.md" });
 
   try {
-    // Define the unified pipeline
-    const processor = createProcessor()
-      .use(docenMarkdown) // Parser
+    // Define the unified pipeline using the new processor
+    const processor = createMarkdownProcessor({ gfm: true })
       .use(mdastToOoxml) // MDAST -> OOXML AST transformer
       .use(ooxmlToDocx); // OOXML AST -> docx.Document transformer (attaches to result)
 

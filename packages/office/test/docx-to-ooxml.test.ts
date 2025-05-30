@@ -5,7 +5,6 @@ import { VFile } from "vfile";
 import { describe, expect, it } from "vitest";
 import type {
   FontProperties,
-  NumberingProperties,
   OoxmlData,
   OoxmlElement,
   OoxmlElementContent,
@@ -13,7 +12,6 @@ import type {
   OoxmlRoot,
   OoxmlText,
   ParagraphFormatting,
-  RelationshipMap,
   SharedCommentDefinition,
   SharedResources,
 } from "../src/ast";

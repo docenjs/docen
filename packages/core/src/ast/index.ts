@@ -2,14 +2,7 @@
  * AST module for Docen
  * Provides utilities for working with Abstract Syntax Tree
  */
-import type {
-  CollaborationMetadata,
-  CollaborativeNode,
-  DocenRoot,
-  Node,
-  Parent,
-  TextNode,
-} from "../types";
+import type { DocenRoot, Node, Parent, TextNode } from "../types";
 
 /**
  * Check if a node is a parent node
@@ -29,7 +22,7 @@ export function isTextNode(node: Node): node is TextNode {
   return Boolean(
     node &&
       typeof node === "object" &&
-      node.type &&
+      node.type === "text" &&
       typeof (node as TextNode).value === "string",
   );
 }
@@ -38,7 +31,12 @@ export function isTextNode(node: Node): node is TextNode {
  * Check if a node is a root node
  */
 export function isRoot(node: Node): node is DocenRoot {
-  return Boolean(node && typeof node === "object" && node.type === "root");
+  return Boolean(
+    node &&
+      typeof node === "object" &&
+      node.type === "root" &&
+      Array.isArray((node as DocenRoot).children),
+  );
 }
 
 /**
@@ -80,40 +78,13 @@ export function createParent<T extends Parent>(
 }
 
 /**
- * Create a root node
+ * Create a new root node
  */
 export function createRoot(children: Node[] = []): DocenRoot {
   return {
     type: "root",
     children,
   };
-}
-
-/**
- * Create a node with collaboration metadata
- * Explicitly returns CollaborativeNode
- */
-export function createCollaborativeNode(
-  type: string,
-  props: Partial<
-    Omit<CollaborativeNode, "type" | "collaborationMetadata" | "binding">
-  > = {},
-  metadata: Partial<CollaborationMetadata> = {},
-): CollaborativeNode {
-  const node: CollaborativeNode = {
-    type,
-    ...props,
-    collaborationMetadata: {
-      createdBy: metadata.createdBy,
-      createdAt: metadata.createdAt ?? Date.now(),
-      modifiedBy: metadata.modifiedBy,
-      modifiedAt: metadata.modifiedAt,
-      lastModifiedTimestamp: metadata.lastModifiedTimestamp ?? Date.now(),
-      version: metadata.version,
-      origin: metadata.origin,
-    },
-  };
-  return node;
 }
 
 // --- Re-exported unist utilities ---

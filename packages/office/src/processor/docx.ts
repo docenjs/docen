@@ -1,7 +1,6 @@
 import { createProcessor } from "@docen/core";
-import type { DocenProcessorOptions, YjsAdapterOptions } from "@docen/core";
-import { type Plugin, type Processor, unified } from "unified";
-import type { VFile } from "vfile";
+import type { DocenProcessorOptions } from "@docen/core";
+import type { Plugin, Processor } from "unified";
 import type { OoxmlRoot } from "../ast";
 import { docxToOoxmlAst } from "../plugins/docx-to-ooxml";
 
@@ -15,15 +14,15 @@ export interface DocxProcessorOptions extends DocenProcessorOptions {
 export type DocxProcessor = Processor<OoxmlRoot>;
 
 /**
- * Factory function to create a Docen processor specifically for DOCX files,
- * potentially with collaboration enabled via @docen/core.
+ * Factory function to create a Docen processor specifically for DOCX files.
+ * Pure format processing.
  */
 export function createDocxProcessor(
   options: DocxProcessorOptions = {},
 ): DocxProcessor {
   // Use the core processor factory
   const processor = createProcessor({
-    ...options, // Pass core options like collaborative, ydoc, etc.
+    ...options,
   }) as unknown as DocxProcessor; // Cast needed due to specific AST type
 
   // Use the async plugin responsible for parsing and AST transformation

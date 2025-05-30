@@ -1,14 +1,3 @@
-// ast/vml.ts
-// Defines AST nodes specific to Vector Markup Language (VML)
-// Note: VML is a legacy format, often used for shapes/drawings in older Office versions or for specific features like comments.
-
-import type {
-  OoxmlData,
-  OoxmlNode,
-  OoxmlParent,
-  // Import shared formatting types if needed
-} from "./shared";
-
 // --- VML Specific Element Types --- //
 
 /*

@@ -13,7 +13,6 @@ import {
   type ITableBordersOptions,
   type ITableCellOptions,
   type ITableOptions,
-  type ITableWidthProperties,
   ImageRun,
   LevelSuffix,
   Paragraph,
@@ -187,7 +186,7 @@ function mapBorderStyle(
   }
 
   // Build a writable object first
-  const tempBorder: { [key: string]: any } = {
+  const tempBorder: Record<string, unknown> = {
     // Use a generic writable object
     style: BorderStyle[style],
     color: color,
@@ -203,7 +202,7 @@ function mapBorderStyle(
       }
       return acc;
     },
-    {} as { [key: string]: any },
+    {} as Record<string, unknown>,
   ); // Use writable type for accumulator
 
   // Return cast to IBorderOptions only if valid
@@ -219,7 +218,7 @@ function mapTableBorders(
   if (!astBorders) return undefined;
 
   // Build a writable object first
-  const tempBorders: { [key: string]: any } = {
+  const tempBorders: Record<string, unknown> = {
     // Use a generic writable object
     top: mapBorderStyle(astBorders.top),
     left: mapBorderStyle(astBorders.left),
@@ -237,7 +236,7 @@ function mapTableBorders(
       }
       return acc;
     },
-    {} as { [key: string]: any },
+    {} as Record<string, unknown>,
   ); // Use writable type for accumulator
 
   // Return cast to ITableBordersOptions only if valid
@@ -570,8 +569,9 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                           key as keyof typeof convertedRunProps
                         ];
                       if (value !== undefined && value !== null) {
-                        // Assign only if value is valid
-                        (runOptions as any)[optionKey] = value;
+                        // Assign only if value is valid - use type assertion instead of any
+                        (runOptions as Record<string, unknown>)[optionKey] =
+                          value;
                       }
                     }
 
@@ -632,7 +632,6 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
 
                       const linkRunOptions: IRunOptions = {};
 
-                      // Object.keys(linkConvertedRunProps).forEach((key) => {
                       for (const key of Object.keys(linkConvertedRunProps)) {
                         const optionKey = key as keyof IRunOptions;
                         const value =
@@ -640,10 +639,11 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                             key as keyof typeof linkConvertedRunProps
                           ];
                         if (value !== undefined && value !== null) {
-                          (linkRunOptions as any)[optionKey] = value;
+                          (linkRunOptions as Record<string, unknown>)[
+                            optionKey
+                          ] = value;
                         }
                       }
-                      // });
 
                       if (
                         linkTextContent ||
@@ -782,7 +782,9 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                       cellContent.push(new Paragraph(""));
                     }
 
-                    const tempCellOpts: any = { children: cellContent };
+                    const tempCellOpts: Record<string, unknown> = {
+                      children: cellContent,
+                    };
                     // ... (map cellProps like gridSpan, verticalAlign to tempCellOpts)
                     const span = Number(cellProps.gridSpan);
                     if (!Number.isNaN(span) && span > 0) {

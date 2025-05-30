@@ -1,39 +1,11 @@
 import { map } from "unist-util-map";
-import { CONTINUE, EXIT, visit } from "unist-util-visit";
 import { isParent } from "../ast";
-import type { CollaborativeNode, Node } from "../types";
+import type { Node } from "../types";
 
 /**
- * Find a node in the tree by predicate
- *
- * @param tree The AST to search
- * @param predicate Function to determine if node matches
- * @returns The found node or undefined
+ * Re-export find from unist-util-find for compatibility
  */
-export function findNode<T extends Node = Node>(
-  tree: Node,
-  predicate: (node: Node) => node is T,
-): T | undefined;
-export function findNode(
-  tree: Node,
-  predicate: (node: Node) => boolean,
-): Node | undefined;
-export function findNode(
-  tree: Node,
-  predicate: (node: Node) => boolean,
-): Node | undefined {
-  let result: Node | undefined = undefined;
-
-  visit(tree, (node) => {
-    if (predicate(node)) {
-      result = node;
-      return EXIT;
-    }
-    return CONTINUE;
-  });
-
-  return result;
-}
+export { find } from "unist-util-find";
 
 /**
  * Find the path to a node in the tree
@@ -74,52 +46,6 @@ export function findNodePath(
 }
 
 /**
- * Get timestamp for a node from its metadata
- * Used in synchronization. Returns current time if no metadata.
- *
- * @param node The node to get timestamp for (can be any Node)
- * @returns The timestamp or current time
- */
-export function getNodeTimestamp(node: Node): number {
-  // Safely access optional collaborationMetadata
-  const meta = (node as CollaborativeNode).collaborationMetadata;
-  return (
-    meta?.lastModifiedTimestamp ?? // Optional chaining
-    meta?.modifiedAt ?? // Optional chaining
-    Date.now()
-  );
-}
-
-/**
- * Set timestamp for a node, potentially making it collaborative.
- * Used in synchronization.
- *
- * @param node The node to update (can be any Node, will add metadata if needed)
- * @param timestamp The timestamp to set (defaults to current time)
- * @returns The updated node (potentially now a CollaborativeNode)
- */
-export function setNodeTimestamp<T extends Node>(
-  node: T,
-  timestamp: number = Date.now(),
-): T & Partial<CollaborativeNode> {
-  // Return type indicates metadata might be added
-  // Ensure node is treated as potentially collaborative
-  const collaborativeNode = node as T & Partial<CollaborativeNode>;
-
-  // Ensure collaborationMetadata object exists before setting properties
-  if (!collaborativeNode.collaborationMetadata) {
-    collaborativeNode.collaborationMetadata = {};
-  }
-
-  // Set the timestamps
-  collaborativeNode.collaborationMetadata.lastModifiedTimestamp = timestamp;
-  collaborativeNode.collaborationMetadata.modifiedAt = timestamp;
-
-  // Return the modified node
-  return collaborativeNode;
-}
-
-/**
  * Apply a transformation to specific nodes
  *
  * @param tree The AST to transform
@@ -139,5 +65,3 @@ export function transform(
     return node;
   });
 }
-
-export * from "./collaborative";

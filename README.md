@@ -3,52 +3,54 @@
 ![GitHub](https://img.shields.io/github/license/docenjs/docen)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
 
-> Universal document conversion and processing library that works in any JavaScript runtime, powered by Demo Macro
+> Universal document conversion and processing library with container-level collaboration that works in any JavaScript runtime
 
 ## 🌟 Features
 
 - 🌐 **Runtime Agnostic**
-  - Works in Browsers
-  - Works in Node.js
-  - Works in Deno
-  - Works in Cloudflare Workers
-  - Works in Edge Functions
+  - Works in Browsers, Node.js, Deno
+  - Works in Cloudflare Workers and Edge Functions
   - Same API everywhere
 - 📄 **Multiple Format Support**
-  - PDF: Extract text and metadata
-  - DOCX: Convert to text, extract metadata
-  - XLSX: Convert to CSV/text, extract metadata
-  - CSV: Convert to JSON/text, extract metadata
-  - JSON/JSONP: Format conversion, metadata
-  - Markdown: Convert to HTML/text
-  - HTML: Convert to Markdown/text
-  - MDOC: Enhanced Markdown container format
+  - **Documents**: Markdown, HTML, Plain Text
+  - **Data**: JSON, YAML, CSV, TSV, XML
+  - **Office**: PDF, DOCX, XLSX, PPTX
+  - **Media**: Images, Audio, Video processing
+  - **Containers**: .mdcx, .dtcx, .ptcx (collaborative formats)
 - 🛠️ **Rich Functionality**
-  - Format conversion
-  - Text extraction
-  - Metadata retrieval
-  - Collaborative editing support
+  - Pure format processing via unified.js
+  - Container-level collaboration via Yjs
   - Real-time synchronization
-  - Custom editor implementation
+  - Custom collaborative editor
 - 🔧 **Highly Configurable**
-  - Format-specific options
-  - Customizable output
-  - Extensible architecture
+  - Format-specific processors
+  - Extensible plugin architecture
   - Type-safe APIs
 
-## 📦 Packages
+## 📦 Architecture & Packages
 
-Docen follows a modular design organized by content essence and user needs:
+Docen follows a **three-layer architecture** with clear separation of concerns:
 
-- **[@docen/core](./packages/core)**: Core module defining universal AST structure, processor interfaces, and registry system
-- **[@docen/document](./packages/document)**: Document processing module for text-based formats (PDF, DOCX, Markdown, HTML)
-- **[@docen/data](./packages/data)**: Data processing module for structured formats (XLSX, CSV, JSON, YAML, XML)
-- **[@docen/office](./packages/office)**: Office document processing module (DOCX, XLSX, PPTX, PDF with OOXML support)
-- **[@docen/media](./packages/media)**: Media processing module for images, audio, and video content
-- **[@docen/editor](./packages/editor)**: Custom collaborative editor built on Yjs without external editor dependencies
-- **[@docen/mdoc](./packages/mdoc)**: Enhanced Markdown container format (.mdoc) with media embedding and frontmatter metadata
-- **[@docen/providers](./packages/providers)**: Synchronization and collaboration providers for real-time editing
-- **[docen](./packages/docen)**: Main package providing a unified API and CLI for all functionality
+### Layer 1: Format Processing (Pure AST)
+
+- **[@docen/core](./packages/core)**: Core unified.js processor interface, types, and utilities
+- **[@docen/document](./packages/document)**: Text document processing (Markdown, HTML)
+- **[@docen/data](./packages/data)**: Structured data processing (JSON, YAML, CSV, XML)
+- **[@docen/media](./packages/media)**: Media processing toolkit (images, video, audio)
+- **[@docen/office](./packages/office)**: Office format detection and routing hub
+
+### Layer 2: Container Collaboration (Yjs Integration)
+
+- **[@docen/containers](./packages/containers)**: Container formats (.mdcx/.dtcx/.ptcx) with Yjs collaboration
+
+### Layer 3: Collaborative Editing
+
+- **[@docen/editor](./packages/editor)**: Container-aware collaborative editor
+- **[@docen/providers](./packages/providers)**: Transport layer for Yjs synchronization
+
+### Main Package
+
+- **[docen](./packages/docen)**: Unified API entry point with CLI
 
 ## 🚀 Installation
 
@@ -68,78 +70,69 @@ import { docen } from "https://esm.sh/docen"
 
 ## 📝 Usage
 
-### Basic Document Processing
+### Format Processing
 
 ```typescript
 import { docen } from "docen";
 
-// Convert markdown to HTML
-const result = await docen()
-  .use(remarkParse)
-  .use(remarkRehype)
-  .use(rehypeStringify)
-  .process("# Hello World");
-
-console.log(String(result)); // <h1>Hello World</h1>
+// Process documents - pure unified.js
+const processor = docen("markdown");
+const result = await processor.process("# Hello World");
+console.log(String(result)); // Processed markdown
 ```
 
-### Collaborative Editing
+### Container Collaboration
 
 ```typescript
+import { docen } from "docen";
+
+// Create collaborative containers
+const documentContainer = docen.containers("document"); // .mdcx
+const dataContainer = docen.containers("data"); // .dtcx
+const slideContainer = docen.containers("presentation"); // .ptcx
+
+// Use with collaborative editor
 import { DocenEditor } from "@docen/editor";
-import { WebsocketProvider } from "@docen/providers";
-
-// Create collaborative editor
-const editor = new DocenEditor({
-  container: document.getElementById("editor"),
-  provider: new WebsocketProvider("ws://localhost:1234", "doc-room"),
-});
-
-editor.mount();
+const editor = new DocenEditor({ container: documentContainer });
 ```
 
-### MDOC Format
+### Container Formats
 
 ```typescript
-import { mdocParser, mdocStringifier } from "@docen/mdoc";
+import {
+  createContainer,
+  documentInsertText,
+  documentGetText,
+} from "@docen/containers";
 
-// Parse .mdoc file
-const doc = await mdocParser.parse(mdocFileContent);
-
-// Create .mdoc file
-const mdocFile = await mdocStringifier.stringify(document);
+// Create and manipulate document containers
+const container = createContainer("document");
+documentInsertText(container, 0, "Hello World");
+const content = documentGetText(container);
 ```
 
-## 🧩 Architecture
+## 🧩 Architecture Philosophy
 
-Docen uses a universal Abstract Syntax Tree (AST) to represent document content, allowing seamless conversion between different formats. The architecture consists of:
+### Container-Level Collaboration
 
-1. **Core AST**: A unified representation of document structure
-2. **Processors**: Format-specific parsers and generators
-3. **Registry**: System for managing available processors
-4. **Pipeline**: Conversion workflow from input to output
-5. **Collaborative**: Real-time synchronization using Yjs
-6. **Editor**: Custom editor implementation for collaborative editing
-7. **MDOC**: Enhanced Markdown format with container capabilities
+Docen uses a **container-level collaboration architecture** where:
 
-### Editor Development Philosophy
+- **Format packages** handle pure AST processing (unified.js standard)
+- **Containers package** handles all collaboration via simple Yjs patterns
+- **Editor** provides format-specific UIs based on container type
 
-The `@docen/editor` package implements a completely custom editor built directly on Yjs without dependencies on existing editor frameworks. This approach provides:
+### Benefits
 
-- **Pure Yjs Integration**: Direct use of Y.Text, Y.Map, and Y.Array for document structure
-- **Custom DOM Rendering**: Lightweight DOM manipulation optimized for collaborative editing
-- **Minimal Dependencies**: Only essential packages (Yjs, DOM types, utilities)
-- **Full Control**: Complete control over editing behavior and performance
-- **Extensible Architecture**: Plugin system for customization without external constraints
+- **Simplified Codebase**: Only one package has collaboration complexity
+- **Unified Experience**: Same collaboration interface for all formats
+- **Ecosystem Compatibility**: Full unified.js ecosystem compatibility
+- **Better Maintenance**: Clear separation of format vs collaboration concerns
 
-The editor handles all aspects of text editing from scratch:
+### Container Types
 
-- Input processing (keyboard, mouse, touch)
-- Selection and cursor management
-- DOM rendering and updates
-- Collaborative awareness and presence
-- Undo/redo functionality
-- Plugin and command systems
+- **.mdcx**: Document containers using Y.Text for text collaboration
+- **.dtcx**: Data containers using Y.Array/Y.Map for structural collaboration
+- **.ptcx**: Presentation containers using hybrid Y.Text + Y.Map
 
 ## 📄 License
 

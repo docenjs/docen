@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  CollaborationError,
   DocenError,
-  SyncConflictError,
+  ParseError,
+  PluginError,
+  TransformError,
+  ValidationError,
   ensureDocenError,
   tryCatch,
   tryCatchSync,
@@ -20,34 +22,62 @@ describe("Error Handling", () => {
     expect(error instanceof Error).toBe(true);
   });
 
-  it("should create a CollaborationError with message and nested error", () => {
+  it("should create a ParseError with message and nested error", () => {
     const nestedError = new Error("Nested error");
-    const error = new CollaborationError("Collaboration failed", {
+    const error = new ParseError("Parse failed", {
       error: nestedError,
-      context: { nodeType: "paragraph" },
+      context: { position: { line: 1, column: 5, offset: 5 } },
     });
 
-    expect(error.message).toBe("Collaboration failed");
+    expect(error.message).toBe("Parse failed");
     expect(error.cause).toBe(nestedError);
-    expect(error.context).toEqual({ nodeType: "paragraph" });
-    expect(error.name).toBe("CollaborationError");
+    expect(error.context).toEqual({
+      position: { line: 1, column: 5, offset: 5 },
+    });
+    expect(error.name).toBe("ParseError");
     expect(error instanceof DocenError).toBe(true);
   });
 
-  it("should create a SyncConflictError with conflict details", () => {
-    const error = new SyncConflictError("Sync conflict detected", {
-      context: {
-        path: ["root", "child"],
-        strategy: "timestamp",
-      },
+  it("should create a TransformError with message and context", () => {
+    const error = new TransformError("Transform failed", {
+      context: { nodeType: "paragraph", operation: "transform" },
     });
 
-    expect(error.message).toBe("Sync conflict detected");
+    expect(error.message).toBe("Transform failed");
     expect(error.context).toEqual({
-      path: ["root", "child"],
-      strategy: "timestamp",
+      nodeType: "paragraph",
+      operation: "transform",
     });
-    expect(error.name).toBe("SyncConflictError");
+    expect(error.name).toBe("TransformError");
+    expect(error instanceof DocenError).toBe(true);
+  });
+
+  it("should create a ValidationError with validation context", () => {
+    const error = new ValidationError("Validation failed", {
+      context: { field: "title", expected: "string", received: "number" },
+    });
+
+    expect(error.message).toBe("Validation failed");
+    expect(error.context).toEqual({
+      field: "title",
+      expected: "string",
+      received: "number",
+    });
+    expect(error.name).toBe("ValidationError");
+    expect(error instanceof DocenError).toBe(true);
+  });
+
+  it("should create a PluginError with plugin context", () => {
+    const error = new PluginError("Plugin failed", {
+      context: { pluginName: "test-plugin", phase: "execute" },
+    });
+
+    expect(error.message).toBe("Plugin failed");
+    expect(error.context).toEqual({
+      pluginName: "test-plugin",
+      phase: "execute",
+    });
+    expect(error.name).toBe("PluginError");
     expect(error instanceof DocenError).toBe(true);
   });
 

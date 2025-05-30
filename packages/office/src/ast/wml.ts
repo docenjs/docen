@@ -2,33 +2,12 @@
 // Defines OOXML types and property interfaces specific to WordprocessingML (WML)
 
 import type {
-  BorderStyleProperties,
-  ColorDefinition,
-  // Shared formatting properties
-  FontProperties,
-  HeaderFooterReference,
-  IndentationProperties,
   Measurement,
   MeasurementOrAuto,
   MeasurementOrPercent,
-  NumberingProperties,
   OnOffValue,
-  // Basic types
-  OoxmlData,
-  OoxmlElement,
-  OoxmlElementContent,
-  OoxmlRoot,
-  OoxmlText,
-  ParagraphBorderProperties,
-  ParagraphFormatting,
   PositionalProperties,
-  SectionProperties,
   ShadingProperties,
-  SharedEndnoteDefinition, // Import definition type
-  // Shared structural definitions
-  SharedFootnoteDefinition, // Import definition type
-  SpacingProperties,
-  TabStop,
   TableBorderProperties,
 } from "./shared";
 
@@ -254,7 +233,7 @@ export interface WmlDrawingProperties {
   drawingContentRef?: {
     type: "dml" | "vml";
     relationId?: string;
-    embeddedAst?: any /* Define DML/VML AST types later */;
+    embeddedAst?: DrawingMLAst | VMLAst; // Define DML/VML AST types
   };
   positioning?: PositionalProperties; // Extracted from wp:anchor properties
 }
@@ -264,9 +243,20 @@ export interface WmlPictureProperties {
   // Similar to drawing, needs reference to the VML content
   vmlContentRef?: {
     relationId?: string;
-    embeddedVml?: any /* Define VML AST type later */;
+    embeddedVml?: VMLAst; // Define VML AST type
   };
   positioning?: PositionalProperties; // Extracted from shape properties within VML?
+}
+
+// Define placeholder AST types for DrawingML and VML
+export interface DrawingMLAst {
+  type: "drawingml";
+  elements: unknown[]; // Placeholder for DML elements
+}
+
+export interface VMLAst {
+  type: "vml";
+  elements: unknown[]; // Placeholder for VML elements
 }
 
 // --- Image Reference Properties (Custom AST Node) ---

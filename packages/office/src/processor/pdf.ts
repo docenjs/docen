@@ -1,7 +1,6 @@
 import { createProcessor } from "@docen/core";
 import type { DocenProcessorOptions } from "@docen/core";
-import { type Plugin, type Processor, unified } from "unified";
-import type { VFile } from "vfile";
+import type { Plugin, Processor } from "unified";
 import type { OoxmlRoot } from "../ast";
 import { pdfToOoxmlAst } from "../plugins/pdf-to-ooxml";
 

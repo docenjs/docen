@@ -5,13 +5,12 @@ import { is } from "unist-util-is";
 // Import directly from original libraries
 import { CONTINUE, EXIT, visit } from "unist-util-visit";
 import { VFile } from "vfile";
-import { describe, expect, it, test } from "vitest";
+import { describe, expect, it } from "vitest";
 // Correct imports for AST nodes and types
 import type {
   FontProperties,
   OoxmlData,
   OoxmlElement,
-  OoxmlElementContent, // Needed for children arrays
   OoxmlNode,
   OoxmlRoot,
   OoxmlText,
@@ -167,8 +166,13 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
       (node: OoxmlNode): node is WmlHyperlink => {
         // Use OoxmlNode
         // Type guard to check if data is OoxmlData and has the correct ooxmlType
-        const isOoxmlData = (data: any): data is OoxmlData =>
-          data && typeof data === "object" && "ooxmlType" in data;
+        const isOoxmlData = (data: unknown): data is OoxmlData =>
+          Boolean(
+            data &&
+              typeof data === "object" &&
+              data !== null &&
+              "ooxmlType" in data,
+          );
 
         return (
           node.type === "element" &&
@@ -180,10 +184,11 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     ) as WmlHyperlink | undefined;
 
     expect(hyperlinkNode).toBeDefined();
-    // Check url from properties object
-    expect((hyperlinkNode?.data?.properties as any)?.url).toBe(
-      "https://example.com",
-    );
+    // Check url from properties object - use type assertion with safety check
+    const hyperlinkProperties = hyperlinkNode?.data?.properties as
+      | { url?: string }
+      | undefined;
+    expect(hyperlinkProperties?.url).toBe("https://example.com");
     // Access hyperlink text run child
     const linkTextRun = hyperlinkNode?.children?.[0] as WmlTextRun | undefined;
     expect(linkTextRun?.type).toBe("element");
