@@ -1,238 +1,254 @@
 # @docen/document
 
-Pure text document processing for Markdown and HTML with unified.js compatibility.
-
-## Overview
-
-The `@docen/document` package provides **pure format processing** for text documents using bottom-level unified.js utilities. It focuses on AST transformation and format conversion without any collaboration features.
-
-**Architecture**: Uses bottom-level utilities (`mdast-util-*`, `hast-util-*`) for maximum compatibility and performance, avoiding higher-level remark/rehype abstractions.
+Pure document processing for text-based formats like Markdown and HTML using unified.js.
 
 ## Features
 
-### 📝 Text Document Formats
+- **Flexible Processing**: Convert between markdown, HTML, and AST formats
+- **GFM Support**: GitHub Flavored Markdown extensions
+- **AST Output**: Export abstract syntax tree for further processing
+- **Type-Safe**: Full TypeScript support
+- **Extensible**: Built on unified.js ecosystem
 
-- **Markdown**: Standard Markdown with optional GFM support
-- **HTML**: HTML documents with DOM structure
-- **Plain Text**: Simple text without formatting
+## Installation
 
-### 🔄 Processing Modes
-
-- `markdown`: Parse, transform, serialize markdown
-- `html`: Parse, transform, serialize HTML
-- `markdown-to-html`: Convert markdown to HTML
-- `html-to-markdown`: Convert HTML to markdown
-
-### 🛠️ Built on Unified.js
-
-- **Bottom-Level Processing**: Direct use of `mdast-util-*` and `hast-util-*`
-- **GFM Support**: Optional GitHub Flavored Markdown via micromark extensions
-- **Plugin Compatible**: Works with unified.js ecosystem plugins
-- **Type Safe**: Full TypeScript support with AST types
-
-## Architecture
-
-```
-packages/document/src/
-├── ast/              # AST type definitions
-│   ├── mdast.ts      # Markdown AST extensions
-│   ├── hast.ts       # HTML AST extensions
-│   └── index.ts      # Unified AST exports
-├── processors/       # Format processors
-│   ├── markdown.ts   # Markdown processor
-│   ├── html.ts       # HTML processor
-│   └── index.ts      # Processor exports
-├── schema/           # Validation schemas
-│   └── index.ts      # Document schema definitions
-└── index.ts          # Main exports
+```bash
+npm install @docen/document
 ```
 
-## Usage
+## Quick Start
 
-### Basic Document Processing
-
-```typescript
-import { createMarkdownProcessor, createHtmlProcessor } from "@docen/document";
-
-// Process Markdown
-const markdownProcessor = createMarkdownProcessor();
-const mdResult = await markdownProcessor.process("# Hello World");
-
-// Process HTML
-const htmlProcessor = createHtmlProcessor();
-const htmlResult = await htmlProcessor.process("<h1>Hello World</h1>");
-```
-
-### Format Conversion
+### Basic Usage
 
 ```typescript
 import {
-  createMarkdownToHtmlProcessor,
-  createHtmlToMarkdownProcessor,
+  createMarkdownProcessor,
+  createHtmlProcessor,
+  createDocumentProcessor,
 } from "@docen/document";
 
-// Markdown to HTML
-const mdToHtml = createMarkdownToHtmlProcessor();
-const htmlOutput = await mdToHtml.process("# Title\n\nParagraph");
+// Parse markdown to HTML
+const mdToHtml = createMarkdownProcessor("html", { gfm: true });
+const html = await mdToHtml.process("# Hello World");
 
-// HTML to Markdown
-const htmlToMd = createHtmlToMarkdownProcessor();
-const mdOutput = await htmlToMd.process("<h1>Title</h1><p>Paragraph</p>");
+// Parse HTML to markdown
+const htmlToMd = createHtmlProcessor("markdown", { gfm: true });
+const markdown = await htmlToMd.process("<h1>Hello World</h1>");
+
+// Export AST for analysis
+const mdToAst = createMarkdownProcessor("ast");
+const ast = await mdToAst.process("# Hello World");
+console.log(JSON.parse(ast)); // Pretty-printed AST
 ```
 
-### GFM Support
+### Unified API
+
+```typescript
+// Auto-detect and use appropriate processor
+const processor = createDocumentProcessor("markdown", { gfm: true });
+const result = await processor.process("# Hello World");
+```
+
+## API Reference
+
+### `createMarkdownProcessor(output?, options?)`
+
+Create a markdown processor with configurable output format.
+
+**Parameters:**
+
+- `output`: Output format (`"markdown"` | `"html"` | `"ast"`) - default: `"markdown"`
+- `options`: Processing options
+
+```typescript
+// Parse and reformat markdown
+const mdProcessor = createMarkdownProcessor("markdown", { gfm: true });
+
+// Convert markdown to HTML
+const mdToHtml = createMarkdownProcessor("html", { gfm: true });
+
+// Export markdown as AST
+const mdToAst = createMarkdownProcessor("ast");
+```
+
+### `createHtmlProcessor(output?, options?)`
+
+Create an HTML processor with configurable output format.
+
+**Parameters:**
+
+- `output`: Output format (`"html"` | `"markdown"` | `"ast"`) - default: `"html"`
+- `options`: Processing options
+
+```typescript
+// Parse and reformat HTML
+const htmlProcessor = createHtmlProcessor("html");
+
+// Convert HTML to markdown
+const htmlToMd = createHtmlProcessor("markdown", { gfm: true });
+
+// Export HTML as AST
+const htmlToAst = createHtmlProcessor("ast");
+```
+
+### `createDocumentProcessor(format, options?)`
+
+Auto-detect format and create appropriate processor.
+
+**Parameters:**
+
+- `format`: Processing mode (`"markdown"` | `"html"`)
+- `options`: Processing options
+
+### Processing Options
+
+```typescript
+interface DocumentProcessorOptions {
+  gfm?: boolean; // GitHub Flavored Markdown support
+  frontmatter?: boolean; // YAML frontmatter support
+  math?: boolean; // Math notation support
+  footnotes?: boolean; // Footnote support
+}
+```
+
+## Examples
+
+### Convert Blog Posts
 
 ```typescript
 import { createMarkdownProcessor } from "@docen/document";
 
-// Enable GitHub Flavored Markdown
-const processor = createMarkdownProcessor({
+const processor = createMarkdownProcessor("html", {
   gfm: true,
-  extensions: ["tables", "strikethrough", "tasklist"],
+  frontmatter: true,
 });
 
-const result = await processor.process(`
-| Column 1 | Column 2 |
-|----------|----------|
-| Cell 1   | Cell 2   |
+const blogPost = `---
+title: My Blog Post
+date: 2024-01-01
+---
 
-~~strikethrough~~
+# Hello World
 
-- [x] Task 1
-- [ ] Task 2
-`);
+This is a **bold** statement with a [link](https://example.com).
+
+\`\`\`javascript
+console.log("Hello, World!");
+\`\`\`
+`;
+
+const html = await processor.process(blogPost);
+console.log(html); // Full HTML output
 ```
 
-### Integration with @docen/core
+### AST Analysis
+
+```typescript
+import { createMarkdownProcessor } from "@docen/document";
+
+const astProcessor = createMarkdownProcessor("ast");
+const ast = JSON.parse(
+  await astProcessor.process("# Title\n\nParagraph text."),
+);
+
+// Walk the AST
+function walkAST(node, depth = 0) {
+  console.log("  ".repeat(depth) + node.type);
+  if (node.children) {
+    node.children.forEach((child) => walkAST(child, depth + 1));
+  }
+}
+
+walkAST(ast);
+// Output:
+// root
+//   heading
+//     text
+//   paragraph
+//     text
+```
+
+### Format Conversion Pipeline
+
+```typescript
+import { createHtmlProcessor, createMarkdownProcessor } from "@docen/document";
+
+// HTML → AST → Markdown pipeline
+const htmlParser = createHtmlProcessor("ast");
+const markdownGenerator = createMarkdownProcessor("markdown");
+
+const htmlContent = "<h1>Title</h1><p>Content</p>";
+const ast = JSON.parse(await htmlParser.process(htmlContent));
+const markdown = await markdownGenerator.process(JSON.stringify(ast));
+console.log(markdown); // # Title\n\nContent
+```
+
+## Advanced Usage
+
+### Custom Processing Pipeline
 
 ```typescript
 import { createProcessor } from "@docen/core";
-import { markdownPlugin } from "@docen/document";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { toHtml } from "hast-util-to-html";
+import { toHast } from "mdast-util-to-hast";
 
-// Use with core processor
-const processor = createProcessor({
-  adapter: "remark",
-}).use(markdownPlugin);
+// Custom processor with specific transformations
+const customProcessor = createProcessor();
 
-const result = await processor.process("# Document");
+customProcessor.parser = (doc: string) => fromMarkdown(doc);
+customProcessor.compiler = (tree: any) => {
+  const hast = toHast(tree);
+  return toHtml(hast, {
+    allowDangerousHtml: false,
+    closeSelfClosing: true,
+  });
+};
+
+const result = await customProcessor.process("# Custom Processing");
 ```
-
-## Supported Features
-
-### Markdown Features
-
-- **CommonMark**: Full CommonMark specification
-- **GFM Extensions**: Tables, strikethrough, task lists, autolinks
-- **Frontmatter**: YAML frontmatter parsing
-- **Math**: Optional math expression support
-- **Code**: Syntax highlighting preparation
-
-### HTML Features
-
-- **DOM Structure**: Full HTML DOM tree processing
-- **Semantic Elements**: Article, section, nav, aside support
-- **Embedded Content**: Images, videos, audio handling
-- **Microformats**: Structured data preservation
-
-### Conversion Features
-
-- **Bidirectional**: Lossless round-trip conversion where possible
-- **Configurable**: Control over conversion behavior
-- **Extensible**: Plugin system for custom transformations
-
-## Type System
-
-### AST Types
-
-```typescript
-// Markdown AST (extends mdast)
-interface MarkdownNode extends MdastNode {
-  // Extended markdown node types
-}
-
-// HTML AST (extends hast)
-interface HtmlNode extends HastNode {
-  // Extended HTML node types
-}
-
-// Unified document root
-interface DocumentRoot extends Parent {
-  type: "root";
-  children: MarkdownNode[] | HtmlNode[];
-}
-```
-
-### Processor Options
-
-```typescript
-interface MarkdownProcessorOptions {
-  gfm?: boolean;
-  extensions?: string[];
-  frontmatter?: boolean;
-  math?: boolean;
-}
-
-interface HtmlProcessorOptions {
-  fragment?: boolean;
-  parseErrors?: boolean;
-  whitespace?: "normal" | "pre";
-}
-```
-
-## Dependencies
-
-### Production Dependencies
-
-- `@docen/core`: Core Docen functionality (workspace:\*)
-- `hast-util-from-html`: Parse HTML to HAST (v2.0.3)
-- `hast-util-to-html`: Serialize HAST to HTML (v9.0.5)
-- `hast-util-to-mdast`: Convert HAST to MDAST (v10.1.2)
-- `mdast-util-from-markdown`: Parse Markdown to MDAST (v2.0.2)
-- `mdast-util-to-hast`: Convert MDAST to HAST (v13.2.0)
-- `mdast-util-to-markdown`: Serialize MDAST to Markdown (v2.1.2)
-- `micromark-extension-gfm`: GitHub Flavored Markdown support (v3.0.0)
-- `mdast-util-gfm`: MDAST utilities for GFM (v3.0.0)
-- `unist-util-visit`: AST traversal utility (v5.0.0)
-- `unist-util-find`: AST search utilities (v3.0.0)
-
-This package follows the user rule to rely on low-level utilities (`mdast-util-*`, `hast-util-*`, `micromark-extension-*`) instead of higher-level remark/rehype processors.
-
-## Design Principles
-
-### 1. Pure Format Processing
-
-- No collaboration features
-- Focus on AST transformation only
-- Standard unified.js patterns
-
-### 2. Bottom-Level Utilities
-
-- Direct use of `mdast-util-*` and `hast-util-*`
-- Maximum performance and compatibility
-- Avoid higher-level abstractions
-
-### 3. Format Compatibility
-
-- Lossless conversion where possible
-- Preserve semantic structure
-- Maintain formatting intent
-
-### 4. Extensibility
-
-- Plugin-based architecture
-- Configurable processors
-- Custom transformation support
 
 ## Integration
 
-This package integrates with other Docen packages:
+### With Next.js
 
-- **@docen/core**: Uses core processor interface and types
-- **@docen/office**: Receives DOCX/RTF content for processing
-- **@docen/containers**: Content processing for .mdcx containers
+```typescript
+// pages/api/convert.ts
+import { createMarkdownProcessor } from "@docen/document";
 
-**Note**: Collaboration features are handled separately in `@docen/containers` - this package remains collaboration-free.
+const processor = createMarkdownProcessor("html", { gfm: true });
+
+export default async function handler(req, res) {
+  const { markdown } = req.body;
+  const html = await processor.process(markdown);
+  res.json({ html });
+}
+```
+
+### With Express
+
+```typescript
+import express from "express";
+import { createDocumentProcessor } from "@docen/document";
+
+const app = express();
+const processor = createDocumentProcessor("markdown", { gfm: true });
+
+app.post("/convert", async (req, res) => {
+  const result = await processor.process(req.body.markdown);
+  res.json({ result });
+});
+```
+
+## Related Packages
+
+- `@docen/core` - Core processing engine
+- `@docen/collaborative` - Real-time collaborative editing
+- `@docen/office` - Office document support
 
 ## License
 
-MIT &copy; [Demo Macro](https://imst.xyz/)
+MIT
+
+// Legacy API (still supported)
+const legacyProcessor = createDocumentProcessor("markdown");

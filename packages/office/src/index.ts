@@ -1,10 +1,16 @@
 /**
- * @docen/office - Pure office document processing
- * Handles office formats (DOCX, XLSX, PPTX)
+ * @docen/office - Office document processing
+ * Handles DOCX, XLSX, PPTX, PDF formats
  */
 
+// Export processors
+export * from "./processors";
+
+// Export AST utilities
 export * from "./ast";
-export * from "./processor";
+
+// Export plugins
 export * from "./plugins";
-export * from "./utils";
+
+// Export types
 export * from "./types";

@@ -54,7 +54,7 @@ This document outlines the dependencies required for each package in the Docen p
 - `mdast-util-to-hast`: Convert MDAST to HAST (v13.2.0)
 - `mdast-util-to-markdown`: Serialize MDAST to Markdown (v2.1.2)
 - `micromark-extension-gfm`: GitHub Flavored Markdown support (v3.0.0)
-- `mdast-util-gfm`: MDAST utilities for GFM (v3.0.0)
+- `mdast-util-gfm`: MDAST utilities for GFM (v3.1.0)
 - `unist-util-visit`: AST traversal utility (v5.0.0)
 - `unist-util-find`: AST search utilities (v3.0.0)
 

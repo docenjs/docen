@@ -4,7 +4,7 @@
  */
 
 // Export main processor
-export * from "./processor";
+export * from "./processors";
 
 // Export all types
 export * from "./types";

@@ -39,7 +39,7 @@ async function convertMarkdownToDocx() {
 
   try {
     // Define the unified pipeline using the new processor
-    const processor = createMarkdownProcessor({ gfm: true })
+    const processor = createMarkdownProcessor("ast", { gfm: false })
       .use(mdastToOoxml) // MDAST -> OOXML AST transformer
       .use(ooxmlToDocx); // OOXML AST -> docx.Document transformer (attaches to result)
 

@@ -1,66 +1,62 @@
 /**
- * Document-specific utilities for unified.js
- * Pure format processing utilities without collaboration
+ * Document plugins for unified.js ecosystem
+ * Provides extensibility for future unified.js plugins
  */
 
-import type { Node, Parent } from "@docen/core";
+import { createPlugin } from "@docen/core";
 import type { Plugin } from "unified";
-import { visit } from "unist-util-visit";
 
-// Define specific node types for better type safety
-interface ParagraphNode extends Parent {
-  type: "paragraph";
-  children: Node[];
+/**
+ * Example plugin that demonstrates how to extend document processing
+ * This is a placeholder for future unified.js ecosystem plugins
+ */
+export function exampleDocumentPlugin(): Plugin {
+  return createPlugin(
+    () => (tree) => {
+      // Future unified.js ecosystem plugins would go here
+      // This is just a placeholder
+      return tree;
+    },
+    {
+      name: "example-document-plugin",
+      description: "Example plugin for document processing",
+      version: "1.0.0",
+      formats: ["markdown", "html"],
+    },
+  );
 }
 
 /**
- * Plugin to handle frontmatter in documents
+ * Plugin registry for document-specific plugins
+ * Provides a way to discover and register plugins for document processing
  */
-export function frontmatterPlugin(): Plugin {
-  return function transformer() {
-    return (tree: Node) => {
-      // Handle YAML frontmatter - placeholder implementation
-      return tree;
-    };
-  };
+export class DocumentPluginRegistry {
+  private plugins: Plugin[] = [];
+
+  /**
+   * Register a document plugin
+   */
+  register(plugin: Plugin): void {
+    this.plugins.push(plugin);
+  }
+
+  /**
+   * Get all registered plugins
+   */
+  getAll(): Plugin[] {
+    return [...this.plugins];
+  }
+
+  /**
+   * Get plugins by format
+   */
+  getByFormat(format: string): Plugin[] {
+    return this.plugins.filter((plugin) => {
+      const docenPlugin = plugin as { meta?: { formats?: string[] } };
+      return docenPlugin.meta?.formats?.includes(format);
+    });
+  }
 }
 
-/**
- * Plugin to enhance GFM support
- */
-export function gfmPlugin(): Plugin {
-  return function transformer() {
-    return (tree: Node) => {
-      // Enhanced GitHub Flavored Markdown support - placeholder implementation
-      return tree;
-    };
-  };
-}
-
-/**
- * Plugin to clean up empty paragraphs
- */
-export function cleanupPlugin(): Plugin {
-  return function transformer() {
-    return (tree: Node) => {
-      visit(
-        tree,
-        "paragraph",
-        (
-          node: ParagraphNode,
-          index: number | undefined,
-          parent: Parent | undefined,
-        ) => {
-          // Remove empty paragraphs
-          if (node.children && node.children.length === 0) {
-            if (parent && typeof index === "number") {
-              parent.children.splice(index, 1);
-              return index;
-            }
-          }
-        },
-      );
-      return tree;
-    };
-  };
-}
+// Export a singleton instance
+export const documentPlugins = new DocumentPluginRegistry();

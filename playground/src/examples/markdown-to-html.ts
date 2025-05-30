@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createMarkdownToHtmlProcessor } from "@docen/document";
+import { createMarkdownProcessor } from "@docen/document";
 
 // Get current directory using import.meta.url for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,15 +17,15 @@ mkdirSync(outputDir, { recursive: true });
 
 async function convertMarkdownToHtml() {
   console.log(
-    "Running: Markdown -> HTML Example (Using createMarkdownToHtmlProcessor)",
+    "Running: Markdown -> HTML Example (Using createMarkdownProcessor)",
   );
 
   try {
     const markdownContent = readFileSync(inputFile, "utf-8");
     console.log(`Read input from: ${inputFile}`);
 
-    // Use the new Markdown to HTML processor with GFM support
-    const processor = createMarkdownToHtmlProcessor({ gfm: true });
+    // Use the new Markdown processor with HTML output and GFM support
+    const processor = createMarkdownProcessor("html", { gfm: true });
 
     const result = await processor.process(markdownContent);
 

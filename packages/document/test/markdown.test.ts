@@ -1,23 +1,17 @@
 import { describe, expect, it } from "vitest";
-import {
-  createMarkdownProcessor,
-  createMarkdownToHtmlProcessor,
-} from "../src/processors";
-// No longer need direct imports for remarkRehype/rehypeStringify in tests
-// import remarkRehype from "remark-rehype";
-// import rehypeStringify from "rehype-stringify";
+import { createMarkdownProcessor } from "../src/processors";
 
 describe("@docen/document Markdown Processing", () => {
   // --- Basic Markdown Parsing/Stringification Tests ---
   it("should parse and stringify basic Markdown", async () => {
-    const processor = createMarkdownProcessor();
+    const processor = createMarkdownProcessor("markdown");
     const markdown = "# Hello\n\nThis is **bold**.";
     const file = await processor.process(markdown);
     expect(file.value.toString().trim()).toBe(markdown);
   });
 
   it("should handle GFM features (e.g., tables)", async () => {
-    const processor = createMarkdownProcessor({ gfm: true });
+    const processor = createMarkdownProcessor("markdown", { gfm: true });
     const markdown =
       "| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |";
     const file = await processor.process(markdown);
@@ -29,14 +23,14 @@ describe("@docen/document Markdown Processing", () => {
   });
 
   it("should handle GFM strikethrough", async () => {
-    const processor = createMarkdownProcessor({ gfm: true });
+    const processor = createMarkdownProcessor("markdown", { gfm: true });
     const markdown = "This is ~~deleted~~ text.";
     const file = await processor.process(markdown);
     expect(file.value.toString().trim()).toBe(markdown);
   });
 
   it("should handle GFM task lists", async () => {
-    const processor = createMarkdownProcessor({ gfm: true });
+    const processor = createMarkdownProcessor("markdown", { gfm: true });
     const markdown = "- [x] Completed task\n- [ ] Incomplete task";
     const file = await processor.process(markdown);
     const stringified = file.value.toString();
@@ -48,7 +42,7 @@ describe("@docen/document Markdown Processing", () => {
   // --- Markdown to HTML Conversion Tests ---
 
   it("should convert basic Markdown to HTML", async () => {
-    const processor = createMarkdownToHtmlProcessor({ gfm: true });
+    const processor = createMarkdownProcessor("html", { gfm: true });
     const markdown = "# Hello\n\nThis is **bold** and *italic*.";
     const file = await processor.process(markdown);
     const htmlOutput = file.value.toString();
@@ -60,7 +54,7 @@ describe("@docen/document Markdown Processing", () => {
   });
 
   it("should convert GFM features (table) to HTML", async () => {
-    const processor = createMarkdownToHtmlProcessor({ gfm: true });
+    const processor = createMarkdownProcessor("html", { gfm: true });
     const markdown =
       "| Header 1 | Header 2 |\n| -------- | -------- |\n| Cell 1   | Cell 2   |";
     const file = await processor.process(markdown);
@@ -79,7 +73,7 @@ describe("@docen/document Markdown Processing", () => {
   });
 
   it("should convert GFM task list to HTML", async () => {
-    const processor = createMarkdownToHtmlProcessor({ gfm: true });
+    const processor = createMarkdownProcessor("html", { gfm: true });
     const markdown = "- [x] Done\n- [ ] ToDo";
     const file = await processor.process(markdown);
     const htmlOutput = file.value.toString();
@@ -91,5 +85,19 @@ describe("@docen/document Markdown Processing", () => {
     );
     expect(htmlOutput).toContain('<input type="checkbox" disabled> ToDo');
     expect(htmlOutput).toContain("</ul>");
+  });
+
+  // --- AST Export Tests ---
+
+  it("should export AST for analysis", async () => {
+    const processor = createMarkdownProcessor("ast");
+    const markdown = "# Hello World";
+    const file = await processor.process(markdown);
+    const ast = JSON.parse(file.value.toString());
+
+    expect(ast.type).toBe("root");
+    expect(ast.children).toHaveLength(1);
+    expect(ast.children[0].type).toBe("heading");
+    expect(ast.children[0].depth).toBe(1);
   });
 });

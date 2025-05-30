@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
-import {
-  createHtmlProcessor,
-  createHtmlToMarkdownProcessor,
-} from "../src/processors";
+import { createHtmlProcessor } from "../src/processors";
 
 describe("@docen/document HTML Processing", () => {
   it("should parse and stringify basic HTML fragment", async () => {
-    const processor = createHtmlProcessor();
+    const processor = createHtmlProcessor("html");
     const html = "<p>Hello <b>world</b>!</p>";
     const file = await processor.process(html);
     const output = file.value.toString();
@@ -15,7 +12,7 @@ describe("@docen/document HTML Processing", () => {
   });
 
   it("should parse HTML document", async () => {
-    const processor = createHtmlProcessor();
+    const processor = createHtmlProcessor("html");
     const html =
       "<!doctype html><html><head><title>Test</title></head><body><p>Body</p></body></html>";
     const file = await processor.process(html);
@@ -26,7 +23,7 @@ describe("@docen/document HTML Processing", () => {
   // --- HTML to Markdown Conversion Tests ---
 
   it("should convert basic HTML to Markdown", async () => {
-    const processor = createHtmlToMarkdownProcessor({ gfm: true });
+    const processor = createHtmlProcessor("markdown", { gfm: true });
     const html =
       "<h1>Heading</h1><p>Paragraph with <strong>bold</strong> and <em>italic</em>.</p>";
     const file = await processor.process(html);
@@ -38,7 +35,7 @@ describe("@docen/document HTML Processing", () => {
   });
 
   it("should convert HTML table to Markdown", async () => {
-    const processor = createHtmlToMarkdownProcessor({ gfm: true });
+    const processor = createHtmlProcessor("markdown", { gfm: true });
     const html =
       "<table><thead><tr><th>H1</th><th>H2</th></tr></thead><tbody><tr><td>C1</td><td>C2</td></tr></tbody></table>";
     const file = await processor.process(html);
@@ -48,5 +45,19 @@ describe("@docen/document HTML Processing", () => {
     expect(markdownOutput).toMatch(/\|\s*H1\s*\|\s*H2\s*\|/);
     expect(markdownOutput).toMatch(/\|\s*-+\s*\|\s*-+\s*\|/); // Accept varying dash counts
     expect(markdownOutput).toMatch(/\|\s*C1\s*\|\s*C2\s*\|/);
+  });
+
+  // --- AST Export Tests ---
+
+  it("should export AST for analysis", async () => {
+    const processor = createHtmlProcessor("ast");
+    const html = "<h1>Hello World</h1>";
+    const file = await processor.process(html);
+    const ast = JSON.parse(file.value.toString());
+
+    expect(ast.type).toBe("root");
+    expect(ast.children).toHaveLength(1);
+    expect(ast.children[0].type).toBe("element");
+    expect(ast.children[0].tagName).toBe("h1");
   });
 });

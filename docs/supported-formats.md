@@ -43,40 +43,76 @@ Docen follows a three-layer architecture:
 
 ### Supported Formats
 
-| Format     | Extension      | Read | Write | AST Type | Description                         |
-| ---------- | -------------- | ---- | ----- | -------- | ----------------------------------- |
-| Markdown   | .md, .markdown | ✅   | ✅    | mdast    | Standard Markdown with optional GFM |
-| Markdown+  | .mdx           | ✅   | ✅    | mdast    | Markdown with JSX components        |
-| HTML       | .html, .htm    | ✅   | ✅    | hast     | HTML documents with DOM structure   |
-| Plain Text | .txt           | ✅   | ✅    | text     | Simple text without formatting      |
+| Format   | Extension      | Read | Write | AST Type | Description                         |
+| -------- | -------------- | ---- | ----- | -------- | ----------------------------------- |
+| Markdown | .md, .markdown | ✅   | ✅    | mdast    | Standard Markdown with optional GFM |
+| HTML     | .html, .htm    | ✅   | ✅    | hast     | HTML documents with DOM structure   |
 
 ### Processing Modes
 
-| Mode               | Input    | Output   | Use Case                             |
-| ------------------ | -------- | -------- | ------------------------------------ |
-| `markdown`         | Markdown | Markdown | Parse, transform, serialize markdown |
-| `html`             | HTML     | HTML     | Parse, transform, serialize HTML     |
-| `markdown-to-html` | Markdown | HTML     | Convert markdown to HTML             |
-| `html-to-markdown` | HTML     | Markdown | Convert HTML to markdown             |
+| Input Format | Output Formats      | Use Case                      |
+| ------------ | ------------------- | ----------------------------- |
+| Markdown     | markdown, html, ast | Parse, convert, or export AST |
+| HTML         | html, markdown, ast | Parse, convert, or export AST |
+
+### Processor Functions
+
+| Function                    | Input    | Output                    | Description                     |
+| --------------------------- | -------- | ------------------------- | ------------------------------- |
+| `createMarkdownProcessor()` | Markdown | markdown/html/ast         | Configurable markdown processor |
+| `createHtmlProcessor()`     | HTML     | html/markdown/ast         | Configurable HTML processor     |
+| `createDocumentProcessor()` | Any      | Based on format parameter | Auto-detect format and process  |
+
+### Output Formats
+
+| Format       | Description            | Example Usage                         |
+| ------------ | ---------------------- | ------------------------------------- |
+| `"markdown"` | Standard markdown text | `createMarkdownProcessor("markdown")` |
+| `"html"`     | HTML markup            | `createMarkdownProcessor("html")`     |
+| `"ast"`      | JSON-serialized AST    | `createMarkdownProcessor("ast")`      |
 
 ### Features
 
+- **Flexible Output**: Single input format can produce multiple outputs
+- **AST Export**: Access to structured abstract syntax tree
 - **Bottom-Level Processing**: Direct use of `mdast-util-*` and `hast-util-*` for maximum performance
 - **GFM Support**: Optional GitHub Flavored Markdown support via micromark extensions
 - **Bidirectional Conversion**: Seamless conversion between markdown and HTML
 - **Pure AST Processing**: No collaboration code, standard unified.js compatible
 - **Plugin Compatible**: Works with unified.js ecosystem plugins
 
+### Usage Examples
+
+```typescript
+// Markdown to HTML conversion
+const mdToHtml = createMarkdownProcessor("html", { gfm: true });
+const html = await mdToHtml.process("# Hello World");
+
+// HTML to markdown conversion
+const htmlToMd = createHtmlProcessor("markdown", { gfm: true });
+const markdown = await htmlToMd.process("<h1>Hello World</h1>");
+
+// Export AST for analysis
+const mdToAst = createMarkdownProcessor("ast");
+const ast = JSON.parse(await mdToAst.process("# Hello World"));
+
+// Using the auto-detect processor
+const processor = createDocumentProcessor("markdown");
+const result = await processor.process("# Hello World");
+```
+
 ### Dependencies
 
-- `remark`: Markdown processor
-- `remark-parse`: Markdown parser
-- `remark-stringify`: Markdown serializer
-- `rehype`: HTML processor
-- `rehype-parse`: HTML parser
-- `rehype-stringify`: HTML serializer
-- `mdast`: Markdown AST utilities
-- `hast`: HTML AST utilities
+- `hast-util-from-html`: Parse HTML to HAST (v2.0.3)
+- `hast-util-to-html`: Serialize HAST to HTML (v9.0.5)
+- `hast-util-to-mdast`: Convert HAST to MDAST (v10.1.2)
+- `mdast-util-from-markdown`: Parse Markdown to MDAST (v2.0.2)
+- `mdast-util-to-hast`: Convert MDAST to HAST (v13.2.0)
+- `mdast-util-to-markdown`: Serialize MDAST to Markdown (v2.1.2)
+- `micromark-extension-gfm`: GitHub Flavored Markdown support (v3.0.0)
+- `mdast-util-gfm`: MDAST utilities for GFM (v3.1.0)
+- `unist-util-visit`: AST traversal utility (v5.0.0)
+- `unist-util-find`: AST search utilities (v3.0.0)
 
 ## @docen/data
 
