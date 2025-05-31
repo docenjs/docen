@@ -10,7 +10,7 @@ import type { PresentationContainer } from "../types";
 export function presentationInsertText(
   container: PresentationContainer,
   index: number,
-  text: string,
+  text: string
 ): void {
   container.content.insert(index, text);
 }
@@ -21,7 +21,7 @@ export function presentationInsertText(
 export function presentationDeleteText(
   container: PresentationContainer,
   index: number,
-  length: number,
+  length: number
 ): void {
   container.content.delete(index, length);
 }
@@ -39,7 +39,7 @@ export function presentationGetText(container: PresentationContainer): string {
 export function presentationSetLayoutProperty(
   container: PresentationContainer,
   key: string,
-  value: unknown,
+  value: unknown
 ): void {
   container.layout.set(key, value);
 }
@@ -49,7 +49,7 @@ export function presentationSetLayoutProperty(
  */
 export function presentationGetLayoutProperty(
   container: PresentationContainer,
-  key: string,
+  key: string
 ): unknown {
   return container.layout.get(key);
 }
@@ -58,7 +58,7 @@ export function presentationGetLayoutProperty(
  * Get all layout properties
  */
 export function presentationGetLayout(
-  container: PresentationContainer,
+  container: PresentationContainer
 ): Record<string, unknown> {
   return Object.fromEntries(container.layout.entries());
 }
@@ -68,7 +68,7 @@ export function presentationGetLayout(
  */
 export function presentationSetSlideCount(
   container: PresentationContainer,
-  count: number,
+  count: number
 ): void {
   container.layout.set("slideCount", count);
 }
@@ -77,7 +77,7 @@ export function presentationSetSlideCount(
  * Get slide count
  */
 export function presentationGetSlideCount(
-  container: PresentationContainer,
+  container: PresentationContainer
 ): number {
   return (container.layout.get("slideCount") as number) || 1;
 }

@@ -87,7 +87,7 @@ export function fragmentationPlugin(
     threshold?: number;
     maxFragments?: number;
     nodeTypes?: string[];
-  } = {},
+  } = {}
 ): Plugin {
   return () =>
     function transformer(tree: Node, file: VFile) {

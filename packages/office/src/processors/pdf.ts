@@ -16,7 +16,7 @@ export type PdfProcessor = Processor<OoxmlRoot>;
  * Follows unified.js conventions.
  */
 export function createPdfProcessor(
-  options: PdfProcessorOptions = {},
+  options: PdfProcessorOptions = {}
 ): PdfProcessor {
   const processor = createProcessor({
     ...options,

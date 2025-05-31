@@ -49,7 +49,7 @@ describe("@docen/document Markdown Processing", () => {
 
     expect(htmlOutput).toContain("<h1>Hello</h1>");
     expect(htmlOutput).toContain(
-      "<p>This is <strong>bold</strong> and <em>italic</em>.</p>",
+      "<p>This is <strong>bold</strong> and <em>italic</em>.</p>"
     );
   });
 
@@ -81,7 +81,7 @@ describe("@docen/document Markdown Processing", () => {
     expect(htmlOutput).toMatch(/<ul( class=".*?")?>/);
     expect(htmlOutput).toContain('<li class="task-list-item">');
     expect(htmlOutput).toContain(
-      '<input type="checkbox" checked disabled> Done',
+      '<input type="checkbox" checked disabled> Done'
     );
     expect(htmlOutput).toContain('<input type="checkbox" disabled> ToDo');
     expect(htmlOutput).toContain("</ul>");

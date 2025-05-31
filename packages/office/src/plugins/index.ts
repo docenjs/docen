@@ -5,4 +5,6 @@
 export { docxToOoxast } from "./ooxast-util-from-docx";
 export { ooxastToDocx } from "./ooxast-util-to-docx";
 export { pdfToOoxast } from "./ooxast-util-from-pdf";
+export { ooxastToPdf } from "./ooxast-util-to-pdf";
 export { mdastToOoxast } from "./mdast-util-to-ooxast";
+export { ooxastToMdast } from "./ooxast-util-to-mdast";

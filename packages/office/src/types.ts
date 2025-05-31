@@ -223,22 +223,24 @@ export interface ToOfficeOptions extends BasePluginOptions {
   optimizeSize?: boolean;
 }
 
+// --- Format-specific options ---
+
 /**
- * Options specific to DOCX parsing
+ * Options for parsing DOCX documents
  */
 export interface FromDocxOptions extends FromOfficeOptions {
   // DOCX-specific options can be added here
 }
 
 /**
- * Options specific to DOCX generation
+ * Options for generating DOCX documents
  */
 export interface ToDocxOptions extends ToOfficeOptions {
   // DOCX-specific options can be added here
 }
 
 /**
- * Options specific to PDF parsing
+ * Options for parsing PDF documents
  */
 export interface FromPdfOptions extends FromOfficeOptions {
   /** Whether to attempt OCR on images */
@@ -253,4 +255,52 @@ export interface FromPdfOptions extends FromOfficeOptions {
   detectTables?: boolean;
   /** Table detection algorithm */
   tableDetectionMethod?: "structure" | "heuristic" | "ml";
+}
+
+/**
+ * Options for generating PDF documents
+ */
+export interface ToPdfOptions extends ToOfficeOptions {
+  /** Page width in points (default: 595.28 - A4) */
+  pageWidth?: number;
+  /** Page height in points (default: 841.89 - A4) */
+  pageHeight?: number;
+  /** Page margins in points */
+  margins?: {
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+  };
+  /** Default font size in points */
+  defaultFontSize?: number;
+  /** Line height multiplier */
+  lineHeight?: number;
+  /** Custom font embedding options */
+  fonts?: {
+    /** Whether to embed custom fonts */
+    embedCustomFonts?: boolean;
+    /** Font subset options */
+    subset?: boolean;
+    /** Font fallback mapping */
+    fallbacks?: Record<string, string>;
+  };
+}
+
+/**
+ * Options for converting to Markdown AST
+ */
+export interface ToMdastOptions extends BasePluginOptions {
+  /** Whether to preserve custom attributes as HTML data attributes */
+  preserveAttributes?: boolean;
+  /** Whether to convert unknown elements to HTML */
+  allowHtml?: boolean;
+  /** Image path resolver function */
+  resolveImagePath?: (relationId: string) => string;
+  /** Whether to preserve table formatting */
+  preserveTableFormatting?: boolean;
+  /** How to handle unsupported formatting */
+  unsupportedFormatting?: "ignore" | "html" | "comment";
+  /** Whether to generate GitHub Flavored Markdown extensions */
+  gfm?: boolean;
 }

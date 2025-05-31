@@ -136,7 +136,7 @@ export interface FontProperties {
   language?: string; // e.g., 'en-US' <w:lang w:val="en-US"/>
   highlight?: string | ColorDefinition; // Highlight color <w:highlight w:val="yellow|green|..."/>
   effect?: // <w:effect w:val="..."/>
-  | "shadow"
+    | "shadow"
     | "outline"
     | "emboss"
     | "engrave"
@@ -217,7 +217,7 @@ export interface FontProperties {
  */
 export interface ParagraphFormatting {
   alignment?: // <w:jc w:val="..."/>
-  | "left"
+    | "left"
     | "center"
     | "right"
     | "justify"

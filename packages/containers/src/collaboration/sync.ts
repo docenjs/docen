@@ -33,7 +33,7 @@ export class ContainerSync {
    * Subscribe to document updates
    */
   onUpdate(
-    callback: (update: Uint8Array, origin: unknown) => void,
+    callback: (update: Uint8Array, origin: unknown) => void
   ): () => void {
     this.container.yjsDoc.on("update", callback);
 

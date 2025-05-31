@@ -22,7 +22,7 @@ export class DocenError extends Error {
 
   constructor(
     message: string,
-    options: { error?: Error; context?: unknown } = {},
+    options: { error?: Error; context?: unknown } = {}
   ) {
     const { error, context } = options;
 
@@ -42,7 +42,7 @@ export class ParseError extends DocenError {
     options: {
       error?: Error;
       context?: ParseErrorContext;
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -57,7 +57,7 @@ export class TransformError extends DocenError {
     options: {
       error?: Error;
       context?: TransformErrorContext;
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -72,7 +72,7 @@ export class ValidationError extends DocenError {
     options: {
       error?: Error;
       context?: ValidationErrorContext;
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -87,7 +87,7 @@ export class PluginError extends DocenError {
     options: {
       error?: Error;
       context?: PluginErrorContext;
-    } = {},
+    } = {}
   ) {
     super(message, options);
   }
@@ -117,7 +117,7 @@ export function ensureDocenError(value: unknown): DocenError {
  * Helper function to wrap code in try/catch and return a Result
  */
 export async function tryCatch<T>(
-  fn: () => Promise<T>,
+  fn: () => Promise<T>
 ): Promise<Result<T, DocenError>> {
   try {
     const value = await fn();
@@ -150,7 +150,7 @@ export function tryCatchSync<T>(fn: () => T): Result<T, DocenError> {
  */
 export function addFileContext(
   error: DocenError,
-  fileContext: FileErrorContext,
+  fileContext: FileErrorContext
 ): DocenError {
   // Create a combined context with file information
   const combinedContext = error.context
@@ -167,7 +167,7 @@ export function addFileContext(
  * Convert an unknown error to a DocenError
  */
 export function fromUnknownError(
-  error: Error & { name?: string; position?: unknown },
+  error: Error & { name?: string; position?: unknown }
 ): DocenError {
   if (error.name === "ParseError") {
     return new ParseError(error.message, {

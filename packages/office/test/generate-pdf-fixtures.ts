@@ -203,11 +203,11 @@ async function generatePdfFixtures() {
     let imageBytes: Uint8Array | undefined;
     try {
       imageBytes = await fs.readFile(
-        path.resolve(fixturesDir, "placeholder.png"),
+        path.resolve(fixturesDir, "placeholder.png")
       );
     } catch (e) {
       console.error(
-        "Placeholder image not found. Skipping image fixture generation.",
+        "Placeholder image not found. Skipping image fixture generation."
       );
       imageBytes = undefined;
     }

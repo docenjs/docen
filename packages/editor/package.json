@@ -13,21 +13,13 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
     "prepack": "pnpm build"
   },
-  "keywords": [
-    "docen",
-    "editor",
-    "collaborative",
-    "containers",
-    "yjs"
-  ],
+  "keywords": ["docen", "editor", "collaborative", "containers", "yjs"],
   "author": {
     "name": "Demo Macro",
     "email": "abc@imst.xyz",

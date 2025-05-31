@@ -106,7 +106,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     }
     expect(
       foundText,
-      "Expected text 'simple paragraph' not found in paragraph children",
+      "Expected text 'simple paragraph' not found in paragraph children"
     ).toBe(true);
   });
 
@@ -147,7 +147,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     // Table parsing is not implemented, expect text runs corresponding to cells
     // TODO: Add assertions based on expected paragraph/text run output
     console.warn(
-      "PDF Table test: Only checks for extracted text, not table structure.",
+      "PDF Table test: Only checks for extracted text, not table structure."
     );
   });
 
@@ -171,7 +171,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
             data &&
               typeof data === "object" &&
               data !== null &&
-              "ooxmlType" in data,
+              "ooxmlType" in data
           );
 
         return (
@@ -180,7 +180,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
           isOoxmlData(node.data) && // Check if data is OoxmlData
           node.data.ooxmlType === "hyperlink"
         );
-      },
+      }
     ) as WmlHyperlink | undefined;
 
     expect(hyperlinkNode).toBeDefined();
@@ -230,7 +230,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     // We cannot reliably check relationId if resource loading fails
     if (!foundDrawing) {
       console.warn(
-        "Image test: No drawing element found. Check PDF content or plugin logic.",
+        "Image test: No drawing element found. Check PDF content or plugin logic."
       );
       // Optionally fail if no drawing element is acceptable:
       // expect(foundDrawing, "Expected a drawing element placeholder").toBe(true);
@@ -268,7 +268,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     }
     expect(
       foundBookmarkText,
-      `Expected text containing 'bookmark' (case-insensitive), but got: "${accumulatedText}"`,
+      `Expected text containing 'bookmark' (case-insensitive), but got: "${accumulatedText}"`
     ).toBe(true);
   });
 
@@ -301,7 +301,7 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
     }
     expect(
       foundCommentText,
-      `Expected text containing 'comment' (case-insensitive), but got: "${accumulatedText}"`,
+      `Expected text containing 'comment' (case-insensitive), but got: "${accumulatedText}"`
     ).toBe(true);
   });
 });

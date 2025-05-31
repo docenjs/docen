@@ -15,7 +15,7 @@ import { docxToOoxast, ooxastToDocx } from "../src/plugins";
 // Helper function to create a simple OOXML AST structure
 function createOoxmlParagraph(
   text: string,
-  properties?: ParagraphFormatting,
+  properties?: ParagraphFormatting
 ): OoxmlElement {
   return {
     type: "element",
@@ -223,7 +223,7 @@ describe("ooxast-util-to-docx Plugin Tests", () => {
     const paragraphs = firstOoxmlAst.children.filter(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "paragraph",
+        (child as OoxmlElement).data?.ooxmlType === "paragraph"
     );
     expect(paragraphs.length).toBeGreaterThan(0);
   });

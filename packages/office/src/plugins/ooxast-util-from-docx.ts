@@ -50,7 +50,7 @@ import type {
 
 function getAttribute(
   element: OoxmlElement | undefined,
-  attrName: string,
+  attrName: string
 ): string | undefined {
   return element?.attributes?.[attrName]
     ? String(element.attributes[attrName])
@@ -67,7 +67,7 @@ function parseOnOff(value: string | undefined): OnOffValue | undefined {
 
 function parseMeasurement(
   value: string | undefined,
-  defaultUnit: MeasurementUnit = "dxa",
+  defaultUnit: MeasurementUnit = "dxa"
 ): Measurement | undefined {
   if (value === undefined) return undefined;
   if (value === "auto") return undefined;
@@ -112,7 +112,7 @@ function parseMeasurement(
 }
 
 function parseColor(
-  colorElement: OoxmlElement | undefined,
+  colorElement: OoxmlElement | undefined
 ): ColorDefinition | undefined {
   if (!colorElement) return undefined;
   const value = getAttribute(colorElement, "w:val");
@@ -128,12 +128,12 @@ function parseColor(
 }
 
 function parseUnderline(
-  uElement: OoxmlElement | undefined,
+  uElement: OoxmlElement | undefined
 ): FontProperties["underline"] {
   if (!uElement) return undefined;
   const style = getAttribute(uElement, "w:val");
   const colorChild = uElement.children?.find(
-    (c) => is(c, "element") && c.name === "w:color",
+    (c) => is(c, "element") && c.name === "w:color"
   ) as OoxmlElement | undefined;
   const color = parseColor(colorChild);
   if (!style || style === "none") return undefined;
@@ -144,7 +144,7 @@ function parseUnderline(
 
 // --- Implemented Parsing Helpers ---
 function parseIndentation(
-  indElement: OoxmlElement | undefined,
+  indElement: OoxmlElement | undefined
 ): IndentationProperties | undefined {
   if (!indElement || !is(indElement, { name: "w:ind" })) return undefined;
   const props: IndentationProperties = {};
@@ -165,7 +165,7 @@ function parseIndentation(
 }
 
 function parseSpacing(
-  spacingElement: OoxmlElement | undefined,
+  spacingElement: OoxmlElement | undefined
 ): SpacingProperties | undefined {
   if (!spacingElement || !is(spacingElement, { name: "w:spacing" }))
     return undefined;
@@ -187,7 +187,7 @@ function parseSpacing(
 }
 
 function parseShading(
-  shdElement: OoxmlElement | undefined,
+  shdElement: OoxmlElement | undefined
 ): ShadingProperties | undefined {
   if (!shdElement || !is(shdElement, { name: "w:shd" })) return undefined;
   const props: ShadingProperties = {};
@@ -205,7 +205,7 @@ function parseShading(
 }
 
 function parseBorders(
-  bdrElement: OoxmlElement | undefined,
+  bdrElement: OoxmlElement | undefined
 ): TableBorderProperties | ParagraphBorderProperties | undefined {
   if (!bdrElement) return undefined;
   const borders: Record<string, BorderStyleProperties> = {};
@@ -270,7 +270,7 @@ function parseBorders(
 }
 
 function parseTabs(
-  tabsElement: OoxmlElement | undefined,
+  tabsElement: OoxmlElement | undefined
 ): TabStop[] | undefined {
   if (!tabsElement || !is(tabsElement, { name: "w:tabs" })) return undefined;
   const tabs: TabStop[] = [];
@@ -304,7 +304,7 @@ function parseTabs(
   return tabs.length > 0 ? tabs : undefined;
 }
 function parseTableLayout(
-  layoutElement: OoxmlElement | undefined,
+  layoutElement: OoxmlElement | undefined
 ): WmlTableProperties["layout"] {
   if (!layoutElement || !is(layoutElement, { name: "w:tblLayout" }))
     return undefined;
@@ -313,7 +313,7 @@ function parseTableLayout(
 }
 
 function parseCellMargins(
-  marElement: OoxmlElement | undefined,
+  marElement: OoxmlElement | undefined
 ): WmlTableCellProperties["margins"] {
   if (!marElement || !is(marElement, { name: "w:tcMar" })) return undefined;
   const margins: WmlTableCellProperties["margins"] = {};
@@ -345,7 +345,7 @@ function parseCellMargins(
       if (w) {
         margins[marginType] = parseMeasurement(
           w,
-          type === "dxa" ? "dxa" : "pt",
+          type === "dxa" ? "dxa" : "pt"
         );
       }
     }
@@ -355,7 +355,7 @@ function parseCellMargins(
 }
 
 function parseHeight(
-  heightElement: OoxmlElement | undefined,
+  heightElement: OoxmlElement | undefined
 ): Measurement | undefined {
   if (!heightElement || !is(heightElement, { name: "w:trHeight" }))
     return undefined;
@@ -364,7 +364,7 @@ function parseHeight(
 }
 
 function parseWidth(
-  widthElement: OoxmlElement | undefined,
+  widthElement: OoxmlElement | undefined
 ): MeasurementOrPercent | MeasurementOrAuto | undefined {
   if (!widthElement) return undefined;
   const w = getAttribute(widthElement, "w:w");
@@ -389,7 +389,7 @@ function parseWidth(
 }
 
 function parseVAlign(
-  valignElement: OoxmlElement | undefined,
+  valignElement: OoxmlElement | undefined
 ): WmlTableCellProperties["verticalAlign"] {
   if (!valignElement || !is(valignElement, { name: "w:vAlign" }))
     return undefined;
@@ -437,7 +437,7 @@ function resolveStyleChain(
   styleId: string | undefined,
   styles: Record<string, SharedStyleDefinition> | undefined,
   type: "paragraph" | "character",
-  depth = 0,
+  depth = 0
 ): ResolvedStyleProperties {
   if (!styleId || !styles?.[styleId] || depth > 10) {
     return {};
@@ -447,7 +447,7 @@ function resolveStyleChain(
     style.basedOn,
     styles,
     type,
-    depth + 1,
+    depth + 1
   );
 
   let currentStyleProps = {};
@@ -482,7 +482,7 @@ function parseRPr(rPrElement: OoxmlElement | undefined): FontProperties {
             getAttribute(child, "w:hAnsi") ||
             getAttribute(child, "w:eastAsia") ||
             getAttribute(child, "w:cs") ||
-            "",
+            ""
         );
         break;
       case "w:b":
@@ -578,10 +578,10 @@ function parsePPr(pPrElement: OoxmlElement | undefined): ParagraphFormatting {
       case "w:numPr":
         if (is(child, "element")) {
           const ilvlElement = child.children?.find((c) =>
-            is(c, { name: "w:ilvl" }),
+            is(c, { name: "w:ilvl" })
           ) as OoxmlElement | undefined;
           const numIdElement = child.children?.find((c) =>
-            is(c, { name: "w:numId" }),
+            is(c, { name: "w:numId" })
           ) as OoxmlElement | undefined;
           const ilvlVal = getAttribute(ilvlElement, "w:val");
           const numIdVal = getAttribute(numIdElement, "w:val");
@@ -631,7 +631,7 @@ function parsePPr(pPrElement: OoxmlElement | undefined): ParagraphFormatting {
 
 // Helper to parse <w:tblPr> into WmlTableProperties
 function parseTblPr(
-  tblPrElement: OoxmlElement | undefined,
+  tblPrElement: OoxmlElement | undefined
 ): WmlTableProperties {
   if (!tblPrElement || !is(tblPrElement, { name: "w:tblPr" })) return {};
   const props: WmlTableProperties = {};
@@ -648,7 +648,7 @@ function parseTblPr(
       case "w:jc":
         props.alignment = getAttribute(
           child,
-          "w:val",
+          "w:val"
         ) as WmlTableProperties["alignment"];
         break;
       case "w:tblInd":
@@ -669,7 +669,7 @@ function parseTblPr(
       case "w:tblCellSpacing":
         props.cellSpacing = parseMeasurement(
           getAttribute(child, "w:val"),
-          "dxa",
+          "dxa"
         );
         break;
       case "w:tblLook":
@@ -682,7 +682,7 @@ function parseTblPr(
 
 // Helper to parse <w:trPr> into WmlTableRowProperties
 function parseTrPr(
-  trPrElement: OoxmlElement | undefined,
+  trPrElement: OoxmlElement | undefined
 ): WmlTableRowProperties {
   if (!trPrElement || !is(trPrElement, { name: "w:trPr" })) return {};
   const props: WmlTableRowProperties = {};
@@ -717,7 +717,7 @@ function parseTrPr(
 
 // Helper to parse <w:tcPr> into WmlTableCellProperties
 function parseTcPr(
-  tcPrElement: OoxmlElement | undefined,
+  tcPrElement: OoxmlElement | undefined
 ): WmlTableCellProperties {
   if (!tcPrElement || !is(tcPrElement, { name: "w:tcPr" })) return {};
   const props: WmlTableCellProperties = {};
@@ -742,7 +742,7 @@ function parseTcPr(
       case "w:textDirection":
         props.textDirection = getAttribute(
           child,
-          "w:val",
+          "w:val"
         ) as WmlTableCellProperties["textDirection"];
         break;
       case "w:gridSpan": {
@@ -753,7 +753,7 @@ function parseTcPr(
       case "w:vMerge":
         props.vMerge = getAttribute(
           child,
-          "w:val",
+          "w:val"
         ) as WmlTableCellProperties["vMerge"];
         break;
       case "w:noWrap":
@@ -767,7 +767,7 @@ function parseTcPr(
 // --- Resource Parsing (Adapted for xast -> Ooxml*) ---
 
 async function parseStylesXml(
-  files: Record<string, Uint8Array>,
+  files: Record<string, Uint8Array>
 ): Promise<SharedResources> {
   const stylesPath = "word/styles.xml";
   const resources: SharedResources = {
@@ -785,25 +785,25 @@ async function parseStylesXml(
     const parsedStylesData = fromXml(xmlContent) as OoxmlRoot;
 
     const stylesElement = parsedStylesData.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:styles" }),
+      (node): node is OoxmlElement => is(node, { name: "w:styles" })
     );
     if (!stylesElement) return resources;
 
     const docDefaultsElement = stylesElement.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:docDefaults" }),
+      (node): node is OoxmlElement => is(node, { name: "w:docDefaults" })
     );
     if (docDefaultsElement) {
       const pPrDefaultContainer = docDefaultsElement.children?.find(
-        (node): node is OoxmlElement => is(node, { name: "w:pPrDefault" }),
+        (node): node is OoxmlElement => is(node, { name: "w:pPrDefault" })
       );
       const pPrDefaultElement = pPrDefaultContainer?.children?.find(
-        (node): node is OoxmlElement => is(node, { name: "w:pPr" }),
+        (node): node is OoxmlElement => is(node, { name: "w:pPr" })
       );
       const rPrDefaultContainer = docDefaultsElement.children?.find(
-        (node): node is OoxmlElement => is(node, { name: "w:rPrDefault" }),
+        (node): node is OoxmlElement => is(node, { name: "w:rPrDefault" })
       );
       const rPrDefaultElement = rPrDefaultContainer?.children?.find(
-        (node): node is OoxmlElement => is(node, { name: "w:rPr" }),
+        (node): node is OoxmlElement => is(node, { name: "w:rPr" })
       );
       resources.defaults = {
         paragraph: parsePPr(pPrDefaultElement),
@@ -819,21 +819,21 @@ async function parseStylesXml(
           const type =
             (getAttribute(
               styleEl,
-              "w:type",
+              "w:type"
             ) as SharedStyleDefinition["type"]) || "";
           if (!styleId || !type) continue;
 
           const nameElement = styleEl.children?.find(
-            (child): child is OoxmlElement => is(child, { name: "w:name" }),
+            (child): child is OoxmlElement => is(child, { name: "w:name" })
           );
           const basedOnElement = styleEl.children?.find(
-            (child): child is OoxmlElement => is(child, { name: "w:basedOn" }),
+            (child): child is OoxmlElement => is(child, { name: "w:basedOn" })
           );
           const pPrElement = styleEl.children?.find(
-            (child): child is OoxmlElement => is(child, { name: "w:pPr" }),
+            (child): child is OoxmlElement => is(child, { name: "w:pPr" })
           );
           const rPrElement = styleEl.children?.find(
-            (child): child is OoxmlElement => is(child, { name: "w:rPr" }),
+            (child): child is OoxmlElement => is(child, { name: "w:rPr" })
           );
 
           const definition: SharedStyleDefinition = {
@@ -861,7 +861,7 @@ async function parseStylesXml(
 
 // Helper for parseNumberingXml (Use OoxmlElement)
 function parseNumberingLevel(
-  lvlElement: OoxmlElement | undefined,
+  lvlElement: OoxmlElement | undefined
 ): SharedNumberingLevelDefinition | null {
   if (!lvlElement || !is(lvlElement, { name: "w:lvl" })) return null;
 
@@ -871,22 +871,22 @@ function parseNumberingLevel(
 
   const definition: SharedNumberingLevelDefinition = { level };
   const startElement = lvlElement.children?.find((c): c is OoxmlElement =>
-    is(c, { name: "w:start" }),
+    is(c, { name: "w:start" })
   );
   const numFmtElement = lvlElement.children?.find((c): c is OoxmlElement =>
-    is(c, { name: "w:numFmt" }),
+    is(c, { name: "w:numFmt" })
   );
   const lvlTextElement = lvlElement.children?.find((c): c is OoxmlElement =>
-    is(c, { name: "w:lvlText" }),
+    is(c, { name: "w:lvlText" })
   );
   const lvlJcElement = lvlElement.children?.find((c): c is OoxmlElement =>
-    is(c, { name: "w:lvlJc" }),
+    is(c, { name: "w:lvlJc" })
   );
   const pPrElement = lvlElement.children?.find((c): c is OoxmlElement =>
-    is(c, { name: "w:pPr" }),
+    is(c, { name: "w:pPr" })
   );
   const rPrElement = lvlElement.children?.find((c): c is OoxmlElement =>
-    is(c, { name: "w:rPr" }),
+    is(c, { name: "w:rPr" })
   );
 
   if (startElement) {
@@ -913,7 +913,7 @@ function parseNumberingLevel(
 
 async function parseNumberingXml(
   files: Record<string, Uint8Array>,
-  resources: SharedResources,
+  resources: SharedResources
 ): Promise<void> {
   const numberingPath = "word/numbering.xml";
   if (!files[numberingPath]) {
@@ -930,7 +930,7 @@ async function parseNumberingXml(
     const xmlContent = strFromU8(files[numberingPath]);
     const parsedNumberingData = fromXml(xmlContent) as OoxmlRoot;
     const numberingElement = parsedNumberingData.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:numbering" }),
+      (node): node is OoxmlElement => is(node, { name: "w:numbering" })
     );
     if (!numberingElement || !numberingElement.children) return;
 
@@ -942,10 +942,10 @@ async function parseNumberingXml(
         if (!abstractNumId) continue;
 
         const nameElement = abstractNumEl.children?.find(
-          (c): c is OoxmlElement => is(c, { name: "w:name" }),
+          (c): c is OoxmlElement => is(c, { name: "w:name" })
         );
         const multiLevelTypeElement = abstractNumEl.children?.find(
-          (c): c is OoxmlElement => is(c, { name: "w:multiLevelType" }),
+          (c): c is OoxmlElement => is(c, { name: "w:multiLevelType" })
         );
 
         const definition: SharedAbstractNumDefinition = {
@@ -978,7 +978,7 @@ async function parseNumberingXml(
         const numInstEl = node as OoxmlElement;
         const numIdVal = getAttribute(numInstEl, "w:numId");
         const abstractNumIdRefEl = numInstEl.children?.find(
-          (c): c is OoxmlElement => is(c, { name: "w:abstractNumId" }),
+          (c): c is OoxmlElement => is(c, { name: "w:abstractNumId" })
         );
         const abstractNumIdRefVal = getAttribute(abstractNumIdRefEl, "w:val");
 
@@ -994,7 +994,7 @@ async function parseNumberingXml(
 
         if (numInstEl.children) {
           const lvlOverrideContainer = numInstEl.children.find(
-            (c): c is OoxmlElement => is(c, { name: "w:lvlOverride" }),
+            (c): c is OoxmlElement => is(c, { name: "w:lvlOverride" })
           );
           if (lvlOverrideContainer?.children) {
             for (const overrideNode of lvlOverrideContainer.children) {
@@ -1010,7 +1010,7 @@ async function parseNumberingXml(
                 const levelDefOverride: Partial<SharedNumberingLevelDefinition> =
                   {};
                 const startOverrideElement = overrideEl.children?.find(
-                  (c): c is OoxmlElement => is(c, { name: "w:startOverride" }),
+                  (c): c is OoxmlElement => is(c, { name: "w:startOverride" })
                 );
                 const lvlElement = overrideEl; // Refers to the <w:lvl> inside override
 
@@ -1057,7 +1057,7 @@ async function parseNumberingXml(
 }
 
 async function parseRelationshipsXml(
-  files: Record<string, Uint8Array>,
+  files: Record<string, Uint8Array>
 ): Promise<RelationshipMap> {
   const relsPath = "word/_rels/document.xml.rels";
   const relationships: RelationshipMap = {};
@@ -1070,7 +1070,7 @@ async function parseRelationshipsXml(
     const xmlContent = strFromU8(files[relsPath]);
     const relParser = fromXml(xmlContent) as OoxmlRoot;
     const relationshipsElement = relParser.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "Relationships" }),
+      (node): node is OoxmlElement => is(node, { name: "Relationships" })
     );
 
     if (relationshipsElement?.children) {
@@ -1097,7 +1097,7 @@ async function parseRelationshipsXml(
   } catch (error) {
     console.error(
       "Error parsing word/_rels/document.xml.rels with xast:",
-      error,
+      error
     );
   }
   return relationships;
@@ -1106,7 +1106,7 @@ async function parseRelationshipsXml(
 // --- Comment Parsing (Use OoxmlElement, SharedCommentDefinition) ---
 async function parseCommentsXml(
   files: Record<string, Uint8Array>,
-  context: TransformContext,
+  context: TransformContext
 ): Promise<Record<string, SharedCommentDefinition>> {
   // Return SharedCommentDefinition
   const commentsPath = "word/comments.xml";
@@ -1117,12 +1117,12 @@ async function parseCommentsXml(
     const xmlContent = strFromU8(files[commentsPath]);
     const parsedCommentsData = fromXml(xmlContent) as OoxmlRoot;
     const commentsRootElement = parsedCommentsData.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:comments" }),
+      (node): node is OoxmlElement => is(node, { name: "w:comments" })
     );
     if (!commentsRootElement?.children) return commentsMap;
 
     const commentEls = commentsRootElement.children.filter(
-      (node): node is OoxmlElement => is(node, { name: "w:comment" }),
+      (node): node is OoxmlElement => is(node, { name: "w:comment" })
     );
 
     for (const commentEl of commentEls) {
@@ -1169,7 +1169,7 @@ async function parseCommentsXml(
 // --- List Grouping Function (Modified to operate on parentElement.children) ---
 function groupListItems(
   parentElement: OoxmlElement,
-  context: TransformContext,
+  context: TransformContext
 ): void {
   const groupedChildren: OoxmlElementContent[] = [];
   let currentListElement: OoxmlElement | null = null;
@@ -1209,8 +1209,9 @@ function groupListItems(
       };
 
       // Add explicit type annotation for currentListNumId and simplify access
-      const currentListData: OoxmlData | undefined =
-        currentListElement?.data as OoxmlData | undefined;
+      const currentListData: OoxmlData | undefined = currentListElement?.data as
+        | OoxmlData
+        | undefined;
       const currentListNumId: string | undefined = currentListData
         ? ((currentListData.properties as Record<string, unknown>)?.numId as
             | string
@@ -1253,7 +1254,7 @@ function groupListItems(
 // --- Main Transformation Function using visit --- //
 function transformXastToOoxmlAst(
   root: OoxmlRoot,
-  context: TransformContext,
+  context: TransformContext
 ): void {
   const { resources, relationships } = context;
   const { styles, defaults } = resources;
@@ -1296,7 +1297,7 @@ function transformXastToOoxmlAst(
       // Handle paragraph elements
       if (tagName === "w:p") {
         const propElement = element.children?.find(
-          (child) => is(child, "element") && child.name === "w:pPr",
+          (child) => is(child, "element") && child.name === "w:pPr"
         ) as OoxmlElement | undefined;
 
         const directProps = parsePPr(propElement);
@@ -1307,12 +1308,12 @@ function transformXastToOoxmlAst(
         const resolvedParaStyle = resolveStyleChain(
           styleId,
           styles,
-          "paragraph",
+          "paragraph"
         );
         const finalParaProps = mergeProps(
           defaultParaProps,
           resolvedParaStyle,
-          directProps,
+          directProps
         );
         finalParaProps.styleId = styleId;
 
@@ -1322,7 +1323,7 @@ function transformXastToOoxmlAst(
 
       if (tagName === "w:r") {
         const propElement = element.children?.find(
-          (child) => is(child, "element") && child.name === "w:rPr",
+          (child) => is(child, "element") && child.name === "w:rPr"
         ) as OoxmlElement | undefined;
 
         const directProps = parseRPr(propElement);
@@ -1335,12 +1336,12 @@ function transformXastToOoxmlAst(
         const resolvedCharStyle = resolveStyleChain(
           runStyleId,
           styles,
-          "character",
+          "character"
         );
         const resolvedParaStyleForRun = resolveStyleChain(
           paraStyleId,
           styles,
-          "paragraph",
+          "paragraph"
         );
         const paraDefaultRunProps =
           (resolvedParaStyleForRun?.runProperties as Record<string, unknown>) ||
@@ -1350,7 +1351,7 @@ function transformXastToOoxmlAst(
           defaultRunProps,
           paraDefaultRunProps,
           resolvedCharStyle,
-          directProps,
+          directProps
         );
 
         nodeData.properties = finalRunProps;
@@ -1405,7 +1406,7 @@ function transformXastToOoxmlAst(
       // Handle table elements
       if (tagName === "w:tbl") {
         const propElement = element.children?.find(
-          (child) => is(child, "element") && child.name === "w:tblPr",
+          (child) => is(child, "element") && child.name === "w:tblPr"
         ) as OoxmlElement | undefined;
 
         nodeData.ooxmlType = "table";
@@ -1414,7 +1415,7 @@ function transformXastToOoxmlAst(
 
       if (tagName === "w:tr") {
         const propElement = element.children?.find(
-          (child) => is(child, "element") && child.name === "w:trPr",
+          (child) => is(child, "element") && child.name === "w:trPr"
         ) as OoxmlElement | undefined;
 
         nodeData.ooxmlType = "tableRow";
@@ -1423,7 +1424,7 @@ function transformXastToOoxmlAst(
 
       if (tagName === "w:tc") {
         const propElement = element.children?.find(
-          (child) => is(child, "element") && child.name === "w:tcPr",
+          (child) => is(child, "element") && child.name === "w:tcPr"
         ) as OoxmlElement | undefined;
 
         nodeData.ooxmlType = "tableCell";
@@ -1703,7 +1704,7 @@ function transformXastToOoxmlAst(
 
 // New function to parse section properties
 function parseSectionProperties(
-  sectPrElement: OoxmlElement,
+  sectPrElement: OoxmlElement
 ): Record<string, unknown> {
   const sectProps: Record<string, unknown> = {};
 
@@ -1769,11 +1770,11 @@ import type { FromDocxOptions } from "../types";
  * Based on the original docxToOoxmlAst implementation but adapted for unified.js patterns
  */
 export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
-  options: FromDocxOptions = {},
+  options: FromDocxOptions = {}
 ) => {
   return async (
     _tree: OoxmlNode | undefined, // Input tree is ignored, we parse from VFile
-    file: VFile,
+    file: VFile
   ): Promise<OoxmlRoot | undefined> => {
     if (options.debug) {
       console.log("docxToOoxast plugin: Starting DOCX parsing");
@@ -1781,7 +1782,7 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
 
     if (!file.value || !(file.value instanceof Uint8Array)) {
       file.message(
-        new Error("VFile value must be a Uint8Array for OOXML parsing"),
+        new Error("VFile value must be a Uint8Array for OOXML parsing")
       );
       return undefined;
     }
@@ -1798,8 +1799,8 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
       console.error("Error unzipping OOXML file with fflate:", error);
       file.message(
         new Error(
-          `fflate unzip failed: ${error instanceof Error ? error.message : String(error)}`,
-        ),
+          `fflate unzip failed: ${error instanceof Error ? error.message : String(error)}`
+        )
       );
       return undefined;
     }
@@ -1816,7 +1817,7 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
 
     const comments = await parseCommentsXml(
       decompressedFiles,
-      transformContext,
+      transformContext
     );
     if (transformContext.resources) {
       transformContext.resources.comments = comments;
@@ -1826,7 +1827,7 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
     const mainPartPath = "word/document.xml";
     if (!decompressedFiles[mainPartPath]) {
       file.message(
-        new Error("Could not locate main document part (word/document.xml)"),
+        new Error("Could not locate main document part (word/document.xml)")
       );
       return undefined;
     }
@@ -1842,23 +1843,23 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
       console.error(`Error parsing XML with fromXml (${mainPartPath}):`, error);
       file.message(
         new Error(
-          `XML parsing failed with fromXml for ${mainPartPath}: ${error instanceof Error ? error.message : String(error)}`,
-        ),
+          `XML parsing failed with fromXml for ${mainPartPath}: ${error instanceof Error ? error.message : String(error)}`
+        )
       );
       return undefined;
     }
 
     // --- Find the w:body element ---
     const documentElement = parsedXastRoot.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:document" }),
+      (node): node is OoxmlElement => is(node, { name: "w:document" })
     );
     const bodyElement = documentElement?.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:body" }),
+      (node): node is OoxmlElement => is(node, { name: "w:body" })
     );
 
     if (!bodyElement) {
       file.message(
-        new Error("Could not find <w:body> element in document.xml"),
+        new Error("Could not find <w:body> element in document.xml")
       );
       return undefined;
     }
@@ -1874,7 +1875,7 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
 
       // --- Filter out Instructions from Body Children ---
       bodyElement.children = bodyElement.children.filter(
-        (node) => !is(node, "instruction"),
+        (node) => !is(node, "instruction")
       );
 
       // --- Create the Final Root with Body's Children ---
@@ -1895,8 +1896,8 @@ export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
       console.error("Error during OOXML AST transformation:", transformError);
       file.message(
         new Error(
-          `AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`,
-        ),
+          `AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`
+        )
       );
       return undefined;
     }

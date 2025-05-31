@@ -3,8 +3,8 @@ import type {
   Definition,
   FootnoteDefinition,
   FootnoteReference,
-  HTML,
   Heading,
+  Html,
   Image,
   ImageReference,
   Link,
@@ -48,7 +48,7 @@ import type {
  * Very basic, assumes valid nesting and no attributes.
  */
 function parseBasicHtml(
-  html: string,
+  html: string
 ): { text: string; tags: Array<"u" | "sub" | "sup"> }[] {
   const segments: { text: string; tags: Array<"u" | "sub" | "sup"> }[] = [];
 
@@ -113,7 +113,7 @@ function processInlineContent(
   nodes: PhrasingContent[],
   definitions: Record<string, Definition>,
   footnoteDefinitions: Record<string, FootnoteDefinition>,
-  currentState: FontProperties = {},
+  currentState: FontProperties = {}
 ): OoxmlElement[] {
   const ooxmlRuns: OoxmlElement[] = [];
 
@@ -155,8 +155,8 @@ function processInlineContent(
           {
             ...currentState,
             bold: true,
-          },
-        ),
+          }
+        )
       );
     } else if (node.type === "emphasis") {
       ooxmlRuns.push(
@@ -167,8 +167,8 @@ function processInlineContent(
           {
             ...currentState,
             italic: true,
-          },
-        ),
+          }
+        )
       );
     } else if (node.type === "delete") {
       ooxmlRuns.push(
@@ -179,8 +179,8 @@ function processInlineContent(
           {
             ...currentState,
             strike: true,
-          },
-        ),
+          }
+        )
       );
     } else if (node.type === "link") {
       const linkNode = node as Link;
@@ -188,7 +188,7 @@ function processInlineContent(
         linkNode.children,
         definitions,
         footnoteDefinitions,
-        currentState,
+        currentState
       );
       const hyperlinkElement: OoxmlElement = {
         type: "element",
@@ -213,7 +213,7 @@ function processInlineContent(
           linkRefNode.children,
           definitions,
           footnoteDefinitions,
-          currentState,
+          currentState
         );
         const hyperlinkElement: OoxmlElement = {
           type: "element",
@@ -232,15 +232,15 @@ function processInlineContent(
         ooxmlRuns.push(hyperlinkElement);
       } else {
         console.warn(
-          `Definition not found for linkReference: ${linkRefNode.identifier}`,
+          `Definition not found for linkReference: ${linkRefNode.identifier}`
         );
         ooxmlRuns.push(
           ...processInlineContent(
             linkRefNode.children,
             definitions,
             footnoteDefinitions,
-            currentState,
-          ),
+            currentState
+          )
         );
       }
     } else if (node.type === "break") {
@@ -285,7 +285,7 @@ function processInlineContent(
         ooxmlRuns.push(imageRunWrapper);
       } else {
         console.warn(
-          `Definition not found for imageReference: ${imageRefNode.identifier}`,
+          `Definition not found for imageReference: ${imageRefNode.identifier}`
         );
         if (imageRefNode.alt) {
           const fallbackRun = x("w:r", {}, [
@@ -328,7 +328,7 @@ function processInlineContent(
         ooxmlRuns.push(footnoteRefRun);
       } else {
         console.warn(
-          `Footnote definition not found for reference: ${footnoteRefNode.identifier}`,
+          `Footnote definition not found for reference: ${footnoteRefNode.identifier}`
         );
         const fallbackText = `[^${footnoteRefNode.identifier}]`;
         const fallbackRun = x("w:r", {}, [
@@ -338,7 +338,7 @@ function processInlineContent(
         ooxmlRuns.push(fallbackRun);
       }
     } else if (node.type === "html") {
-      const htmlNode = node as HTML;
+      const htmlNode = node as Html;
       const segments = parseBasicHtml(htmlNode.value);
       for (const segment of segments) {
         const segmentState = { ...currentState };
@@ -370,7 +370,7 @@ function processInlineContent(
 function convertMdastNodeToOoxml(
   node: MdastContent,
   definitions: Record<string, Definition>,
-  footnoteDefinitions: Record<string, FootnoteDefinition>,
+  footnoteDefinitions: Record<string, FootnoteDefinition>
 ): OoxmlElement[] {
   const results: OoxmlElement[] = [];
 
@@ -379,7 +379,7 @@ function convertMdastNodeToOoxml(
     const paragraphContent = processInlineContent(
       mdastParagraph.children,
       definitions,
-      footnoteDefinitions,
+      footnoteDefinitions
     );
     if (paragraphContent.length > 0) {
       const ooxmlParagraph: OoxmlElement = {
@@ -405,7 +405,7 @@ function convertMdastNodeToOoxml(
     const headingContent = processInlineContent(
       headingNode.children,
       definitions,
-      footnoteDefinitions,
+      footnoteDefinitions
     );
     if (headingContent.length > 0) {
       const ooxmlHeading: OoxmlElement = {
@@ -440,7 +440,7 @@ function convertMdastNodeToOoxml(
       const convertedChildren = convertMdastNodeToOoxml(
         childNode,
         definitions,
-        footnoteDefinitions,
+        footnoteDefinitions
       );
       for (const ooxmlChild of convertedChildren) {
         if (ooxmlChild.data?.ooxmlType === "paragraph") {
@@ -451,7 +451,7 @@ function convertMdastNodeToOoxml(
           results.push(ooxmlChild);
         } else if (ooxmlChild.data?.ooxmlType === "list") {
           console.warn(
-            "Applying blockquote style to nested lists is not fully supported yet.",
+            "Applying blockquote style to nested lists is not fully supported yet."
           );
           results.push(ooxmlChild);
         } else {
@@ -472,7 +472,7 @@ function convertMdastNodeToOoxml(
           const convertedContent = convertMdastNodeToOoxml(
             contentNode,
             definitions,
-            footnoteDefinitions,
+            footnoteDefinitions
           );
           ooxmlListItemChildren.push(...convertedContent);
         }
@@ -565,7 +565,7 @@ function convertMdastNodeToOoxml(
             const cellContentRuns = processInlineContent(
               mdastCell.children,
               definitions,
-              footnoteDefinitions,
+              footnoteDefinitions
             );
 
             const cellParagraph: OoxmlElement = {
@@ -639,7 +639,7 @@ function convertMdastNodeToOoxml(
           attributes: {},
           children: [],
           data: { ooxmlType: "tableGridCol" },
-        }),
+        })
       );
       const tableGrid: OoxmlElement = {
         type: "element",
@@ -707,7 +707,7 @@ function convertMdastNodeToOoxml(
     console.warn(
       `Unhandled MDAST node type during conversion: ${
         "type" in node ? (node as { type: string }).type : "unknown"
-      }`,
+      }`
     );
   }
 
@@ -746,7 +746,7 @@ export const mdastToOoxast: Plugin<[], MdastRoot, OoxmlRoot> = () => {
       const convertedNodes = convertMdastNodeToOoxml(
         node,
         definitions,
-        footnoteDefinitions,
+        footnoteDefinitions
       );
       ooxmlChildren.push(...convertedNodes);
     }
