@@ -13,11 +13,10 @@ This document outlines the dependencies required for each package in the Docen p
 - `unified`: Core unified.js processing pipeline (v11.0.5)
 - `vfile`: Virtual file handling (v6.0.3)
 - `unist`: Universal Syntax Tree base types (v0.0.1)
-- `unist-builder`: AST node creation utilities (v4.0.0)
-- `unist-util-assert`: AST validation utilities (v4.0.0)
+- `unist-builder`: AST node creation utilities (v4.0.0) - **Standard node creation**
 - `unist-util-filter`: AST filtering utilities (v5.0.1)
 - `unist-util-find`: AST search utilities (v3.0.0)
-- `unist-util-is`: AST type checking utilities (v6.0.0)
+- `unist-util-is`: AST type checking utilities (v6.0.0) - **Use `is(node, 'type')` instead of custom type guards**
 - `unist-util-map`: AST transformation utilities (v4.0.0)
 - `unist-util-remove`: AST node removal utilities (v4.0.0)
 - `unist-util-select`: CSS-like AST selection utilities (v5.1.0)
@@ -32,21 +31,21 @@ This document outlines the dependencies required for each package in the Docen p
 
 - **Core Interfaces**: DocenProcessor extending UnifiedProcessor
 - **Factory Functions**: Format detection and processor creation
-- **Type Definitions**: Shared types across all packages (Node, Parent, TextNode, DocenRoot)
-- **AST Utilities**: Node creation, validation, and traversal helpers
+- **Type Definitions**: Shared types across all packages (Node, Parent, DocenRoot)
+- **Pure Re-exports**: Standard unist utilities only - no custom wrappers
 - **Plugin System**: Basic plugin discovery and metadata management
 - **Error Handling**: Comprehensive error types (DocenError, ParseError, TransformError, ValidationError, PluginError)
 - **No Collaboration Code**: Pure unified.js compatibility
 
 ### Key Point
 
-**No Yjs dependencies** - Pure unified.js core functionality only.
+**No Yjs dependencies** - Pure unified.js core functionality. **Only re-exports standard unist tools - no custom functions.**
 
 ## @docen/document
 
 ### Production Dependencies
 
-- `@docen/core`: Core Docen functionality (workspace:\*)
+- `@docen/core`: Core Docen functionality (workspace:\*) - **Provides all AST utilities**
 - `hast-util-from-html`: Parse HTML to HAST (v2.0.3)
 - `hast-util-to-html`: Serialize HAST to HTML (v9.0.5)
 - `hast-util-to-mdast`: Convert HAST to MDAST (v10.1.2)
@@ -55,8 +54,11 @@ This document outlines the dependencies required for each package in the Docen p
 - `mdast-util-to-markdown`: Serialize MDAST to Markdown (v2.1.2)
 - `micromark-extension-gfm`: GitHub Flavored Markdown support (v3.0.0)
 - `mdast-util-gfm`: MDAST utilities for GFM (v3.1.0)
-- `unist-util-visit`: AST traversal utility (v5.0.0)
-- `unist-util-find`: AST search utilities (v3.0.0)
+
+### Development Dependencies
+
+- `@types/hast`: TypeScript definitions for hast (v3.0.4)
+- `@types/mdast`: TypeScript definitions for mdast (v4.0.4)
 
 ### Custom Implementations
 
@@ -64,10 +66,11 @@ This document outlines the dependencies required for each package in the Docen p
 - **GFM Support**: GitHub Flavored Markdown processing
 - **Bidirectional Conversion**: Markdown ↔ HTML conversion
 - **Plugin Compatibility**: Works with existing mdast/hast plugins
+- **Unified AST Access**: Uses @docen/core for all AST operations (is, u, visit, etc.)
 
 ### Key Point
 
-**No Yjs dependencies** - Pure unified.js text processing using low-level utilities.
+**No custom AST utilities** - Uses @docen/core and standard unist tools. **No redundant type guards or node creation functions.**
 
 ## @docen/data
 

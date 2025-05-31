@@ -148,3 +148,109 @@ export interface OfficeProcessorOptions {
   extractImages?: boolean;
   includeMetadata?: boolean;
 }
+
+// --- Shared Plugin Options ---
+
+/**
+ * Base options interface for all office format plugins
+ */
+export interface BasePluginOptions {
+  /** Whether to include debugging information */
+  debug?: boolean;
+  /** Custom extraction/processing options */
+  customOptions?: Record<string, unknown>;
+}
+
+/**
+ * Options for parsing office documents
+ */
+export interface FromOfficeOptions extends BasePluginOptions {
+  /** Whether to preserve whitespace in text elements */
+  preserveWhitespace?: boolean;
+  /** Whether to include raw parser data for debugging */
+  includeRawData?: boolean;
+  /** Configure which document parts to parse */
+  parts?: {
+    styles?: boolean;
+    numbering?: boolean;
+    comments?: boolean;
+    footnotes?: boolean;
+    endnotes?: boolean;
+    headers?: boolean;
+    footers?: boolean;
+    relationships?: boolean;
+    metadata?: boolean;
+  };
+  /** Custom element handlers for specific elements */
+  handlers?: Record<string, (element: unknown, context: unknown) => unknown>;
+  /** Extensions to enable */
+  extensions?: Array<{
+    name: string;
+    handler?: (element: unknown, context: unknown) => unknown;
+  }>;
+}
+
+/**
+ * Options for converting to office documents
+ */
+export interface ToOfficeOptions extends BasePluginOptions {
+  /** Document metadata */
+  metadata?: {
+    creator?: string;
+    description?: string;
+    title?: string;
+    subject?: string;
+    lastModifiedBy?: string;
+    keywords?: string;
+    category?: string;
+    comments?: string;
+  };
+  /** Page layout settings */
+  pageSettings?: {
+    width?: number;
+    height?: number;
+    margin?: {
+      top?: number;
+      right?: number;
+      bottom?: number;
+      left?: number;
+    };
+    orientation?: "portrait" | "landscape";
+  };
+  /** Compression level for output (0-9) */
+  compression?: number;
+  /** Whether to optimize for file size */
+  optimizeSize?: boolean;
+}
+
+/**
+ * Options specific to DOCX parsing
+ */
+export interface FromDocxOptions extends FromOfficeOptions {
+  // DOCX-specific options can be added here
+}
+
+/**
+ * Options specific to DOCX generation
+ */
+export interface ToDocxOptions extends ToOfficeOptions {
+  // DOCX-specific options can be added here
+}
+
+/**
+ * Options specific to PDF parsing
+ */
+export interface FromPdfOptions extends FromOfficeOptions {
+  /** Whether to attempt OCR on images */
+  enableOCR?: boolean;
+  /** Language for OCR (if enabled) */
+  ocrLanguage?: string;
+  /** Whether to preserve page structure */
+  preservePageStructure?: boolean;
+  /** OCR confidence threshold (0-1) */
+  ocrConfidenceThreshold?: number;
+  /** Whether to detect tables automatically */
+  detectTables?: boolean;
+  /** Table detection algorithm */
+  tableDetectionMethod?: "structure" | "heuristic" | "ml";
+}

@@ -1,42 +1,29 @@
 /**
  * Document processing types
- * Pure unified.js compatible types for text documents
+ * Re-exports standard mdast/hast types for convenience
  */
 
-import type { Node } from "@docen/core";
-import type { RootContent as HastContent, Root as HastRoot } from "hast";
-import type { RootContent as MdastContent, Root as MdastRoot } from "mdast";
-
 // --- Re-export standard AST types ---
+export type {
+  Root as MdastRoot,
+  RootContent as MdastContent,
+  Content as MdastNode,
+} from "mdast";
 
-export type { MdastRoot, MdastContent, HastRoot, HastContent };
+export type {
+  Root as HastRoot,
+  RootContent as HastContent,
+  Content as HastNode,
+} from "hast";
 
-// --- Input/Output format types ---
-
+// --- Format types ---
 export type InputFormat = "markdown" | "html";
-export type OutputFormat = "markdown" | "html" | "mdast" | "hast";
+export type OutputFormat = "markdown" | "html" | "ast";
 
 // --- Processor configuration ---
-
-export interface ProcessorConfig {
-  input: InputFormat;
-  output: OutputFormat;
-  gfm?: boolean;
-  frontmatter?: boolean;
-  math?: boolean;
-  footnotes?: boolean;
-}
-
 export interface DocumentProcessorOptions {
   gfm?: boolean;
   frontmatter?: boolean;
   math?: boolean;
   footnotes?: boolean;
-}
-
-// --- Document root types for unified.js compatibility ---
-
-export interface DocumentRoot extends Node {
-  type: "root";
-  children: MdastContent[] | HastContent[];
 }

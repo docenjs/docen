@@ -43,13 +43,6 @@ import type {
 // --- Helper Functions ---
 
 /**
- * Checks if a value represents an "on" state in OOXML.
- */
-function isOnOffTrue(value: unknown): boolean {
-  return value === true || value === "true" || value === "on" || value === "1";
-}
-
-/**
  * Simple HTML tag parser for basic inline tags (<u>, <sub>, <sup>).
  * Returns an array of text segments and associated tags.
  * Very basic, assumes valid nesting and no attributes.
@@ -658,7 +651,7 @@ function convertMdastNodeToOoxml(
 
       const basicBorderStyle: BorderStyleProperties = {
         style: "single",
-        size: { value: 4, unit: "pt" },
+        size: { value: 0.5, unit: "pt" }, // 减小边框厚度从4pt到0.5pt
         color: { value: "auto" },
       };
       const tableBorders: WmlTableProperties["borders"] = {
@@ -723,8 +716,9 @@ function convertMdastNodeToOoxml(
 
 /**
  * Unified plugin to convert an MDAST tree to an OOXML AST tree (OoxmlRoot).
+ * Follows unified.js naming convention (similar to toHast, toMdast)
  */
-export const mdastToOoxml: Plugin<[], MdastRoot, OoxmlRoot> = () => {
+export const mdastToOoxast: Plugin<[], MdastRoot, OoxmlRoot> = () => {
   return (tree: MdastRoot): OoxmlRoot => {
     const ooxmlChildren: OoxmlElementContent[] = [];
 
@@ -762,9 +756,6 @@ export const mdastToOoxml: Plugin<[], MdastRoot, OoxmlRoot> = () => {
       children: ooxmlChildren,
       data: { ooxmlType: "root" },
     };
-
-    // Optional: Log the generated OOXML AST for debugging
-    // console.log("Generated OOXML AST:", JSON.stringify(ooxmlRoot, null, 2));
 
     return ooxmlRoot;
   };

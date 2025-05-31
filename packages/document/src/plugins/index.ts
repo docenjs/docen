@@ -3,28 +3,7 @@
  * Provides extensibility for future unified.js plugins
  */
 
-import { createPlugin } from "@docen/core";
 import type { Plugin } from "unified";
-
-/**
- * Example plugin that demonstrates how to extend document processing
- * This is a placeholder for future unified.js ecosystem plugins
- */
-export function exampleDocumentPlugin(): Plugin {
-  return createPlugin(
-    () => (tree) => {
-      // Future unified.js ecosystem plugins would go here
-      // This is just a placeholder
-      return tree;
-    },
-    {
-      name: "example-document-plugin",
-      description: "Example plugin for document processing",
-      version: "1.0.0",
-      formats: ["markdown", "html"],
-    },
-  );
-}
 
 /**
  * Plugin registry for document-specific plugins

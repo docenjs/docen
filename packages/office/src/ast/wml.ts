@@ -1,5 +1,7 @@
 // ast/wml.ts
 // Defines OOXML types and property interfaces specific to WordprocessingML (WML)
+// Based on Office Open XML WordprocessingML specification
+// http://officeopenxml.com/
 
 import type {
   Measurement,
@@ -12,74 +14,130 @@ import type {
 } from "./shared";
 
 // --- WML Specific OOXML Types (String Literals) ---
-// These define the possible values for data.ooxmlType
+// These define the possible values for data.ooxmlType based on WordprocessingML specification
 
-export type WmlRootType = "root";
-export type WmlParagraphType = "paragraph";
-export type WmlTextRunType = "textRun";
-export type WmlTextType = "text"; // For enriched XastText nodes
-export type WmlBreakType = "break";
-export type WmlTableType = "table"; // <w:tbl>
-export type WmlTableRowType = "tableRow"; // <w:tr>
-export type WmlTableCellType = "tableCell"; // <w:tc>
-export type WmlListType = "list"; // Abstract type for grouped lists
-export type WmlListItemType = "listItem"; // Abstract type for list items
-export type WmlHyperlinkType = "hyperlink";
-export type WmlBookmarkStartType = "bookmarkStart";
-export type WmlBookmarkEndType = "bookmarkEnd";
+// Core document structure types
+export type WmlDocumentType = "document"; // <w:document> root element
+export type WmlBodyType = "body"; // <w:body> document body
+export type WmlParagraphType = "paragraph"; // <w:p> paragraph element
+export type WmlTextRunType = "textRun"; // <w:r> run element
+export type WmlTextType = "text"; // <w:t> text element
+export type WmlTextContentWrapperType = "textContentWrapper"; // For w:t wrapper
+
+// Text content and formatting types
+export type WmlBreakType = "break"; // <w:br> line/page/column break
+export type WmlTabCharType = "tabChar"; // <w:tab> tab character
+export type WmlSoftHyphenType = "softHyphen"; // <w:softHyphen>
+export type WmlNoBreakHyphenType = "noBreakHyphen"; // <w:noBreakHyphen>
+export type WmlSymbolType = "symbol"; // <w:sym> symbol character
+
+// Table structure types (exactly as in OOXML spec)
+export type WmlTableType = "table"; // <w:tbl> table element
+export type WmlTablePropertiesType = "tableProperties"; // <w:tblPr> table properties
+export type WmlTableGridType = "tableGrid"; // <w:tblGrid> table grid definition
+export type WmlTableGridColType = "tableGridCol"; // <w:gridCol> grid column
+export type WmlTableRowType = "tableRow"; // <w:tr> table row
+export type WmlTableRowPropertiesType = "tableRowProperties"; // <w:trPr> row properties
+export type WmlTableCellType = "tableCell"; // <w:tc> table cell
+export type WmlTableCellPropertiesType = "tableCellProperties"; // <w:tcPr> cell properties
+
+// List and numbering types (processed from w:numPr in paragraphs)
+export type WmlListType = "list"; // Abstract type for grouped list items
+export type WmlListItemType = "listItem"; // Abstract type for individual list items
+export type WmlNumberingPropertiesType = "numberingProperties"; // <w:numPr> numbering properties
+
+// Hyperlink and bookmark types
+export type WmlHyperlinkType = "hyperlink"; // <w:hyperlink> hyperlink element
+export type WmlBookmarkStartType = "bookmarkStart"; // <w:bookmarkStart>
+export type WmlBookmarkEndType = "bookmarkEnd"; // <w:bookmarkEnd>
+
+// Comment types
 export type WmlCommentReferenceType = "commentReference"; // <w:commentReference>
+export type WmlCommentRangeStartType = "commentRangeStart"; // <w:commentRangeStart>
+export type WmlCommentRangeEndType = "commentRangeEnd"; // <w:commentRangeEnd>
 export type WmlCommentType = "comment"; // For comment definitions in resources
-export type WmlHeaderType = "header"; // <w:hdr> root element
-export type WmlFooterType = "footer"; // <w:ftr> root element
-export type WmlSectionPropertiesType = "sectionProperties"; // <w:sectPr>
-export type WmlSymbolType = "symbol"; // <w:sym>
-export type WmlFieldCharType = "fieldChar"; // <w:fldChar>
-export type WmlSimpleFieldType = "simpleField"; // <w:fldSimple>
-export type WmlInstructionTextType = "instructionText"; // <w:instrText>
-export type WmlSoftHyphenType = "softHyphen"; // <w:softHyphen/>
-export type WmlNoBreakHyphenType = "noBreakHyphen"; // <w:noBreakHyphen/>
-export type WmlTabCharType = "tabChar"; // <w:tab/> within a run
-export type WmlFootnoteReferenceType = "footnoteReference"; // <w:footnoteReference w:id="..."/>
-export type WmlEndnoteReferenceType = "endnoteReference"; // <w:endnoteReference w:id="..."/>
-export type WmlDrawingType = "drawing"; // <w:drawing> - Wrapper for DML/VML
-export type WmlPictureType = "picture"; // <w:pict> - Legacy VML picture wrapper
-export type WmlTableGridType = "tableGrid"; // <w:tblGrid>
-export type WmlTableGridColType = "tableGridCol"; // <w:gridCol>
+
+// Section and document structure types
+export type WmlSectionPropertiesType = "sectionProperties"; // <w:sectPr> section properties
+export type WmlHeaderType = "header"; // <w:hdr> header content
+export type WmlFooterType = "footer"; // <w:ftr> footer content
+
+// Field types (complex fields)
+export type WmlFieldCharType = "fieldChar"; // <w:fldChar> field character
+export type WmlSimpleFieldType = "simpleField"; // <w:fldSimple> simple field
+export type WmlInstructionTextType = "instructionText"; // <w:instrText> field instruction
+
+// Reference types (footnotes/endnotes)
+export type WmlFootnoteReferenceType = "footnoteReference"; // <w:footnoteReference>
+export type WmlEndnoteReferenceType = "endnoteReference"; // <w:endnoteReference>
+
+// Drawing and graphics types
+export type WmlDrawingType = "drawing"; // <w:drawing> Drawing wrapper for DML
+export type WmlPictureType = "picture"; // <w:pict> VML picture wrapper
+
+// Smart tag types
+export type WmlSmartTagType = "smartTag"; // <w:smartTag> smart tag element
+
+// Properties types
+export type WmlParagraphPropertiesType = "paragraphProperties"; // <w:pPr> paragraph properties
+export type WmlRunPropertiesType = "runProperties"; // <w:rPr> run properties
 
 // Union of all WML semantic types
 export type WmlOoxmlType =
-  | WmlRootType
+  // Core document structure
+  | WmlDocumentType
+  | WmlBodyType
   | WmlParagraphType
   | WmlTextRunType
   | WmlTextType
+  | WmlTextContentWrapperType
+  // Text content and formatting
   | WmlBreakType
+  | WmlTabCharType
+  | WmlSoftHyphenType
+  | WmlNoBreakHyphenType
+  | WmlSymbolType
+  // Table structure
   | WmlTableType
+  | WmlTablePropertiesType
+  | WmlTableGridType
+  | WmlTableGridColType
   | WmlTableRowType
+  | WmlTableRowPropertiesType
   | WmlTableCellType
+  | WmlTableCellPropertiesType
+  // Lists and numbering
   | WmlListType
   | WmlListItemType
+  | WmlNumberingPropertiesType
+  // Hyperlinks and bookmarks
   | WmlHyperlinkType
   | WmlBookmarkStartType
   | WmlBookmarkEndType
+  // Comments
   | WmlCommentReferenceType
+  | WmlCommentRangeStartType
+  | WmlCommentRangeEndType
   | WmlCommentType
+  // Section and document structure
+  | WmlSectionPropertiesType
   | WmlHeaderType
   | WmlFooterType
-  | WmlSectionPropertiesType
-  | WmlSymbolType
+  // Fields
   | WmlFieldCharType
   | WmlSimpleFieldType
   | WmlInstructionTextType
-  | WmlSoftHyphenType
-  | WmlNoBreakHyphenType
-  | WmlTabCharType
+  // References
   | WmlFootnoteReferenceType
   | WmlEndnoteReferenceType
+  // Drawing and graphics
   | WmlDrawingType
   | WmlPictureType
-  | WmlTableGridType
-  | WmlTableGridColType;
-// Add other types like commentRangeStart/End, etc.
+  // Smart tags
+  | WmlSmartTagType
+  // Properties
+  | WmlParagraphPropertiesType
+  | WmlRunPropertiesType;
 
 // --- Interfaces for complex properties within data.properties ---
 // (Most properties are now defined in shared.ts and directly applied)
@@ -142,6 +200,12 @@ export interface WmlSimpleFieldProperties {
   instruction: string; // w:instr
   dirty?: OnOffValue; // w:dirty
   locked?: OnOffValue; // w:fldLock
+}
+
+// Structure for Smart Tag properties (<w:smartTag w:namespaceuri="..." w:name="..."/>)
+export interface WmlSmartTagProperties {
+  namespaceUri: string; // w:namespaceuri
+  name: string; // w:name
 }
 
 // --- Table Properties ---

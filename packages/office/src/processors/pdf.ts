@@ -1,8 +1,7 @@
 import { createProcessor } from "@docen/core";
 import type { DocenProcessorOptions } from "@docen/core";
-import type { Plugin, Processor } from "unified";
+import type { Processor } from "unified";
 import type { OoxmlRoot } from "../ast";
-import { pdfToOoxmlAst } from "../plugins/pdf-to-ooxml";
 
 // Define specific options, extending core options if needed
 export interface PdfProcessorOptions extends DocenProcessorOptions {
@@ -13,8 +12,8 @@ export interface PdfProcessorOptions extends DocenProcessorOptions {
 export type PdfProcessor = Processor<OoxmlRoot>;
 
 /**
- * Factory function to create a Docen processor specifically for PDF files,
- * potentially with collaboration enabled via @docen/core.
+ * Factory function to create a processor for PDF files.
+ * Follows unified.js conventions.
  */
 export function createPdfProcessor(
   options: PdfProcessorOptions = {},
@@ -23,9 +22,8 @@ export function createPdfProcessor(
     ...options,
   }) as unknown as PdfProcessor;
 
-  processor.use(pdfToOoxmlAst as Plugin<[], OoxmlRoot | undefined>);
-
-  console.warn("PDF Compiler/Stringify logic is not implemented.");
+  // Note: Parser handled via fromPdf() function for standalone conversion
+  // No DOCX output for PDF - use fromPdf() then convert to other formats
 
   return processor;
 }

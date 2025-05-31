@@ -5,7 +5,7 @@
 
 import { createProcessor } from "@docen/core";
 import type { DocenProcessor, DocenRoot } from "@docen/core";
-import type { DocumentProcessorOptions } from "../types";
+import type { DocumentProcessorOptions, HastRoot, MdastRoot } from "../types";
 
 import { fromHtml } from "hast-util-from-html";
 import { toHtml } from "hast-util-to-html";
@@ -16,9 +16,6 @@ import { toMarkdown } from "mdast-util-to-markdown";
 
 import { gfmFromMarkdown, gfmToMarkdown } from "mdast-util-gfm";
 import { gfm } from "micromark-extension-gfm";
-
-import type { Root as HastRoot } from "hast";
-import type { Root as MdastRoot } from "mdast";
 
 /**
  * Create a markdown processor with configurable output

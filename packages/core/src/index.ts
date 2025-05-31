@@ -12,9 +12,6 @@ export * from "./types";
 // Export all errors
 export * from "./errors";
 
-// Export core utilities
-export * from "./utils";
-
 // Export AST utilities
 export * from "./ast";
 

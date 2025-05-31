@@ -20,9 +20,9 @@ import type {
 
 // Define the OOXML Data enrichment interface
 export interface OoxmlData extends XastData {
-  ooxmlType?: string; // Semantic OOXML type (e.g., 'paragraph', 'textRun')
+  ooxmlType?: string; // Semantic OOXML type (e.g., 'document', 'paragraph', 'textRun', 'table')
   properties?: Record<string, unknown> | object; // Parsed OOXML properties - allow any object structure
-  relationId?: string;
+  relationId?: string; // Relationship ID for linked content (images, hyperlinks, etc.)
   collaborationMetadata?: Record<string, unknown>; // Placeholder for collaboration metadata
 }
 
@@ -154,7 +154,62 @@ export interface FontProperties {
     id?: number;
   };
   styleId?: string; // Reference to a character style <w:rStyle w:val="..."/>
-  // TODO: Add more effects like reflection, glow, textFill, outline properties from DML?
+  // DrawingML text effects - for advanced text formatting
+  textEffects?: {
+    // <a:reflection> - Text reflection effect
+    reflection?: {
+      blurRadius?: Measurement; // Blur radius for reflection
+      direction?: number; // Direction angle in degrees
+      distance?: Measurement; // Distance of reflection
+      size?: number; // Size as percentage (0-1)
+      alignment?:
+        | "bottom"
+        | "bottomLeft"
+        | "bottomRight"
+        | "center"
+        | "left"
+        | "right"
+        | "top"
+        | "topLeft"
+        | "topRight";
+      rotateWithShape?: boolean; // Whether reflection rotates with shape
+    };
+    // <a:glow> - Text glow effect
+    glow?: {
+      radius?: Measurement; // Glow radius
+      color?: ColorDefinition; // Glow color
+    };
+    // <a:gradFill> or <a:solidFill> for text fill
+    textFill?: {
+      type: "solid" | "gradient" | "pattern" | "picture";
+      color?: ColorDefinition; // For solid fills
+      gradient?: {
+        // For gradient fills
+        stops: Array<{
+          position: number; // 0-1
+          color: ColorDefinition;
+        }>;
+        type?: "linear" | "radial" | "rectangular";
+        angle?: number; // For linear gradients
+      };
+    };
+    // <a:ln> - Text outline
+    outline?: {
+      width?: Measurement; // Outline width
+      style?: string; // Line style (solid, dash, etc.)
+      color?: ColorDefinition; // Outline color
+      cap?: "flat" | "round" | "square"; // Line cap style
+      join?: "bevel" | "miter" | "round"; // Line join style
+    };
+    // <a:shadow> - Text shadow effect
+    shadow?: {
+      color?: ColorDefinition; // Shadow color
+      direction?: number; // Direction angle in degrees
+      distance?: Measurement; // Shadow distance
+      blurRadius?: Measurement; // Shadow blur radius
+      size?: number; // Shadow size as percentage
+    };
+  };
 }
 
 /**

@@ -188,13 +188,22 @@ function isPointInsideRect(x: number, y: number, rect: Rect): boolean {
  * Async Unified plugin to parse PDF content into an OoxmlRoot AST.
  * Aims to extract text with basic styles, and images with positions.
  */
-export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
+// Import shared types
+import type { FromPdfOptions } from "../types";
+
+/**
+ * Parse PDF file content into OOXML AST
+ * Follows unified.js naming convention (like fromXml, fromMarkdown)
+ */
+export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
+  options: FromPdfOptions = {},
+) => {
   return async (
     _tree: OoxmlRoot | undefined, // Input tree is ignored, but type should match return
     file: VFile,
   ): Promise<OoxmlRoot | undefined> => {
     console.log(
-      "Plugin: pdfToOoxmlAst running (Enhanced with basic styles and image placeholders).",
+      "Plugin: pdfToOoxast running (Enhanced with basic styles and image placeholders).",
     );
 
     if (!file.value || !(file.value instanceof Uint8Array)) {
@@ -275,36 +284,144 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
             };
           }); // Simplified link extraction
 
-        // --- Graphics State Tracking (Approximate Color) ---
+        // --- Graphics State Tracking (Improved) ---
         const OPS = pdfjs.OPS;
-        let currentFillColor: number[] = [0, 0, 0]; // Default black [R, G, B] or [Gray]
-        // TODO: Need a more robust graphics state machine for accurate color/style tracking
+
+        // Enhanced graphics state machine
+        interface GraphicsState {
+          fillColor: number[]; // [R, G, B] or [Gray] or [C, M, Y, K]
+          strokeColor: number[]; // [R, G, B] or [Gray] or [C, M, Y, K]
+          fillColorSpace: "DeviceGray" | "DeviceRGB" | "DeviceCMYK" | string;
+          strokeColorSpace: "DeviceGray" | "DeviceRGB" | "DeviceCMYK" | string;
+          lineWidth: number;
+          font: { name: string; size: number } | null;
+        }
+
+        const defaultGraphicsState: GraphicsState = {
+          fillColor: [0, 0, 0], // Default black
+          strokeColor: [0, 0, 0],
+          fillColorSpace: "DeviceRGB",
+          strokeColorSpace: "DeviceRGB",
+          lineWidth: 1,
+          font: null,
+        };
+
+        const graphicsStateStack: GraphicsState[] = [
+          { ...defaultGraphicsState },
+        ];
+        let currentGraphicsState = graphicsStateStack[0];
+
+        /**
+         * Convert CMYK color values to RGB approximation
+         * This is a simplified conversion - real-world CMYK to RGB requires color profiles
+         */
+        function cmykToRgb(
+          c: number,
+          m: number,
+          y: number,
+          k: number,
+        ): [number, number, number] {
+          // Convert CMYK (0-1) to RGB (0-1) using basic formula
+          const r = 1 - Math.min(1, c * (1 - k) + k);
+          const g = 1 - Math.min(1, m * (1 - k) + k);
+          const b = 1 - Math.min(1, y * (1 - k) + k);
+          return [r, g, b];
+        }
+
+        /**
+         * Convert color array to hex string based on color space
+         */
+        function colorToHex(color: number[], colorSpace: string): string {
+          if (colorSpace === "DeviceGray") {
+            const gray = Math.round(color[0] * 255);
+            return `${gray.toString(16).padStart(2, "0")}${gray.toString(16).padStart(2, "0")}${gray.toString(16).padStart(2, "0")}`;
+          }
+          if (colorSpace === "DeviceRGB") {
+            const r = Math.round(color[0] * 255);
+            const g = Math.round(color[1] * 255);
+            const b = Math.round(color[2] * 255);
+            return `${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+          }
+          if (colorSpace === "DeviceCMYK") {
+            const [r, g, b] = cmykToRgb(color[0], color[1], color[2], color[3]);
+            const rInt = Math.round(r * 255);
+            const gInt = Math.round(g * 255);
+            const bInt = Math.round(b * 255);
+            return `${rInt.toString(16).padStart(2, "0")}${gInt.toString(16).padStart(2, "0")}${bInt.toString(16).padStart(2, "0")}`;
+          }
+          // Fallback for unknown color spaces
+          return "000000";
+        }
 
         for (let i = 0; i < operatorList.fnArray.length; i++) {
           const fn = operatorList.fnArray[i];
           const args = operatorList.argsArray[i];
 
-          // Track fill color changes (simplified)
-          if (fn === OPS.setFillGray) {
-            currentFillColor = [args[0] as number];
+          // Graphics state management
+          if (fn === OPS.save) {
+            graphicsStateStack.push({ ...currentGraphicsState });
+          } else if (fn === OPS.restore) {
+            if (graphicsStateStack.length > 1) {
+              graphicsStateStack.pop();
+              currentGraphicsState =
+                graphicsStateStack[graphicsStateStack.length - 1];
+            }
+          }
+          // Fill color tracking
+          else if (fn === OPS.setFillGray) {
+            currentGraphicsState.fillColor = [args[0] as number];
+            currentGraphicsState.fillColorSpace = "DeviceGray";
           } else if (fn === OPS.setFillRGBColor) {
-            currentFillColor = [
+            currentGraphicsState.fillColor = [
               args[0] as number,
               args[1] as number,
               args[2] as number,
             ];
+            currentGraphicsState.fillColorSpace = "DeviceRGB";
           } else if (fn === OPS.setFillCMYKColor) {
-            // TODO: Convert CMYK to RGB - complex, using fallback for now
-            console.warn("CMYK color conversion not implemented, using black.");
-            currentFillColor = [0, 0, 0];
+            currentGraphicsState.fillColor = [
+              args[0] as number,
+              args[1] as number,
+              args[2] as number,
+              args[3] as number,
+            ];
+            currentGraphicsState.fillColorSpace = "DeviceCMYK";
           }
-          // TODO: Handle setFillColorN (Pattern/Separation), setFillColorSpace
+          // Handle indexed and pattern color spaces
+          else if (fn === OPS.setFillColorN) {
+            // Pattern or separation color space - use fallback color
+            console.warn(
+              "Pattern/Separation color space not fully implemented, using black.",
+            );
+            currentGraphicsState.fillColor = [0, 0, 0];
+            currentGraphicsState.fillColorSpace = "DeviceRGB";
+          }
+          // Color space changes
+          else if (fn === OPS.setFillColorSpace) {
+            const colorSpaceName = args[0] as string;
+            currentGraphicsState.fillColorSpace = colorSpaceName;
+            // Reset to default color when color space changes
+            if (colorSpaceName === "DeviceGray") {
+              currentGraphicsState.fillColor = [0]; // Black in gray
+            } else if (colorSpaceName === "DeviceRGB") {
+              currentGraphicsState.fillColor = [0, 0, 0]; // Black in RGB
+            } else if (colorSpaceName === "DeviceCMYK") {
+              currentGraphicsState.fillColor = [0, 0, 0, 1]; // Black in CMYK
+            }
+          }
+          // Font tracking
+          else if (fn === OPS.setFont) {
+            const fontRef = args[0] as string;
+            const fontSize = args[1] as number;
+            currentGraphicsState.font = { name: fontRef, size: fontSize };
+          }
         }
-        // Note: This color tracking is very basic. A real implementation needs to
-        // track the full graphics state stack (q/Q operators) and apply color
-        // precisely when text drawing ops (Tj/TJ) occur relative to color ops.
-        // Applying the *last* color found is a significant approximation.
-        const lastFillColorHex = pdfColorToHex(currentFillColor);
+
+        // Get final fill color for text rendering
+        const finalFillColorHex = colorToHex(
+          currentGraphicsState.fillColor,
+          currentGraphicsState.fillColorSpace,
+        );
 
         // --- 1. Process Text Content (Create RawPdfContentItem) ---
         for (const item of textContent.items as PDFTextItem[]) {
@@ -333,7 +450,7 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
           const fontProps: FontProperties = {
             name: item.fontName,
             size: { value: fontSize, unit: "pt" } as Measurement,
-            color: { value: lastFillColorHex } as ColorDefinition,
+            color: { value: finalFillColorHex } as ColorDefinition,
             ...fontStyles,
           };
 
@@ -356,10 +473,20 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
               ooxmlType: "textRun",
               properties: fontProps,
               pdf: {
-                transform: item.transform,
-                width: item.width,
-                height: item.height,
-                fontName: item.fontName,
+                coordinates: {
+                  x: x1,
+                  y: y1,
+                  width: x2 - x1,
+                  height: y2 - y1,
+                  transform: item.transform,
+                  pageIndex: pageNum - 1,
+                  pageWidth: viewport.width,
+                  pageHeight: viewport.height,
+                },
+                font: {
+                  name: item.fontName,
+                  size: fontSize,
+                },
               },
             } as PdfTextRunData,
           };
@@ -432,9 +559,20 @@ export const pdfToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
                     properties: positionalProps,
                     relationId: `pdfImage_${pageNum}_${imgRef}`,
                     pdf: {
-                      ref: imgRef,
-                      width: pdfImage.width,
-                      height: pdfImage.height,
+                      coordinates: {
+                        x: imgX,
+                        y: imgY,
+                        width: imgWidth,
+                        height: imgHeight,
+                        pageIndex: pageNum - 1,
+                        pageWidth: viewport.width,
+                        pageHeight: viewport.height,
+                      },
+                      image: {
+                        objectId: imgRef,
+                        width: pdfImage.width,
+                        height: pdfImage.height,
+                      },
                     },
                   } as PdfDrawingData,
                 };

@@ -5,7 +5,6 @@ import {
   ExternalHyperlink,
   HeadingLevel,
   type IBorderOptions,
-  // Import specific image option types
   type IImageOptions,
   type ILevelsOptions,
   type IRunOptions,
@@ -195,103 +194,101 @@ function mapBorderStyle(
   };
 
   // Clean undefined properties using reduce on the temporary object
-  const finalBorder = Object.entries(tempBorder).reduce(
-    (acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = value; // Assign to generic accumulator
-      }
-      return acc;
-    },
-    {} as Record<string, unknown>,
-  ); // Use writable type for accumulator
+  const finalBorder = Object.entries(tempBorder).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      (acc as Record<string, unknown>)[key] = value;
+    }
+    return acc;
+  }, {} as IBorderOptions);
 
-  // Return cast to IBorderOptions only if valid
-  return Object.keys(finalBorder).length > 0
-    ? (finalBorder as IBorderOptions)
-    : undefined;
+  return finalBorder;
 }
 
-// Helper function to map AST TableBorderProperties to docx ITableBordersOptions
+// Helper function to convert table borders
 function mapTableBorders(
   astBorders?: TableBorderProperties,
 ): ITableBordersOptions | undefined {
   if (!astBorders) return undefined;
 
-  // Build a writable object first
-  const tempBorders: Record<string, unknown> = {
-    // Use a generic writable object
-    top: mapBorderStyle(astBorders.top),
-    left: mapBorderStyle(astBorders.left),
-    bottom: mapBorderStyle(astBorders.bottom),
-    right: mapBorderStyle(astBorders.right),
-    insideHorizontal: mapBorderStyle(astBorders.insideH),
-    insideVertical: mapBorderStyle(astBorders.insideV),
-  };
+  const mappedBorders: Record<string, IBorderOptions> = {};
 
-  // Clean undefined properties using reduce on the temporary object
-  const finalBorders = Object.entries(tempBorders).reduce(
-    (acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = value; // Assign to generic accumulator
+  // Map each border type
+  const borderTypes = [
+    "top",
+    "bottom",
+    "left",
+    "right",
+    "insideH",
+    "insideV",
+  ] as const;
+
+  for (const borderType of borderTypes) {
+    const astBorder = astBorders[borderType];
+    if (astBorder) {
+      const mappedBorder = mapBorderStyle(astBorder);
+      if (mappedBorder) {
+        mappedBorders[borderType] = mappedBorder;
       }
-      return acc;
-    },
-    {} as Record<string, unknown>,
-  ); // Use writable type for accumulator
+    }
+  }
 
-  // Return cast to ITableBordersOptions only if valid
-  return Object.keys(finalBorders).length > 0
-    ? (finalBorders as ITableBordersOptions)
+  return Object.keys(mappedBorders).length > 0
+    ? (mappedBorders as ITableBordersOptions)
     : undefined;
 }
 
-// Simple numbering configuration for basic lists
-const numbering = {
-  config: [
-    {
-      reference: "ooxml-bullet-list",
-      levels: generateNumberingLevels("bullet"),
-    },
-    {
-      reference: "ooxml-number-list",
-      levels: generateNumberingLevels("number"),
-    },
-  ] as const,
-};
-
-// Define context type for passing list info
 interface ProcessingContext {
   listLevel?: number;
   listRef?: string;
 }
 
-/**
- * Converts a DXA value to points.
- * @param dxa The value in twentieths of a point (DXA).
- * @returns The value in points, or undefined if input is invalid.
- */
 function dxaToPoints(dxa: unknown): number | undefined {
-  const num = Number(dxa);
-  if (!Number.isNaN(num) && Number.isFinite(num)) {
-    return num / 20;
+  if (typeof dxa === "number") {
+    return dxa / 20; // 1 point = 20 dxa
   }
   return undefined;
 }
 
+// Import shared types
+import type { ToDocxOptions } from "../types";
+
 /**
- * Unified plugin to convert an OOXML AST tree (OoxmlRoot) to a docx.js Document object.
- * Assigns the generated Document to file.result.
+ * Serialize OOXML AST to DOCX Document object
+ * Follows unified.js naming convention (similar to toXml, toMarkdown)
+ *
+ * Based on the original ooxmlToDocx implementation but adapted for unified.js patterns
  */
-// Make the plugin function return an async transformer function
-export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
+export const ooxastToDocx: Plugin<
+  [ToDocxOptions?],
+  OoxmlRoot,
+  Promise<void>
+> = (options: ToDocxOptions = {}) => {
   return async (tree: OoxmlRoot, file: VFile): Promise<void> => {
+    if (options.debug) {
+      console.log("ooxastToDocx plugin: Starting OOXML AST serialization");
+    }
+
     // --- Log Input Tree ---
     console.log(
-      `[ooxmlToDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`,
+      `[toDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`,
     );
     // ----------------------
     const docxSections: ISectionOptions[] = [];
     let currentSectionChildren: DocxChild[] = [];
+
+    // Define numbering for lists
+    const numbering = {
+      config: [
+        {
+          reference: "ooxml-bullet-list",
+          levels: generateNumberingLevels("bullet"),
+        },
+        {
+          reference: "ooxml-number-list",
+          levels: generateNumberingLevels("number"),
+        },
+      ],
+    };
 
     // processNode needs to be async to handle awaits within loops
     const processNode = async (
@@ -556,7 +553,48 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                       doubleStrike: onOffToBoolean(runProps.doubleStrike),
                       // Directly map the font property if it exists
                       ...(runProps.font && { font: runProps.font }),
-                      // TODO: Add other run properties like font name (from rFonts?), size, color, underline
+                      // Additional run properties from OOXML WML specifications
+                      ...(runProps.size && {
+                        size: Math.round(runProps.size.value * 2), // Convert points to half-points
+                      }),
+                      ...(runProps.color && {
+                        color: runProps.color.value?.startsWith("#")
+                          ? runProps.color.value.substring(1)
+                          : runProps.color.value,
+                      }),
+                      ...(runProps.underline && {
+                        underline: {
+                          type:
+                            runProps.underline.style === "dashed"
+                              ? "dash"
+                              : (runProps.underline.style as
+                                  | "single"
+                                  | "double"
+                                  | "thick"
+                                  | "dotted"
+                                  | "wave") || "single",
+                          ...(runProps.underline.color && {
+                            color: runProps.underline.color.value?.startsWith(
+                              "#",
+                            )
+                              ? runProps.underline.color.value.substring(1)
+                              : runProps.underline.color.value,
+                          }),
+                        },
+                      }),
+                      // Note: highlight property requires specific enum values, skipping for now
+                      ...(runProps.effect === "smallCaps" && {
+                        smallCaps: true,
+                      }),
+                      ...(runProps.effect === "allCaps" && {
+                        allCaps: true,
+                      }),
+                      ...(runProps.vertAlign === "subscript" && {
+                        subScript: true,
+                      }),
+                      ...(runProps.vertAlign === "superscript" && {
+                        superScript: true,
+                      }),
                     };
 
                     // Convert properties, ensuring correct types for docx.js
@@ -714,33 +752,34 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
             let tableGridElement: OoxmlElement | undefined;
             const gridCols: number[] = [];
 
-            // Find grid and row elements (sync)
-            // element.children?.forEach((child) => {
+            // Find grid and row elements using ooxmlType instead of XML names
             for (const child of element.children ?? []) {
               if (child.type === "element") {
-                if (child.name === "w:tblGrid") {
+                const childData = (child as OoxmlElement).data as
+                  | OoxmlData
+                  | undefined;
+                if (childData?.ooxmlType === "tableGrid") {
                   tableGridElement = child as OoxmlElement;
                   // Store gridCol children
                   for (const gc of tableGridElement.children ?? []) {
                     if (
                       gc.type === "element" &&
-                      gc.name === "w:gridCol" &&
-                      gc.attributes?.["w:w"]
+                      (gc.data as OoxmlData)?.ooxmlType === "tableGridCol"
                     ) {
-                      gridCols.push(
-                        Number.parseInt(gc.attributes["w:w"] as string, 10),
-                      );
+                      const gcProps = (gc.data as OoxmlData)?.properties as
+                        | { width?: { value: number } }
+                        | undefined;
+                      if (gcProps?.width?.value) {
+                        gridCols.push(gcProps.width.value);
+                      }
                     }
                   }
                   console.log(
                     `${indent}  Found tableGrid with ${gridCols.length} columns.`,
                   );
-                } else if (child.name === "w:tr") {
-                  // Row processing needs to be async due to cell content
                 }
               }
             }
-            // });
 
             // Process rows asynchronously
             const rowPromises = (element.children || [])
@@ -749,12 +788,9 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                   child.type === "element" &&
                   (child.data as OoxmlData)?.ooxmlType === "tableRow",
               )
-              // REMOVE explicit type annotation for rowElement
               .map(async (rowElement) => {
-                // Now rowElement should be inferred correctly or asserted inside if needed
                 const tableCells: TableCell[] = [];
-                // Filter for elements and provide type for cellChild
-                // Type assertion might be needed if inference fails after filter
+
                 const cellPromises = (
                   (rowElement as OoxmlElement).children || []
                 )
@@ -763,12 +799,11 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                       c.type === "element" &&
                       (c.data as OoxmlData)?.ooxmlType === "tableCell",
                   )
-                  // Provide type for cellElement
                   .map(async (cellElement: OoxmlElement) => {
                     const cellProps = (cellElement.data?.properties ||
                       {}) as TableCellProperties;
+
                     // Process cell content asynchronously
-                    // Provide type for contentNode
                     const cellContentPromises = (
                       cellElement.children || []
                     ).map((contentNode: OoxmlElementContent) =>
@@ -785,11 +820,12 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                     const tempCellOpts: Record<string, unknown> = {
                       children: cellContent,
                     };
-                    // ... (map cellProps like gridSpan, verticalAlign to tempCellOpts)
-                    const span = Number(cellProps.gridSpan);
-                    if (!Number.isNaN(span) && span > 0) {
-                      tempCellOpts.columnSpan = span;
+
+                    // Map cell properties
+                    if (cellProps.gridSpan && cellProps.gridSpan > 1) {
+                      tempCellOpts.columnSpan = cellProps.gridSpan;
                     }
+
                     if (cellProps.verticalAlign) {
                       const valignMap = {
                         top: VerticalAlign.TOP,
@@ -799,10 +835,18 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
                       tempCellOpts.verticalAlign =
                         valignMap[cellProps.verticalAlign];
                     }
-                    // TODO: Map borders, shading, margins
+
+                    // Map cell borders if available
+                    if (cellProps.borders) {
+                      const mappedBorders = mapTableBorders(cellProps.borders);
+                      if (mappedBorders) {
+                        tempCellOpts.borders = mappedBorders;
+                      }
+                    }
 
                     return new TableCell(tempCellOpts as ITableCellOptions);
                   });
+
                 const resolvedCells = await Promise.all(cellPromises);
                 if (resolvedCells.length > 0) {
                   return new TableRow({ children: resolvedCells });
@@ -814,21 +858,51 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
               (r) => r !== null,
             ) as TableRow[];
 
-            const columnCount = gridCols.length;
-            if (resolvedRows.length > 0 && columnCount > 0) {
-              const tempTableOpts: ITableOptions = {
+            // Use gridCols length if available, otherwise fallback to 1
+            const columnCount = gridCols.length > 0 ? gridCols.length : 1;
+            if (resolvedRows.length > 0) {
+              const tempTableOpts: Record<string, unknown> = {
                 rows: resolvedRows,
                 width: {
                   size: 100,
-                  type: WidthType.PERCENTAGE, // Set width to 100% of page
+                  type: WidthType.PERCENTAGE,
                 },
               };
-              // ... (existing table property mapping like width, borders, etc.) ...
-              children.push(new Table(tempTableOpts));
+
+              // Apply table-level properties
+              if (tableProps.borders) {
+                const mappedTableBorders = mapTableBorders(tableProps.borders);
+                if (mappedTableBorders) {
+                  tempTableOpts.borders = mappedTableBorders;
+                }
+              }
+
+              if (
+                tableProps.width &&
+                typeof tableProps.width === "object" &&
+                tableProps.width !== null &&
+                "unit" in tableProps.width
+              ) {
+                const widthObj = tableProps.width as {
+                  value: number;
+                  unit: string;
+                };
+                if (widthObj.unit === "pct") {
+                  tempTableOpts.width = {
+                    size: widthObj.value,
+                    type: WidthType.PERCENTAGE,
+                  };
+                } else if (widthObj.unit === "dxa") {
+                  tempTableOpts.width = {
+                    size: dxaToPoints(widthObj.value) || widthObj.value,
+                    type: WidthType.DXA,
+                  };
+                }
+              }
+
+              children.push(new Table(tempTableOpts as ITableOptions));
             } else {
-              console.log(
-                `${indent}[processNode] Table generated no rows or column count was zero.`,
-              );
+              console.log(`${indent}[processNode] Table generated no rows.`);
             }
           } else {
             // ... handle other element types or skip ...
@@ -854,7 +928,8 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
           // ... handle other node types ...
         }
       } catch (error) {
-        // ... error handling ...
+        console.error(`Error processing node at depth ${depth}:`, error);
+        file.message(new Error(`Node processing failed: ${String(error)}`));
       }
       return children;
     };
@@ -862,7 +937,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
     // Start processing from the root, now awaiting the result
     currentSectionChildren = await processNode(tree);
     console.log(
-      `[ooxmlToDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`,
+      `[toDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`,
     );
 
     // ... create sections and document (sync) ...
@@ -876,9 +951,7 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
         properties: {},
         children: [new Paragraph("Generated document is empty.")],
       });
-      console.warn(
-        "[ooxmlToDocx] No content generated for the document section.",
-      );
+      console.warn("[toDocx] No content generated for the document section.");
     }
 
     // Create the Document object
@@ -886,15 +959,10 @@ export const ooxmlToDocx: Plugin<[], OoxmlRoot, Promise<void>> = () => {
       sections: docxSections,
       numbering: numbering,
     });
-    console.log("[ooxmlToDocx] Document object created successfully.");
+    console.log("[toDocx] Document object created successfully.");
 
     // Assign the Document object to file.result
     file.result = doc;
-    console.log("[ooxmlToDocx] Assigned Document object to file.result.");
+    console.log("[toDocx] Assigned Document object to file.result.");
   }; // End of async transformer function
 }; // End of plugin definition
-
-// Helper function placeholder (if needed later)
-/*
-function mapMoreTableProps(...) { ... }
-*/

@@ -96,7 +96,7 @@ type WmlCommentReference = OoxmlElement & {
 };
 type WmlComment = SharedCommentDefinition;
 
-import { docxToOoxmlAst } from "../src/plugins/docx-to-ooxml";
+import { docxToOoxast } from "../src/plugins";
 
 // Helper function to load a DOCX file and run the parser
 async function parseDocxFile(fileName: string): Promise<WmlRoot | undefined> {
@@ -111,7 +111,7 @@ async function parseDocxFile(fileName: string): Promise<WmlRoot | undefined> {
     data: { ooxmlType: "wmlRoot" },
   };
 
-  const processor = unified().use(docxToOoxmlAst);
+  const processor = unified().use(docxToOoxast);
   const result = await processor.run(initialRoot, file);
 
   if (file.messages.length > 0) {

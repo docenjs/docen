@@ -1,12 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createMarkdownProcessor } from "@docen/document";
-import { mdastToOoxml, ooxmlToDocx } from "@docen/office";
+import { mdastToOoxast, ooxastToDocx } from "@docen/office";
 import { Document, Packer } from "docx";
 import { VFile } from "vfile";
 // --- Log the imported plugin ---
 console.log(
-  `[markdown-to-docx] Imported ooxmlToDocx type: ${typeof ooxmlToDocx}`,
+  `[markdown-to-docx] Imported ooxastToDocx type: ${typeof ooxastToDocx}`,
 );
 // ------------------------------
 
@@ -39,9 +39,9 @@ async function convertMarkdownToDocx() {
 
   try {
     // Define the unified pipeline using the new processor
-    const processor = createMarkdownProcessor("ast", { gfm: false })
-      .use(mdastToOoxml) // MDAST -> OOXML AST transformer
-      .use(ooxmlToDocx); // OOXML AST -> docx.Document transformer (attaches to result)
+    const processor = createMarkdownProcessor("ast", { gfm: true })
+      .use(mdastToOoxast) // MDAST -> OOXML AST transformer
+      .use(ooxastToDocx); // OOXML AST -> docx.Document transformer (attaches to result)
 
     // Parse the markdown into an MDAST tree
     const tree = processor.parse(vfile);

@@ -5,6 +5,7 @@ import { CONTINUE, EXIT, SKIP, visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import { fromXml } from "xast-util-from-xml";
 import type {
+  BorderStyleProperties,
   ColorDefinition,
   FontProperties,
   IndentationProperties,
@@ -39,6 +40,7 @@ import type {
   WmlBreakProperties,
   WmlCommentRefProperties,
   WmlHyperlinkProperties,
+  WmlSmartTagProperties,
   WmlTableCellProperties,
   WmlTableProperties,
   WmlTableRowProperties,
@@ -69,12 +71,43 @@ function parseMeasurement(
 ): Measurement | undefined {
   if (value === undefined) return undefined;
   if (value === "auto") return undefined;
+
+  // Handle explicit unit suffixes in the value string
+  const unitSuffixes = {
+    pt: "pt",
+    in: "in",
+    cm: "cm",
+    mm: "mm",
+    px: "pt", // Convert pixels to points (approximation)
+    em: "pt", // Convert em to points (approximation, assumes 12pt base)
+    "%": "pct",
+  } as const;
+
+  for (const [suffix, unit] of Object.entries(unitSuffixes)) {
+    if (value.endsWith(suffix)) {
+      const numValue = Number.parseFloat(value.slice(0, -suffix.length));
+      if (!Number.isNaN(numValue)) {
+        // Special conversions
+        if (suffix === "px") {
+          return { value: numValue * 0.75, unit: "pt" }; // 1px ≈ 0.75pt
+        }
+        if (suffix === "em") {
+          return { value: numValue * 12, unit: "pt" }; // Assume 12pt base font
+        }
+        if (suffix === "%") {
+          return { value: numValue, unit: "pct" };
+        }
+        return { value: numValue, unit: unit as MeasurementUnit };
+      }
+    }
+  }
+
+  // No explicit unit found, try parsing as number with default unit
   const num = Number.parseInt(value, 10);
   if (!Number.isNaN(num)) {
-    // Basic implementation: assumes default unit
-    // TODO: Extend to handle units like pt, pct etc. based on context or type attribute
     return { value: num, unit: defaultUnit };
   }
+
   return undefined;
 }
 
@@ -109,67 +142,271 @@ function parseUnderline(
   return underlineProp;
 }
 
-// --- Placeholder Parsing Helpers for TODOs ---
+// --- Implemented Parsing Helpers ---
 function parseIndentation(
   indElement: OoxmlElement | undefined,
 ): IndentationProperties | undefined {
-  console.warn("Indentation parsing skipped, needs parseIndentation utility.");
-  return undefined;
+  if (!indElement || !is(indElement, { name: "w:ind" })) return undefined;
+  const props: IndentationProperties = {};
+
+  const left = getAttribute(indElement, "w:left");
+  if (left) props.left = parseMeasurement(left, "dxa");
+
+  const right = getAttribute(indElement, "w:right");
+  if (right) props.right = parseMeasurement(right, "dxa");
+
+  const hanging = getAttribute(indElement, "w:hanging");
+  if (hanging) props.hanging = parseMeasurement(hanging, "dxa");
+
+  const firstLine = getAttribute(indElement, "w:firstLine");
+  if (firstLine) props.firstLine = parseMeasurement(firstLine, "dxa");
+
+  return Object.keys(props).length > 0 ? props : undefined;
 }
+
 function parseSpacing(
   spacingElement: OoxmlElement | undefined,
 ): SpacingProperties | undefined {
-  console.warn("Spacing parsing skipped, needs parseSpacing utility.");
-  return undefined;
+  if (!spacingElement || !is(spacingElement, { name: "w:spacing" }))
+    return undefined;
+  const props: SpacingProperties = {};
+
+  const before = getAttribute(spacingElement, "w:before");
+  if (before) props.before = parseMeasurement(before, "dxa");
+
+  const after = getAttribute(spacingElement, "w:after");
+  if (after) props.after = parseMeasurement(after, "dxa");
+
+  const line = getAttribute(spacingElement, "w:line");
+  if (line) props.line = parseMeasurement(line, "dxa");
+
+  const lineRule = getAttribute(spacingElement, "w:lineRule");
+  if (lineRule) props.lineRule = lineRule as SpacingProperties["lineRule"];
+
+  return Object.keys(props).length > 0 ? props : undefined;
 }
+
 function parseShading(
   shdElement: OoxmlElement | undefined,
 ): ShadingProperties | undefined {
-  console.warn("Shading parsing skipped, needs parseShading utility.");
-  return undefined;
+  if (!shdElement || !is(shdElement, { name: "w:shd" })) return undefined;
+  const props: ShadingProperties = {};
+
+  const val = getAttribute(shdElement, "w:val");
+  if (val) props.pattern = val as ShadingProperties["pattern"];
+
+  const color = getAttribute(shdElement, "w:color");
+  if (color && color !== "auto") props.color = { value: color };
+
+  const fill = getAttribute(shdElement, "w:fill");
+  if (fill && fill !== "auto") props.fillColor = { value: fill };
+
+  return Object.keys(props).length > 0 ? props : undefined;
 }
+
 function parseBorders(
   bdrElement: OoxmlElement | undefined,
 ): TableBorderProperties | ParagraphBorderProperties | undefined {
-  console.warn("Border parsing skipped, needs parseBorders utility.");
-  return undefined;
+  if (!bdrElement) return undefined;
+  const borders: Record<string, BorderStyleProperties> = {};
+
+  for (const child of bdrElement.children || []) {
+    if (!is(child, "element")) continue;
+
+    let borderType: string | undefined;
+    switch (child.name) {
+      case "w:top":
+        borderType = "top";
+        break;
+      case "w:bottom":
+        borderType = "bottom";
+        break;
+      case "w:left":
+        borderType = "left";
+        break;
+      case "w:right":
+        borderType = "right";
+        break;
+      case "w:insideH":
+        borderType = "insideH";
+        break;
+      case "w:insideV":
+        borderType = "insideV";
+        break;
+      case "w:between":
+        borderType = "between";
+        break;
+      case "w:bar":
+        borderType = "bar";
+        break;
+    }
+
+    if (borderType) {
+      const borderStyle: BorderStyleProperties = {};
+
+      const val = getAttribute(child, "w:val");
+      if (val && val !== "none") borderStyle.style = val;
+
+      const sz = getAttribute(child, "w:sz");
+      if (sz)
+        borderStyle.size = { value: Number.parseInt(sz, 10) / 8, unit: "pt" }; // sz is in eighths of a point
+
+      const color = getAttribute(child, "w:color");
+      if (color && color !== "auto") borderStyle.color = { value: color };
+
+      const space = getAttribute(child, "w:space");
+      if (space)
+        borderStyle.space = { value: Number.parseInt(space, 10), unit: "pt" };
+
+      if (Object.keys(borderStyle).length > 0) {
+        borders[borderType] = borderStyle;
+      }
+    }
+  }
+
+  return Object.keys(borders).length > 0
+    ? (borders as TableBorderProperties)
+    : undefined;
 }
+
 function parseTabs(
   tabsElement: OoxmlElement | undefined,
 ): TabStop[] | undefined {
-  console.warn("Tabs parsing skipped, needs parseTabs utility.");
-  return undefined;
+  if (!tabsElement || !is(tabsElement, { name: "w:tabs" })) return undefined;
+  const tabs: TabStop[] = [];
+
+  for (const child of tabsElement.children || []) {
+    if (is(child, "element") && child.name === "w:tab") {
+      const tabElement = child as OoxmlElement;
+
+      const val = getAttribute(tabElement, "w:val");
+      const pos = getAttribute(tabElement, "w:pos");
+      const leader = getAttribute(tabElement, "w:leader");
+
+      const position = parseMeasurement(pos, "dxa");
+      const alignment = (val as TabStop["alignment"]) || "left";
+
+      if (position) {
+        const tab: TabStop = {
+          position,
+          alignment,
+        };
+
+        if (leader) {
+          tab.leader = leader as TabStop["leader"];
+        }
+
+        tabs.push(tab);
+      }
+    }
+  }
+
+  return tabs.length > 0 ? tabs : undefined;
 }
 function parseTableLayout(
   layoutElement: OoxmlElement | undefined,
 ): WmlTableProperties["layout"] {
-  return undefined;
+  if (!layoutElement || !is(layoutElement, { name: "w:tblLayout" }))
+    return undefined;
+  const type = getAttribute(layoutElement, "w:type");
+  return type === "fixed" || type === "autofit" ? type : undefined;
 }
+
 function parseCellMargins(
   marElement: OoxmlElement | undefined,
 ): WmlTableCellProperties["margins"] {
-  return undefined;
+  if (!marElement || !is(marElement, { name: "w:tcMar" })) return undefined;
+  const margins: WmlTableCellProperties["margins"] = {};
+
+  for (const child of marElement.children || []) {
+    if (!is(child, "element")) continue;
+
+    let marginType:
+      | keyof NonNullable<WmlTableCellProperties["margins"]>
+      | undefined;
+    switch (child.name) {
+      case "w:top":
+        marginType = "top";
+        break;
+      case "w:bottom":
+        marginType = "bottom";
+        break;
+      case "w:left":
+        marginType = "left";
+        break;
+      case "w:right":
+        marginType = "right";
+        break;
+    }
+
+    if (marginType) {
+      const w = getAttribute(child as OoxmlElement, "w:w");
+      const type = getAttribute(child as OoxmlElement, "w:type");
+      if (w) {
+        margins[marginType] = parseMeasurement(
+          w,
+          type === "dxa" ? "dxa" : "pt",
+        );
+      }
+    }
+  }
+
+  return Object.keys(margins).length > 0 ? margins : undefined;
 }
+
 function parseHeight(
   heightElement: OoxmlElement | undefined,
 ): Measurement | undefined {
-  return undefined;
+  if (!heightElement || !is(heightElement, { name: "w:trHeight" }))
+    return undefined;
+  const val = getAttribute(heightElement, "w:val");
+  return val ? parseMeasurement(val, "dxa") : undefined;
 }
+
 function parseWidth(
   widthElement: OoxmlElement | undefined,
 ): MeasurementOrPercent | MeasurementOrAuto | undefined {
-  return undefined;
+  if (!widthElement) return undefined;
+  const w = getAttribute(widthElement, "w:w");
+  const type = getAttribute(widthElement, "w:type");
+
+  if (w === "auto") return "auto";
+  if (!w) return undefined;
+
+  const numValue = Number.parseInt(w, 10);
+  if (Number.isNaN(numValue)) return undefined;
+
+  switch (type) {
+    case "pct":
+      return { value: numValue / 50, unit: "pct" }; // OOXML percentage is in 50ths of a percent
+    case "dxa":
+      return { value: numValue, unit: "dxa" };
+    case "auto":
+      return "auto";
+    default:
+      return { value: numValue, unit: "dxa" }; // Default to dxa
+  }
 }
+
 function parseVAlign(
   valignElement: OoxmlElement | undefined,
 ): WmlTableCellProperties["verticalAlign"] {
-  return undefined;
+  if (!valignElement || !is(valignElement, { name: "w:vAlign" }))
+    return undefined;
+  const val = getAttribute(valignElement, "w:val");
+  return val === "top" || val === "center" || val === "bottom"
+    ? val
+    : undefined;
 }
 
 // Context for transformation functions
 interface TransformContext {
   resources: SharedResources;
   relationships: RelationshipMap;
+  customHandlers?: Record<
+    string,
+    (element: OoxmlElement, context: TransformContext) => unknown
+  >;
 }
 
 // Helper to merge properties (Keep as is)
@@ -406,6 +643,7 @@ function parseTblPr(
         props.styleId = getAttribute(child, "w:val");
         break;
       case "w:tblW":
+        props.width = parseWidth(child);
         break;
       case "w:jc":
         props.alignment = getAttribute(
@@ -414,18 +652,19 @@ function parseTblPr(
         ) as WmlTableProperties["alignment"];
         break;
       case "w:tblInd":
-        props.indentation = parseMeasurement(
-          getAttribute(child, "w:val"),
-          "dxa",
-        );
+        props.indentation = parseMeasurement(getAttribute(child, "w:w"), "dxa");
         break;
       case "w:tblBorders":
+        props.borders = parseBorders(child) as TableBorderProperties;
         break;
       case "w:shd":
+        props.shading = parseShading(child);
         break;
       case "w:tblLayout":
+        props.layout = parseTableLayout(child);
         break;
       case "w:tblCellMar":
+        props.cellMargins = parseCellMargins(child);
         break;
       case "w:tblCellSpacing":
         props.cellSpacing = parseMeasurement(
@@ -450,16 +689,27 @@ function parseTrPr(
   for (const child of trPrElement.children || []) {
     if (!is(child, "element")) continue;
     switch (child.name) {
-      case "w:trHeight":
+      case "w:trHeight": {
+        props.height = parseHeight(child);
+        const hRule = getAttribute(child, "w:hRule");
+        if (hRule === "auto" || hRule === "atLeast" || hRule === "exact") {
+          props.heightRule = hRule;
+        }
         break;
+      }
       case "w:cantSplit":
         props.cantSplit = parseOnOff(getAttribute(child, "w:val")) ?? true;
         break;
       case "w:tblHeader":
         props.isHeader = parseOnOff(getAttribute(child, "w:val")) ?? true;
         break;
-      case "w:vAlign":
+      case "w:vAlign": {
+        const vAlign = getAttribute(child, "w:val");
+        if (vAlign === "top" || vAlign === "center" || vAlign === "bottom") {
+          props.cellAlignment = vAlign;
+        }
         break;
+      }
     }
   }
   return props;
@@ -475,14 +725,19 @@ function parseTcPr(
     if (!is(child, "element")) continue;
     switch (child.name) {
       case "w:tcW":
+        props.width = parseWidth(child);
         break;
       case "w:tcBorders":
+        props.borders = parseBorders(child) as TableBorderProperties;
         break;
       case "w:shd":
+        props.shading = parseShading(child);
         break;
       case "w:tcMar":
+        props.margins = parseCellMargins(child);
         break;
       case "w:vAlign":
+        props.verticalAlign = parseVAlign(child);
         break;
       case "w:textDirection":
         props.textDirection = getAttribute(
@@ -1005,8 +1260,9 @@ function transformXastToOoxmlAst(
   const defaultParaProps = defaults?.paragraph || {};
   const defaultRunProps = defaults?.run || {};
 
-  // Store parent paragraph properties temporarily when visiting runs
+  // Store current paragraph and section context
   let currentParagraphProps: ParagraphFormatting | undefined = undefined;
+  let currentSectionProps: Record<string, unknown> | undefined = undefined;
 
   visit(root, (node, index, parent) => {
     if (!node.data) node.data = {};
@@ -1016,13 +1272,36 @@ function transformXastToOoxmlAst(
     if (is(node, "element")) {
       const element = node;
       const tagName = element.name;
-      const propElement = element.children?.find(
-        (child) => is(child, "element") && child.name.endsWith("Pr"),
-      ) as OoxmlElement | undefined;
 
+      // Handle document structure elements
+      if (tagName === "w:document") {
+        nodeData.ooxmlType = "document";
+        return CONTINUE;
+      }
+
+      if (tagName === "w:body") {
+        nodeData.ooxmlType = "body";
+        return CONTINUE;
+      }
+
+      if (tagName === "w:sectPr") {
+        nodeData.ooxmlType = "sectionProperties";
+        // Parse section properties
+        const sectProps = parseSectionProperties(element);
+        nodeData.properties = sectProps;
+        currentSectionProps = sectProps;
+        return CONTINUE;
+      }
+
+      // Handle paragraph elements
       if (tagName === "w:p") {
+        const propElement = element.children?.find(
+          (child) => is(child, "element") && child.name === "w:pPr",
+        ) as OoxmlElement | undefined;
+
         const directProps = parsePPr(propElement);
         nodeData.ooxmlType = "paragraph";
+
         const styleId =
           directProps?.styleId || defaultParaProps.styleId || "Normal";
         const resolvedParaStyle = resolveStyleChain(
@@ -1036,22 +1315,176 @@ function transformXastToOoxmlAst(
           directProps,
         );
         finalParaProps.styleId = styleId;
+
         nodeData.properties = finalParaProps;
-        currentParagraphProps = finalParaProps; // Store props for child runs/text
-      } else if (tagName === "w:r") {
+        currentParagraphProps = finalParaProps;
+      }
+
+      if (tagName === "w:r") {
+        const propElement = element.children?.find(
+          (child) => is(child, "element") && child.name === "w:rPr",
+        ) as OoxmlElement | undefined;
+
         const directProps = parseRPr(propElement);
         nodeData.ooxmlType = "textRun";
-        nodeData.properties = directProps;
-        // Pass paragraph context to run data for text nodes to use
-        (nodeData as Record<string, unknown>).parentParagraphProps =
-          currentParagraphProps;
-      } else if (tagName === "w:drawing") {
+
+        // Resolve character style
+        const runStyleId = directProps?.styleId;
+        const paraStyleId = currentParagraphProps?.styleId || "Normal";
+
+        const resolvedCharStyle = resolveStyleChain(
+          runStyleId,
+          styles,
+          "character",
+        );
+        const resolvedParaStyleForRun = resolveStyleChain(
+          paraStyleId,
+          styles,
+          "paragraph",
+        );
+        const paraDefaultRunProps =
+          (resolvedParaStyleForRun?.runProperties as Record<string, unknown>) ||
+          {};
+
+        const finalRunProps = mergeProps(
+          defaultRunProps,
+          paraDefaultRunProps,
+          resolvedCharStyle,
+          directProps,
+        );
+
+        nodeData.properties = finalRunProps;
+      }
+
+      if (tagName === "w:t") {
+        nodeData.ooxmlType = "textContentWrapper";
+      }
+
+      if (tagName === "w:br") {
+        nodeData.ooxmlType = "break";
+        const breakType = getAttribute(element, "w:type");
+        const clear = getAttribute(element, "w:clear");
+        const breakProps: WmlBreakProperties = {
+          breakType:
+            breakType === "page" ||
+            breakType === "column" ||
+            breakType === "textWrapping"
+              ? breakType
+              : undefined,
+          clear:
+            clear === "none" ||
+            clear === "left" ||
+            clear === "right" ||
+            clear === "all"
+              ? clear
+              : undefined,
+        };
+        nodeData.properties = breakProps;
+      }
+
+      if (tagName === "w:tab") {
+        nodeData.ooxmlType = "tabChar";
+      }
+
+      if (tagName === "w:softHyphen") {
+        nodeData.ooxmlType = "softHyphen";
+      }
+
+      if (tagName === "w:noBreakHyphen") {
+        nodeData.ooxmlType = "noBreakHyphen";
+      }
+
+      if (tagName === "w:sym") {
+        nodeData.ooxmlType = "symbol";
+        nodeData.properties = {
+          charCode: getAttribute(element, "w:char") || "",
+          font: getAttribute(element, "w:font") || "",
+        };
+      }
+
+      // Handle table elements
+      if (tagName === "w:tbl") {
+        const propElement = element.children?.find(
+          (child) => is(child, "element") && child.name === "w:tblPr",
+        ) as OoxmlElement | undefined;
+
+        nodeData.ooxmlType = "table";
+        nodeData.properties = parseTblPr(propElement);
+      }
+
+      if (tagName === "w:tr") {
+        const propElement = element.children?.find(
+          (child) => is(child, "element") && child.name === "w:trPr",
+        ) as OoxmlElement | undefined;
+
+        nodeData.ooxmlType = "tableRow";
+        nodeData.properties = parseTrPr(propElement);
+      }
+
+      if (tagName === "w:tc") {
+        const propElement = element.children?.find(
+          (child) => is(child, "element") && child.name === "w:tcPr",
+        ) as OoxmlElement | undefined;
+
+        nodeData.ooxmlType = "tableCell";
+        nodeData.properties = parseTcPr(propElement);
+      }
+
+      if (tagName === "w:tblGrid") {
+        nodeData.ooxmlType = "tableGrid";
+      }
+
+      if (tagName === "w:gridCol") {
+        nodeData.ooxmlType = "tableGridCol";
+        nodeData.properties = {
+          width: parseMeasurement(getAttribute(element, "w:w"), "dxa"),
+        };
+      }
+
+      // Handle hyperlinks and references
+      if (tagName === "w:hyperlink") {
+        nodeData.ooxmlType = "hyperlink";
+        const rId = getAttribute(element, "r:id") || "";
+        const anchor = getAttribute(element, "w:anchor") || "";
+        const rel = rId ? relationships[rId] : undefined;
+
+        const hyperlinkProps: WmlHyperlinkProperties = {
+          relationId: rId,
+          url: rel?.targetMode === "External" ? rel.target : undefined,
+          anchor:
+            anchor ||
+            (rel?.targetMode !== "External" ? rel?.target : undefined),
+          tooltip: getAttribute(element, "w:tooltip") || "",
+        };
+        nodeData.properties = hyperlinkProps;
+      }
+
+      if (tagName === "w:bookmarkStart") {
+        nodeData.ooxmlType = "bookmarkStart";
+        const bookmarkProps: WmlBookmarkStartProperties = {
+          id: getAttribute(element, "w:id") || "",
+          bookmarkName: getAttribute(element, "w:name") || "",
+        };
+        nodeData.properties = bookmarkProps;
+      }
+
+      if (tagName === "w:bookmarkEnd") {
+        nodeData.ooxmlType = "bookmarkEnd";
+        const bookmarkEndProps: WmlBookmarkEndProperties = {
+          id: getAttribute(element, "w:id") || "",
+        };
+        nodeData.properties = bookmarkEndProps;
+      }
+
+      // Handle drawing and media elements
+      if (tagName === "w:drawing") {
         nodeData.ooxmlType = "drawing";
         let embedId: string | undefined;
-        // Use visit with explicit element check for attributes
+        let fileName: string | undefined;
+
+        // Search for embedded image references
         visit(element, (child) => {
           if (is(child, "element")) {
-            // Explicit element check
             if (
               is(child, { name: "a:blip" }) &&
               child.attributes?.["r:embed"]
@@ -1069,87 +1502,115 @@ function transformXastToOoxmlAst(
           }
           return CONTINUE;
         });
+
+        const rel = embedId ? relationships[embedId] : undefined;
+        if (rel) fileName = rel.target;
+
+        nodeData.properties = { relationId: embedId, fileName };
+      }
+
+      if (tagName === "w:pict") {
+        nodeData.ooxmlType = "picture";
+        // Handle VML picture elements
+        let embedId: string | undefined;
+
+        visit(element, (child) => {
+          if (is(child, "element") && is(child, { name: "v:imagedata" })) {
+            embedId = getAttribute(child, "r:id");
+            return EXIT;
+          }
+          return CONTINUE;
+        });
+
         const rel = embedId ? relationships[embedId] : undefined;
         nodeData.properties = { relationId: embedId, fileName: rel?.target };
-      } else if (tagName === "w:t") {
-        // Handled by text visitor below
-        nodeData.ooxmlType = "textContentWrapper";
-      } else if (tagName === "w:br") {
-        nodeData.ooxmlType = "break";
-        const breakTypeAttr = getAttribute(element, "w:type");
-        const clearAttr = getAttribute(element, "w:clear");
-        nodeData.properties = {
-          breakType: breakTypeAttr ? String(breakTypeAttr) : "line",
-          clear: clearAttr ? String(clearAttr) : undefined,
-        } as WmlBreakProperties;
-      } else if (tagName === "w:tab") {
-        nodeData.ooxmlType = "tabChar"; // Correct type
-      } else if (tagName === "w:sym") {
-        nodeData.ooxmlType = "symbol";
-        nodeData.properties = {
-          charCode: getAttribute(element, "w:char") || "", // Renamed to charCode
-          font: getAttribute(element, "w:font") || "",
-        }; // as WmlSymbolProperties - Check interface
-      } else if (tagName === "w:tbl") {
-        const directProps = parseTblPr(propElement);
-        nodeData.ooxmlType = "table";
-        nodeData.properties = directProps;
-      } else if (tagName === "w:tr") {
-        const directProps = parseTrPr(propElement);
-        nodeData.ooxmlType = "tableRow";
-        nodeData.properties = directProps;
-      } else if (tagName === "w:tc") {
-        const directProps = parseTcPr(propElement);
-        nodeData.ooxmlType = "tableCell";
-        nodeData.properties = directProps;
-      } else if (tagName === "w:tblGrid") {
-        nodeData.ooxmlType = "tableGrid";
-        // Parse grid cols? Usually done by children
-      } else if (tagName === "w:gridCol") {
-        nodeData.ooxmlType = "tableGridCol";
-        nodeData.properties = {
-          width: parseMeasurement(getAttribute(element, "w:w"), "dxa"),
-        }; // as WmlTableGridColProperties;
-      } else if (tagName === "w:hyperlink") {
-        nodeData.ooxmlType = "hyperlink";
-        const rId = getAttribute(element, "r:id") || "";
-        const anchor = getAttribute(element, "w:anchor") || "";
-        const rel = rId ? relationships[rId] : undefined;
-        nodeData.properties = {
-          relationId: rId,
-          url: rel?.targetMode === "External" ? rel.target : undefined,
-          anchor:
-            anchor ||
-            (rel?.targetMode !== "External" ? rel?.target : undefined),
-          tooltip: getAttribute(element, "w:tooltip") || "",
-        } as WmlHyperlinkProperties;
-      } else if (tagName === "w:pict") {
-        nodeData.ooxmlType = "picture"; // VML picture
-        // TODO: Parse VML content / relation ID
-      } else if (tagName === "w:bookmarkStart") {
-        nodeData.ooxmlType = "bookmarkStart";
-        nodeData.properties = {
-          id: getAttribute(element, "w:id") || "",
-          bookmarkName: getAttribute(element, "w:name") || "",
-        } as WmlBookmarkStartProperties;
-      } else if (tagName === "w:bookmarkEnd") {
-        nodeData.ooxmlType = "bookmarkEnd";
-        nodeData.properties = {
-          id: getAttribute(element, "w:id") || "",
-        } as WmlBookmarkEndProperties;
-      } else if (tagName === "w:commentReference") {
+      }
+
+      // Handle comments and annotations
+      if (tagName === "w:commentReference") {
         nodeData.ooxmlType = "commentReference";
+        const commentRefProps: WmlCommentRefProperties = {
+          id: getAttribute(element, "w:id") || "",
+        };
+        nodeData.properties = commentRefProps;
+      }
+
+      if (tagName === "w:commentRangeStart") {
+        nodeData.ooxmlType = "commentRangeStart";
         nodeData.properties = {
           id: getAttribute(element, "w:id") || "",
-        } as WmlCommentRefProperties;
-      } else if (tagName === "w:footnoteReference") {
+        };
+      }
+
+      if (tagName === "w:commentRangeEnd") {
+        nodeData.ooxmlType = "commentRangeEnd";
+        nodeData.properties = {
+          id: getAttribute(element, "w:id") || "",
+        };
+      }
+
+      // Handle footnotes and endnotes
+      if (tagName === "w:footnoteReference") {
         nodeData.ooxmlType = "footnoteReference";
-        nodeData.properties = { id: getAttribute(element, "w:id") || "" }; // as WmlFootnoteReferenceProperties;
-      } else if (tagName === "w:endnoteReference") {
+        nodeData.properties = {
+          id: getAttribute(element, "w:id") || "",
+        };
+      }
+
+      if (tagName === "w:endnoteReference") {
         nodeData.ooxmlType = "endnoteReference";
-        nodeData.properties = { id: getAttribute(element, "w:id") || "" }; // as WmlEndnoteReferenceProperties;
-      } else if (tagName.endsWith("Pr")) {
-        // Remove property elements
+        nodeData.properties = {
+          id: getAttribute(element, "w:id") || "",
+        };
+      }
+
+      // Handle field codes
+      if (tagName === "w:fldSimple") {
+        nodeData.ooxmlType = "simpleField";
+        nodeData.properties = {
+          instruction: getAttribute(element, "w:instr") || "",
+        };
+      }
+
+      if (tagName === "w:fldChar") {
+        nodeData.ooxmlType = "fieldChar";
+        const charType = getAttribute(element, "w:fldCharType");
+        nodeData.properties = {
+          type:
+            charType === "begin" ||
+            charType === "separate" ||
+            charType === "end"
+              ? charType
+              : "begin",
+        };
+      }
+
+      if (tagName === "w:instrText") {
+        nodeData.ooxmlType = "instructionText";
+      }
+
+      // Handle smart tags
+      if (tagName === "w:smartTag") {
+        nodeData.ooxmlType = "smartTag";
+        const smartTagProps: WmlSmartTagProperties = {
+          namespaceUri: getAttribute(element, "w:namespaceuri") || "",
+          name: getAttribute(element, "w:name") || "",
+        };
+        nodeData.properties = smartTagProps;
+      }
+
+      // Handle headers and footers
+      if (tagName === "w:hdr") {
+        nodeData.ooxmlType = "header";
+      }
+
+      if (tagName === "w:ftr") {
+        nodeData.ooxmlType = "footer";
+      }
+
+      // Handle property elements - remove them after processing
+      if (tagName.endsWith("Pr")) {
+        // Property elements are processed by their parent elements
         if (
           parentElement &&
           Array.isArray(parentElement.children) &&
@@ -1158,32 +1619,40 @@ function transformXastToOoxmlAst(
           parentElement.children.splice(index, 1);
           return index; // Adjust index
         }
-      } else if (
+      }
+
+      // Handle unsupported/unnecessary elements
+      if (
         [
           "mc:AlternateContent",
           "w:proofErr",
           "w:lastRenderedPageBreak",
+          "w:noProof",
+          "w:lang",
         ].includes(tagName)
       ) {
-        // Remove unsupported/unnecessary elements
+        // Remove unsupported elements
         if (
           parentElement &&
           Array.isArray(parentElement.children) &&
           index !== undefined
         ) {
           parentElement.children.splice(index, 1);
-          return index; // Adjust index for visitor
+          return index;
         }
-      } else {
-        // Keep other elements but log them
+      }
+
+      // Default case for unknown elements
+      if (!nodeData.ooxmlType) {
         console.warn(`Unhandled element tag during enrichment: ${tagName}`);
-        nodeData.ooxmlType = tagName; // Keep original tag name as type
+        nodeData.ooxmlType = tagName; // Keep original tag name as fallback
       }
     } else if (is(node, "text")) {
       const textNode = node as OoxmlText;
       const shouldPreserve =
         parentElement?.attributes?.["xml:space"] === "preserve";
 
+      // Remove empty text nodes unless preserving space
       if (textNode.value.trim() === "" && !shouldPreserve) {
         if (
           parentElement &&
@@ -1196,52 +1665,25 @@ function transformXastToOoxmlAst(
       }
 
       nodeData.ooxmlType = "text";
-      if (shouldPreserve)
+      if (shouldPreserve) {
         nodeData.properties = { ...nodeData.properties, preserveSpace: true };
+      }
 
-      // Apply properties from parent run, using context stored in run's data
+      // Apply formatting from parent run and paragraph context
       if (
         parentElement &&
         (parentElement.data as OoxmlData | undefined)?.ooxmlType === "textRun"
       ) {
-        const runData = parentElement.data as OoxmlData & {
-          parentParagraphProps?: ParagraphFormatting;
-        }; // Keep this for type hint
+        const runData = parentElement.data as OoxmlData;
         const runProps = runData.properties as FontProperties | undefined;
-        const parentParaPropsContext = (runData as Record<string, unknown>)
-          .parentParagraphProps as ParagraphFormatting | undefined; // Use Record<string, unknown> instead of any
-        const runStyleId = runProps?.styleId;
-        const paraStyleId =
-          parentParaPropsContext?.styleId ||
-          defaultParaProps.styleId ||
-          "Normal";
 
-        const resolvedCharStyle = resolveStyleChain(
-          runStyleId,
-          styles,
-          "character",
-        );
-        const resolvedParaStyleForRun = resolveStyleChain(
-          paraStyleId,
-          styles,
-          "paragraph",
-        );
-        const paraDefaultRunProps =
-          resolvedParaStyleForRun?.runProperties || {};
-
-        const finalRunProps = mergeProps(
-          defaultRunProps,
-          paraDefaultRunProps,
-          resolvedCharStyle,
-          runProps,
-        );
-        nodeData.properties = finalRunProps; // Assign merged props
+        if (runProps && Object.keys(runProps).length > 0) {
+          nodeData.properties = { ...nodeData.properties, ...runProps };
+        }
       }
     } else if (is(node, ["comment", "instruction", "cdata", "doctype"])) {
-      // Keep these node types
       return CONTINUE;
     } else if (is(node, "root")) {
-      // Continue into the root node
       return CONTINUE;
     } else {
       console.warn(`Discarding node of unhandled type: ${node.type}`);
@@ -1251,30 +1693,95 @@ function transformXastToOoxmlAst(
         index !== undefined
       ) {
         parentElement.children.splice(index, 1);
-        return index; // Adjust index for visitor
+        return index;
       }
-      return null; // Remove other node types
     }
 
-    return CONTINUE; // Continue traversal by default
+    return CONTINUE;
   });
 }
 
+// New function to parse section properties
+function parseSectionProperties(
+  sectPrElement: OoxmlElement,
+): Record<string, unknown> {
+  const sectProps: Record<string, unknown> = {};
+
+  for (const child of sectPrElement.children || []) {
+    if (!is(child, "element")) continue;
+
+    switch (child.name) {
+      case "w:pgSz":
+        sectProps.pageSize = {
+          width: parseMeasurement(getAttribute(child, "w:w"), "dxa"),
+          height: parseMeasurement(getAttribute(child, "w:h"), "dxa"),
+          orientation: getAttribute(child, "w:orient") || "portrait",
+        };
+        break;
+      case "w:pgMar":
+        sectProps.pageMargin = {
+          top: parseMeasurement(getAttribute(child, "w:top"), "dxa"),
+          right: parseMeasurement(getAttribute(child, "w:right"), "dxa"),
+          bottom: parseMeasurement(getAttribute(child, "w:bottom"), "dxa"),
+          left: parseMeasurement(getAttribute(child, "w:left"), "dxa"),
+          header: parseMeasurement(getAttribute(child, "w:header"), "dxa"),
+          footer: parseMeasurement(getAttribute(child, "w:footer"), "dxa"),
+          gutter: parseMeasurement(getAttribute(child, "w:gutter"), "dxa"),
+        };
+        break;
+      case "w:headerReference":
+        if (!sectProps.headers) sectProps.headers = [];
+        (sectProps.headers as Array<unknown>).push({
+          type: getAttribute(child, "w:type") || "",
+          relationId: getAttribute(child, "r:id") || "",
+        });
+        break;
+      case "w:footerReference":
+        if (!sectProps.footers) sectProps.footers = [];
+        (sectProps.footers as Array<unknown>).push({
+          type: getAttribute(child, "w:type") || "",
+          relationId: getAttribute(child, "r:id") || "",
+        });
+        break;
+      case "w:cols":
+        sectProps.columns = {
+          count: Number(getAttribute(child, "w:num")) || 1,
+          space: parseMeasurement(getAttribute(child, "w:space"), "dxa"),
+          equalWidth: parseOnOff(getAttribute(child, "w:equalWidth")) !== false,
+        };
+        break;
+      case "w:type":
+        sectProps.sectionType = getAttribute(child, "w:val") || "nextPage";
+        break;
+    }
+  }
+
+  return sectProps;
+}
+
+// Import shared types
+import type { FromDocxOptions } from "../types";
+
 /**
- * Async Unified plugin for DOCX parsing based on Ooxml* enrichment.
+ * Parse DOCX file content into OOXML AST
+ * Follows unified.js naming convention (similar to fromXml, fromMarkdown)
+ *
+ * Based on the original docxToOoxmlAst implementation but adapted for unified.js patterns
  */
-export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
+export const docxToOoxast: Plugin<[FromDocxOptions?], OoxmlRoot | undefined> = (
+  options: FromDocxOptions = {},
+) => {
   return async (
     _tree: OoxmlNode | undefined, // Input tree is ignored, we parse from VFile
     file: VFile,
   ): Promise<OoxmlRoot | undefined> => {
-    console.log(
-      "Plugin: docxToOoxmlAst running (unist-util-visit based enrichment).",
-    );
+    if (options.debug) {
+      console.log("docxToOoxast plugin: Starting DOCX parsing");
+    }
 
     if (!file.value || !(file.value instanceof Uint8Array)) {
       file.message(
-        new Error("VFile value must be a Uint8Array for OOXML parsing."),
+        new Error("VFile value must be a Uint8Array for OOXML parsing"),
       );
       return undefined;
     }
@@ -1297,34 +1804,41 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
       return undefined;
     }
 
-    // --- Resource Parsing --- (Needs similar refactor for error handling/guards)
+    // --- Resource Parsing --- (Keep same structure as original)
     const resources = await parseStylesXml(decompressedFiles);
-    await parseNumberingXml(decompressedFiles, resources); // Assuming this is adjusted
+    await parseNumberingXml(decompressedFiles, resources);
     const relationships = await parseRelationshipsXml(decompressedFiles);
     const transformContext: TransformContext = { resources, relationships };
+
+    if (options.handlers) {
+      transformContext.customHandlers = options.handlers;
+    }
+
     const comments = await parseCommentsXml(
       decompressedFiles,
       transformContext,
-    ); // Assuming this is adjusted
-    if (transformContext.resources)
+    );
+    if (transformContext.resources) {
       transformContext.resources.comments = comments;
-    // TODO: Parse other resources like headers, footers, footnotes, endnotes
+    }
 
-    // --- Main Document Parsing --- (Remains the same)
+    // --- Main Document Parsing --- (Keep same structure as original)
     const mainPartPath = "word/document.xml";
     if (!decompressedFiles[mainPartPath]) {
       file.message(
-        new Error("Could not locate main document part (word/document.xml)."),
+        new Error("Could not locate main document part (word/document.xml)"),
       );
       return undefined;
     }
+
     const mainXmlContent = strFromU8(decompressedFiles[mainPartPath]);
     let parsedXastRoot: OoxmlRoot;
     try {
       parsedXastRoot = fromXml(mainXmlContent) as OoxmlRoot;
-      file.data.rawXast = parsedXastRoot;
+      if (options.includeRawData) {
+        file.data.rawXast = parsedXastRoot;
+      }
     } catch (error: unknown) {
-      // ... (Error handling) ...
       console.error(`Error parsing XML with fromXml (${mainPartPath}):`, error);
       file.message(
         new Error(
@@ -1344,40 +1858,40 @@ export const docxToOoxmlAst: Plugin<[], OoxmlRoot | undefined> = () => {
 
     if (!bodyElement) {
       file.message(
-        new Error("Could not find <w:body> element in document.xml."),
+        new Error("Could not find <w:body> element in document.xml"),
       );
       return undefined;
     }
     // Ensure bodyElement has a children array
     if (!bodyElement.children) bodyElement.children = [];
 
-    // --- Transformation using visit (on the original full tree) --- //
+    // --- Transformation using visit (same as original) ---
     try {
       transformXastToOoxmlAst(parsedXastRoot, transformContext);
 
-      // --- List Grouping (Operate on bodyElement's children) --- //
+      // --- List Grouping (same as original) ---
       groupListItems(bodyElement, transformContext);
 
-      // --- Filter out Instructions from Body Children --- //
+      // --- Filter out Instructions from Body Children ---
       bodyElement.children = bodyElement.children.filter(
         (node) => !is(node, "instruction"),
       );
 
-      // --- Create the Final Root with Body's Children --- //
+      // --- Create the Final Root with Body's Children ---
       const finalRoot: OoxmlRoot = {
         type: "root",
         children: bodyElement.children, // Assign processed body children
         data: {
           ooxmlType: "root",
           sharedResources: transformContext.resources,
-          // Copy other relevant data if needed, e.g., from parsedXastRoot.data
         } as OoxmlRootData,
       };
 
-      console.log("OOXML AST enrichment and list grouping completed.");
-      return finalRoot; // Return the new root with processed body children
+      if (options.debug) {
+        console.log("OOXML AST enrichment and list grouping completed");
+      }
+      return finalRoot;
     } catch (transformError: unknown) {
-      // ... (Error handling) ...
       console.error("Error during OOXML AST transformation:", transformError);
       file.message(
         new Error(

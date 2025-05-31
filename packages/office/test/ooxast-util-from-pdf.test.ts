@@ -15,7 +15,7 @@ import type {
   OoxmlRoot,
   OoxmlText,
 } from "../src/ast";
-import { pdfToOoxmlAst } from "../src/plugins/pdf-to-ooxml"; // Adjust path if needed
+import { pdfToOoxast } from "../src/plugins"; // Adjust path if needed
 
 // Define local type aliases for PDF tests (can reuse or adapt from docx tests)
 type WmlParagraph = OoxmlElement & {
@@ -47,7 +47,7 @@ async function parsePdfFile(fileName: string): Promise<OoxmlRoot | undefined> {
     data: { ooxmlType: "root" }, // Match expected root type if needed
   };
 
-  const processor = unified().use(pdfToOoxmlAst); // Use the pdf plugin
+  const processor = unified().use(pdfToOoxast); // Use the pdf plugin
   const result = await processor.run(initialRoot, file);
 
   if (file.messages.length > 0) {

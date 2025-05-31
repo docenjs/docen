@@ -1,13 +1,11 @@
 /**
  * @docen/document - Pure document processing
  * Handles text-based formats (Markdown, HTML)
+ * Uses @docen/core for AST utilities (is, u, visit, etc.)
  */
 
 // Export processors
 export * from "./processors";
-
-// Export AST utilities
-export * from "./ast";
 
 // Export schema definitions
 export * from "./schema";

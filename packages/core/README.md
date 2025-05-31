@@ -12,14 +12,12 @@ The `@docen/core` package provides the foundation for all Docen format processin
 
 ```
 packages/core/src/
-├── ast/              # AST utilities extending unist
-│   └── index.ts      # Node creation, validation, and traversal helpers
+├── ast/              # Standard unist utilities re-exports
+│   └── index.ts      # Re-exports u, visit, is, find, etc. from unist ecosystem
 ├── processor/        # Unified.js processor extensions
 │   └── index.ts      # DocenProcessor interface and factory
 ├── plugins/          # Plugin system
 │   └── index.ts      # Core plugins and utilities
-├── utils/            # Core utilities
-│   └── index.ts      # AST transformation and traversal utilities
 ├── errors.ts         # Error types and handling
 ├── types.ts          # Core type definitions extending unist
 └── index.ts          # Main exports
@@ -33,11 +31,11 @@ packages/core/src/
 - **Plugin System**: Core plugins for document processing
 - **Error Handling**: Structured error types for document processing
 
-### 🌳 AST Utilities
+### 🌳 Standard Unist Utilities
 
-- **Node Creation**: Helper functions for creating unist-compatible nodes
-- **Tree Traversal**: Enhanced utilities for AST manipulation
-- **Type Safety**: Full TypeScript support with comprehensive types
+- **Pure Re-exports**: Standard unist ecosystem tools (u, visit, is, find, etc.)
+- **No Custom Wrappers**: Direct access to unist-util-\* functions
+- **Type Safety**: Full TypeScript support with unist types
 
 ### 🛠️ Plugin System
 
@@ -66,17 +64,23 @@ const result = await processor.process("# Hello World");
 ### AST Utilities
 
 ```typescript
-import { findNodePath, transform } from "@docen/core";
+import { is, u, visit, find } from "@docen/core";
 import type { Node, Parent } from "@docen/core";
 
-// Find path to a node
-const path = findNodePath(tree, targetNode);
+// Type checking with standard unist-util-is
+const isParagraph = is(node, "paragraph");
+const hasChildren = is(node, { type: "*", children: [] });
 
-// Transform nodes matching criteria
-const transformed = transform(tree, "paragraph", (node) => ({
-  ...node,
-  data: { processed: true },
-}));
+// Node creation with unist-builder
+const paragraph = u("paragraph", [u("text", "Hello world")]);
+
+// Tree traversal with unist-util-visit
+visit(tree, "paragraph", (node) => {
+  console.log("Found paragraph:", node);
+});
+
+// Find nodes with unist-util-find
+const firstHeading = find(tree, "heading");
 ```
 
 ### Error Handling
@@ -202,11 +206,10 @@ The core package uses minimal, focused dependencies:
 - `unified`: Core unified.js processing pipeline (v11.0.5)
 - `vfile`: Virtual file handling (v6.0.3)
 - `unist`: Universal Syntax Tree base types (v0.0.1)
-- `unist-builder`: AST node creation utilities (v4.0.0)
-- `unist-util-assert`: AST validation utilities (v4.0.0)
+- `unist-builder`: AST node creation utilities (v4.0.0) - **Standard u() function**
 - `unist-util-filter`: AST filtering utilities (v5.0.1)
 - `unist-util-find`: AST search utilities (v3.0.0)
-- `unist-util-is`: AST type checking utilities (v6.0.0)
+- `unist-util-is`: AST type checking utilities (v6.0.0) - **Use is(node, 'type')**
 - `unist-util-map`: AST transformation utilities (v4.0.0)
 - `unist-util-remove`: AST node removal utilities (v4.0.0)
 - `unist-util-select`: CSS-like AST selection utilities (v5.1.0)

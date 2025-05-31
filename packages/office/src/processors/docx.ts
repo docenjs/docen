@@ -1,8 +1,7 @@
 import { createProcessor } from "@docen/core";
 import type { DocenProcessorOptions } from "@docen/core";
-import type { Plugin, Processor } from "unified";
+import type { Processor } from "unified";
 import type { OoxmlRoot } from "../ast";
-import { docxToOoxmlAst } from "../plugins/docx-to-ooxml";
 
 // Define specific options, extending core options if needed
 export interface DocxProcessorOptions extends DocenProcessorOptions {
@@ -10,28 +9,23 @@ export interface DocxProcessorOptions extends DocenProcessorOptions {
 }
 
 // Processor focuses on the OoxmlRoot AST
-// Use the DocenProcessor type from core
 export type DocxProcessor = Processor<OoxmlRoot>;
 
 /**
- * Factory function to create a Docen processor specifically for DOCX files.
- * Pure format processing.
+ * Factory function to create a processor for DOCX files.
+ * Follows unified.js conventions.
  */
 export function createDocxProcessor(
   options: DocxProcessorOptions = {},
 ): DocxProcessor {
-  // Use the core processor factory
+  // Use the core processor factory - pure unified.js
   const processor = createProcessor({
     ...options,
-  }) as unknown as DocxProcessor; // Cast needed due to specific AST type
+  }) as unknown as DocxProcessor;
 
-  // Use the async plugin responsible for parsing and AST transformation
-  processor.use(docxToOoxmlAst as Plugin<[], OoxmlRoot | undefined>);
-
-  // Stringification handled separately or via core mechanisms if applicable
-  console.warn(
-    "DOCX Compiler/Stringify logic is not yet implemented within createDocxProcessor.",
-  );
+  // Note: Parser and compiler are set up via plugins
+  // Following unified.js pattern where plugins handle parsing/compiling
+  // Use fromDocx() and toDocx() functions directly for standalone conversion
 
   return processor;
 }
