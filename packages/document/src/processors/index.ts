@@ -22,7 +22,7 @@ import { gfm } from "micromark-extension-gfm";
  */
 export function createMarkdownProcessor(
   output: "markdown" | "html" | "ast" = "markdown",
-  options: Partial<DocumentProcessorOptions> = {}
+  options: Partial<DocumentProcessorOptions> = {},
 ): DocenProcessor {
   const processor = createProcessor();
 
@@ -74,7 +74,7 @@ export function createMarkdownProcessor(
  */
 export function createHtmlProcessor(
   output: "html" | "markdown" | "ast" = "html",
-  options: Partial<DocumentProcessorOptions> = {}
+  options: Partial<DocumentProcessorOptions> = {},
 ): DocenProcessor {
   const processor = createProcessor();
 
@@ -116,7 +116,7 @@ export function createHtmlProcessor(
  */
 export function createDocumentProcessor(
   format: "markdown" | "html",
-  options: Partial<DocumentProcessorOptions> = {}
+  options: Partial<DocumentProcessorOptions> = {},
 ): DocenProcessor {
   switch (format) {
     case "markdown":

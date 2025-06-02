@@ -14,7 +14,7 @@ import type {
   ParagraphFormatting,
   SharedCommentDefinition,
   SharedResources,
-} from "../src/ast";
+} from "../../src/ast";
 import type {
   WmlBookmarkEndProperties,
   WmlBookmarkStartProperties,
@@ -23,7 +23,7 @@ import type {
   WmlListItemProperties,
   WmlListProperties,
   WmlTableProperties,
-} from "../src/ast/wml";
+} from "../../src/ast/wml";
 
 // Define local type aliases for clearer test assertions
 // These represent OoxmlElement/OoxmlText nodes with specific ooxmlType in their data
@@ -96,11 +96,11 @@ type WmlCommentReference = OoxmlElement & {
 };
 type WmlComment = SharedCommentDefinition;
 
-import { docxToOoxast } from "../src/plugins";
+import { docxToOoxast } from "../../src/plugins";
 
 // Helper function to load a DOCX file and run the parser
 async function parseDocxFile(fileName: string): Promise<WmlRoot | undefined> {
-  const filePath = join(__dirname, "fixtures", fileName);
+  const filePath = join(__dirname, "../fixtures", fileName);
   const buffer = readFileSync(filePath);
   const file = new VFile({ value: new Uint8Array(buffer), path: filePath });
 
@@ -132,7 +132,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     const paragraph = root?.children.find(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "paragraph"
+        (child as OoxmlElement).data?.ooxmlType === "paragraph",
     ) as WmlParagraph | undefined;
     expect(paragraph?.type).toBe("element");
     expect(paragraph?.name).toBe("w:p");
@@ -165,7 +165,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     const paragraph = root?.children.find(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "paragraph"
+        (child as OoxmlElement).data?.ooxmlType === "paragraph",
     ) as WmlParagraph | undefined;
     expect(paragraph?.type).toBe("element");
     expect(paragraph?.name).toBe("w:p");
@@ -236,7 +236,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     const list = root?.children.find(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "list"
+        (child as OoxmlElement).data?.ooxmlType === "list",
     ) as WmlList;
     expect(list?.data?.ooxmlType).toBe("list");
     expect(list?.children).toHaveLength(3);
@@ -252,7 +252,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(para1?.data?.ooxmlType).toBe("paragraph");
     expect(para1?.data?.properties?.numbering).toBeDefined();
     expect(para1?.data?.properties?.numbering?.id).toEqual(
-      list?.data?.properties?.numId
+      list?.data?.properties?.numId,
     );
     expect(para1?.data?.properties?.numbering?.level).toBe(0);
   });
@@ -267,7 +267,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     const list = root?.children.find(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "list"
+        (child as OoxmlElement).data?.ooxmlType === "list",
     ) as WmlList;
     expect(list?.data?.ooxmlType).toBe("list");
     expect(list?.children).toHaveLength(3);
@@ -281,7 +281,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(para1?.data?.ooxmlType).toBe("paragraph");
     expect(para1?.data?.properties?.numbering).toBeDefined();
     expect(para1?.data?.properties?.numbering?.id).toEqual(
-      list?.data?.properties?.numId
+      list?.data?.properties?.numId,
     );
     expect(para1?.data?.properties?.numbering?.level).toBe(0);
   });
@@ -296,7 +296,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     const table = root?.children.find(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "table"
+        (child as OoxmlElement).data?.ooxmlType === "table",
     ) as WmlTable;
     expect(table?.type).toBe("element");
     expect(table?.name).toBe("w:tbl");
@@ -304,7 +304,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(table?.children).toBeDefined();
     const tableRows = table?.children?.filter(
       (c: OoxmlNode): c is WmlTableRow =>
-        c.type === "element" && (c as OoxmlElement).name === "w:tr"
+        c.type === "element" && (c as OoxmlElement).name === "w:tr",
     ) as WmlTableRow[] | undefined;
     expect(tableRows).toHaveLength(2);
 
@@ -314,7 +314,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(row1?.data?.ooxmlType).toBe("tableRow");
     const row1Cells = row1?.children?.filter(
       (c: OoxmlNode): c is WmlTableCell =>
-        c.type === "element" && (c as OoxmlElement).name === "w:tc"
+        c.type === "element" && (c as OoxmlElement).name === "w:tc",
     ) as WmlTableCell[] | undefined;
     expect(row1Cells).toHaveLength(2);
 
@@ -324,11 +324,11 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(cell1_1?.data?.ooxmlType).toBe("tableCell");
     const para1_1 = cell1_1?.children?.find(
       (c: OoxmlNode): c is WmlParagraph =>
-        c.type === "element" && (c as OoxmlElement).name === "w:p"
+        c.type === "element" && (c as OoxmlElement).name === "w:p",
     ) as WmlParagraph | undefined;
     const run1_1 = para1_1?.children?.find(
       (c: OoxmlNode): c is WmlTextRun =>
-        c.type === "element" && (c as OoxmlElement).name === "w:r"
+        c.type === "element" && (c as OoxmlElement).name === "w:r",
     ) as WmlTextRun | undefined;
     const wrapper1_1 = run1_1?.children?.[0];
     let text1_1: WmlText | undefined;
@@ -341,11 +341,11 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(cell1_2?.data?.ooxmlType).toBe("tableCell");
     const para1_2 = cell1_2?.children?.find(
       (c: OoxmlNode): c is WmlParagraph =>
-        c.type === "element" && (c as OoxmlElement).name === "w:p"
+        c.type === "element" && (c as OoxmlElement).name === "w:p",
     ) as WmlParagraph | undefined;
     const run1_2 = para1_2?.children?.find(
       (c: OoxmlNode): c is WmlTextRun =>
-        c.type === "element" && (c as OoxmlElement).name === "w:r"
+        c.type === "element" && (c as OoxmlElement).name === "w:r",
     ) as WmlTextRun | undefined;
     const wrapper1_2 = run1_2?.children?.[0];
     let text1_2: WmlText | undefined;
@@ -356,7 +356,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const row2Cells = tableRows?.[1]?.children?.filter(
       (c: OoxmlNode): c is WmlTableCell =>
-        c.type === "element" && (c as OoxmlElement).name === "w:tc"
+        c.type === "element" && (c as OoxmlElement).name === "w:tc",
     ) as WmlTableCell[] | undefined;
     expect(row2Cells).toHaveLength(2);
 
@@ -364,11 +364,11 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(cell2_1?.data?.ooxmlType).toBe("tableCell");
     const para2_1 = cell2_1?.children?.find(
       (c: OoxmlNode): c is WmlParagraph =>
-        c.type === "element" && (c as OoxmlElement).name === "w:p"
+        c.type === "element" && (c as OoxmlElement).name === "w:p",
     ) as WmlParagraph | undefined;
     const run2_1 = para2_1?.children?.find(
       (c: OoxmlNode): c is WmlTextRun =>
-        c.type === "element" && (c as OoxmlElement).name === "w:r"
+        c.type === "element" && (c as OoxmlElement).name === "w:r",
     ) as WmlTextRun | undefined;
     const wrapper2_1 = run2_1?.children?.[0];
     let text2_1: WmlText | undefined;
@@ -381,11 +381,11 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(cell2_2?.data?.ooxmlType).toBe("tableCell");
     const para2_2 = cell2_2?.children?.find(
       (c: OoxmlNode): c is WmlParagraph =>
-        c.type === "element" && (c as OoxmlElement).name === "w:p"
+        c.type === "element" && (c as OoxmlElement).name === "w:p",
     ) as WmlParagraph | undefined;
     const run2_2 = para2_2?.children?.find(
       (c: OoxmlNode): c is WmlTextRun =>
-        c.type === "element" && (c as OoxmlElement).name === "w:r"
+        c.type === "element" && (c as OoxmlElement).name === "w:r",
     ) as WmlTextRun | undefined;
     const wrapper2_2 = run2_2?.children?.[0];
     let text2_2: WmlText | undefined;
@@ -405,14 +405,14 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     const paragraph = root?.children.find(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "paragraph"
+        (child as OoxmlElement).data?.ooxmlType === "paragraph",
     ) as WmlParagraph | undefined;
     expect(paragraph?.data?.ooxmlType).toBe("paragraph");
 
     const hyperlinkElement = paragraph?.children?.find(
       (child: OoxmlNode): child is WmlHyperlink =>
         child.type === "element" &&
-        (child as OoxmlElement).name === "w:hyperlink"
+        (child as OoxmlElement).name === "w:hyperlink",
     ) as WmlHyperlink | undefined;
 
     expect(hyperlinkElement).toBeDefined();
@@ -441,7 +441,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
   // Recursive helper to find the first node matching a semantic type
   function findNodeByTypeRecursively(
     nodes: OoxmlElementContent[] | undefined,
-    type: string
+    type: string,
   ): OoxmlNode | undefined {
     if (!nodes) return undefined;
     const stack: OoxmlNode[] = [...nodes];
@@ -472,7 +472,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const drawingNode = findNodeByTypeRecursively(
       paragraph?.children,
-      "drawing"
+      "drawing",
     ) as DmlDrawing | undefined;
 
     expect(drawingNode).toBeDefined();
@@ -492,7 +492,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const bookmarkStartElement = findNodeByTypeRecursively(
       paragraph?.children,
-      "bookmarkStart"
+      "bookmarkStart",
     ) as WmlBookmarkStart | undefined;
 
     expect(bookmarkStartElement).toBeDefined();
@@ -503,7 +503,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const bookmarkEndElement = findNodeByTypeRecursively(
       paragraph?.children,
-      "bookmarkEnd"
+      "bookmarkEnd",
     ) as WmlBookmarkEnd | undefined;
 
     expect(bookmarkEndElement).toBeDefined();
@@ -511,7 +511,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
     expect(bookmarkEndElement?.data?.ooxmlType).toBe("bookmarkEnd");
     expect(bookmarkEndElement?.data?.properties?.id).toBeDefined();
     expect(bookmarkStartElement?.data?.properties?.id).toEqual(
-      bookmarkEndElement?.data?.properties?.id
+      bookmarkEndElement?.data?.properties?.id,
     );
   });
 
@@ -524,7 +524,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
     const commentRefElement = findNodeByTypeRecursively(
       paragraph?.children,
-      "commentReference"
+      "commentReference",
     ) as WmlCommentReference | undefined;
 
     expect(commentRefElement).toBeDefined();
@@ -568,7 +568,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const lists = root?.children.filter(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "list"
+          (child as OoxmlElement).data?.ooxmlType === "list",
       );
       expect(lists?.length).toBeGreaterThan(0);
 
@@ -589,7 +589,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const list = root?.children.find(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "list"
+          (child as OoxmlElement).data?.ooxmlType === "list",
       ) as WmlList;
 
       expect(list).toBeDefined();
@@ -609,7 +609,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const table = root?.children.find(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "table"
+          (child as OoxmlElement).data?.ooxmlType === "table",
       ) as WmlTable;
 
       expect(table).toBeDefined();
@@ -618,7 +618,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       // Test table structure integrity
       const tableRows = table?.children?.filter(
         (c: OoxmlNode): c is WmlTableRow =>
-          c.type === "element" && (c as OoxmlElement).name === "w:tr"
+          c.type === "element" && (c as OoxmlElement).name === "w:tr",
       ) as WmlTableRow[] | undefined;
 
       expect(tableRows?.length).toBeGreaterThan(0);
@@ -627,7 +627,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const firstRow = tableRows?.[0];
       const cells = firstRow?.children?.filter(
         (c: OoxmlNode): c is WmlTableCell =>
-          c.type === "element" && (c as OoxmlElement).name === "w:tc"
+          c.type === "element" && (c as OoxmlElement).name === "w:tc",
       ) as WmlTableCell[] | undefined;
 
       expect(cells?.length).toBeGreaterThan(0);
@@ -645,7 +645,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const paragraph = root?.children.find(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "paragraph"
+          (child as OoxmlElement).data?.ooxmlType === "paragraph",
       ) as WmlParagraph | undefined;
 
       expect(paragraph).toBeDefined();
@@ -654,7 +654,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const textRuns = paragraph?.children?.filter(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "textRun"
+          (child as OoxmlElement).data?.ooxmlType === "textRun",
       ) as WmlTextRun[];
 
       expect(textRuns?.length).toBeGreaterThan(0);
@@ -666,7 +666,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
           (run.data.properties.bold ||
             run.data.properties.italic ||
             (run.data.properties as Record<string, unknown>).superscript ||
-            (run.data.properties as Record<string, unknown>).subscript)
+            (run.data.properties as Record<string, unknown>).subscript),
       );
 
       expect(formattedRun).toBeDefined();
@@ -680,7 +680,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       // Look for section or page setting elements
       // These would typically be in document settings or section properties
       const allElements = root?.children.filter(
-        (child) => child.type === "element"
+        (child) => child.type === "element",
       );
       expect(allElements?.length).toBeGreaterThan(0);
 
@@ -689,7 +689,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const hasPageElements = allElements?.some(
         (element) =>
           (element as OoxmlElement).name?.includes("pg") ||
-          (element as OoxmlElement).data?.ooxmlType?.includes("page")
+          (element as OoxmlElement).data?.ooxmlType?.includes("page"),
       );
 
       // This test mainly ensures the parser doesn't break on complex documents
@@ -725,7 +725,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       // Test that even with minimal content, structure is valid
       const contentElements = root?.children.filter(
         (child) =>
-          child.type === "element" && (child as OoxmlElement).data?.ooxmlType
+          child.type === "element" && (child as OoxmlElement).data?.ooxmlType,
       );
       expect(contentElements?.length).toBeGreaterThanOrEqual(0);
     });
@@ -738,7 +738,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const table = root?.children.find(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "table"
+          (child as OoxmlElement).data?.ooxmlType === "table",
       ) as WmlTable;
 
       expect(table).toBeDefined();
@@ -749,7 +749,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
         (child) =>
           child.type === "element" &&
           ((child as OoxmlElement).name === "w:tr" ||
-            (child as OoxmlElement).data?.ooxmlType === "tableRow")
+            (child as OoxmlElement).data?.ooxmlType === "tableRow"),
       );
       const hasValidStructure = tableRows && tableRows.length > 0;
 
@@ -764,7 +764,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const list = root?.children.find(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "list"
+          (child as OoxmlElement).data?.ooxmlType === "list",
       ) as WmlList;
 
       expect(list).toBeDefined();
@@ -774,7 +774,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const hasValidStructure = list?.children?.every(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "listItem"
+          (child as OoxmlElement).data?.ooxmlType === "listItem",
       );
 
       expect(hasValidStructure).toBeTruthy();
@@ -788,7 +788,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const paragraph = root?.children.find(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "paragraph"
+          (child as OoxmlElement).data?.ooxmlType === "paragraph",
       ) as WmlParagraph | undefined;
 
       expect(paragraph).toBeDefined();
@@ -801,7 +801,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       const textRuns = paragraph?.children?.filter(
         (child) =>
           child.type === "element" &&
-          (child as OoxmlElement).data?.ooxmlType === "textRun"
+          (child as OoxmlElement).data?.ooxmlType === "textRun",
       ) as WmlTextRun[];
 
       expect(textRuns?.length).toBeGreaterThan(0);
@@ -809,7 +809,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       // At least one run should have run-level properties
       const runWithProperties = textRuns?.find(
         (run) =>
-          run.data?.properties && Object.keys(run.data.properties).length > 0
+          run.data?.properties && Object.keys(run.data.properties).length > 0,
       );
 
       expect(runWithProperties).toBeDefined();
@@ -824,7 +824,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
       // Test that all elements are properly parsed
       const allElements = root?.children.filter(
-        (child) => child.type === "element"
+        (child) => child.type === "element",
       );
       expect(allElements?.length).toBeGreaterThan(0);
 
@@ -874,7 +874,7 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
       // Test that even if some elements are missing expected properties,
       // the basic structure is preserved
       const elements = root?.children.filter(
-        (child) => child.type === "element"
+        (child) => child.type === "element",
       );
       if (elements) {
         for (const element of elements) {

@@ -17,7 +17,7 @@ mkdirSync(outputDir, { recursive: true });
 
 async function exportMarkdownAst() {
   console.log(
-    "\nRunning: Markdown -> AST Export Example (Using createMarkdownProcessor)"
+    "\nRunning: Markdown -> AST Export Example (Using createMarkdownProcessor)",
   );
 
   try {
@@ -31,7 +31,7 @@ async function exportMarkdownAst() {
     const ast = JSON.parse(result.value as string);
 
     console.log(
-      `AST exported with ${ast.children?.length || 0} top-level nodes`
+      `AST exported with ${ast.children?.length || 0} top-level nodes`,
     );
     console.log(`AST type: ${ast.type}`);
 
@@ -60,7 +60,7 @@ function analyzeAST(ast: Record<string, unknown>, depth = 0): void {
     : "";
 
   console.log(
-    `${indent}${type}${tagName ? ` (${tagName})` : ""}${valueDisplay}`
+    `${indent}${type}${tagName ? ` (${tagName})` : ""}${valueDisplay}`,
   );
 
   const children = ast.children as Record<string, unknown>[] | undefined;

@@ -13,7 +13,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
@@ -43,6 +45,8 @@
   "license": "MIT",
   "dependencies": {
     "@docen/core": "workspace:*",
+    "c12": "3.0.4",
+    "defu": "6.1.4",
     "docx": "9.5.0",
     "fflate": "0.8.2",
     "image-meta": "0.2.1",

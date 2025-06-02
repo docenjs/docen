@@ -9,13 +9,13 @@ import type {
   OoxmlElementContent,
   OoxmlRoot,
   ParagraphFormatting,
-} from "../src/ast";
-import { docxToOoxast, ooxastToDocx } from "../src/plugins";
+} from "../../src/ast";
+import { docxToOoxast, ooxastToDocx } from "../../src/plugins";
 
 // Helper function to create a simple OOXML AST structure
 function createOoxmlParagraph(
   text: string,
-  properties?: ParagraphFormatting
+  properties?: ParagraphFormatting,
 ): OoxmlElement {
   return {
     type: "element",
@@ -203,7 +203,7 @@ describe("ooxast-util-to-docx Plugin Tests", () => {
   // Round-trip test: DOCX -> OOXML AST -> DOCX -> OOXML AST
   it("should maintain consistency in round-trip conversion", async () => {
     // Load a simple fixture
-    const fixturePath = join(__dirname, "fixtures", "simple_paragraph.docx");
+    const fixturePath = join(__dirname, "../fixtures", "simple_paragraph.docx");
     const originalBuffer = readFileSync(fixturePath);
 
     // First conversion: DOCX -> OOXML AST
@@ -223,7 +223,7 @@ describe("ooxast-util-to-docx Plugin Tests", () => {
     const paragraphs = firstOoxmlAst.children.filter(
       (child) =>
         child.type === "element" &&
-        (child as OoxmlElement).data?.ooxmlType === "paragraph"
+        (child as OoxmlElement).data?.ooxmlType === "paragraph",
     );
     expect(paragraphs.length).toBeGreaterThan(0);
   });

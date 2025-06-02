@@ -16,7 +16,7 @@ export type DocxProcessor = Processor<OoxmlRoot>;
  * Follows unified.js conventions.
  */
 export function createDocxProcessor(
-  options: DocxProcessorOptions = {}
+  options: DocxProcessorOptions = {},
 ): DocxProcessor {
   // Use the core processor factory - pure unified.js
   const processor = createProcessor({

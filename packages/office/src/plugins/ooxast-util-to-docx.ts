@@ -1,3 +1,4 @@
+import { defu } from "defu";
 import {
   AlignmentType,
   BorderStyle,
@@ -44,6 +45,7 @@ import type {
   WmlHyperlinkProperties,
   WmlImageRefProperties,
 } from "../ast";
+import { loadDocxTemplate } from "../templates/loader";
 
 // --- Constants for Numbering Generation ---
 const MAX_LIST_LEVELS = 9; // Define the maximum number of levels (0-8)
@@ -75,7 +77,7 @@ const NUMBER_FORMATS = [
 // Helper function to generate numbering levels programmatically
 function generateNumberingLevels(
   type: "bullet" | "number",
-  count: number = MAX_LIST_LEVELS
+  count: number = MAX_LIST_LEVELS,
 ): Readonly<ILevelsOptions>[] {
   return Array.from({ length: count }, (_, i) => {
     const levelIndex = i;
@@ -124,7 +126,7 @@ function onOffToBoolean(value: OnOffValue | undefined): boolean | undefined {
 
 // Helper to map OOXML alignment to docx.js AlignmentType
 function mapAlignment(
-  align?: string
+  align?: string,
 ): (typeof AlignmentType)[keyof typeof AlignmentType] | undefined {
   switch (align?.toLowerCase()) {
     case "start":
@@ -146,7 +148,7 @@ function mapAlignment(
 
 // Helper function to convert AST BorderStyleProperties to docx IBorderOptions
 function mapBorderStyle(
-  astBorder?: BorderStyleProperties
+  astBorder?: BorderStyleProperties,
 ): IBorderOptions | undefined {
   if (!astBorder) return undefined;
   const style = astBorder.style?.toUpperCase() as keyof typeof BorderStyle;
@@ -162,7 +164,7 @@ function mapBorderStyle(
     ) {
       // Basic check for 'auto', known color names, or hex format. Improve as needed.
       console.warn(
-        `[mapBorderStyle] Potentially unsupported color value: ${color}`
+        `[mapBorderStyle] Potentially unsupported color value: ${color}`,
       );
       // color = "auto"; // Optionally fallback
     }
@@ -179,7 +181,7 @@ function mapBorderStyle(
 
   if (!style || !BorderStyle[style]) {
     console.warn(
-      `[mapBorderStyle] Invalid or unsupported border style: ${astBorder.style}`
+      `[mapBorderStyle] Invalid or unsupported border style: ${astBorder.style}`,
     );
     return undefined; // Skip border if style is invalid
   }
@@ -206,7 +208,7 @@ function mapBorderStyle(
 
 // Helper function to convert table borders
 function mapTableBorders(
-  astBorders?: TableBorderProperties
+  astBorders?: TableBorderProperties,
 ): ITableBordersOptions | undefined {
   if (!astBorders) return undefined;
 
@@ -264,13 +266,67 @@ export const ooxastToDocx: Plugin<
   Promise<void>
 > = (options: ToDocxOptions = {}) => {
   return async (tree: OoxmlRoot, file: VFile): Promise<void> => {
-    if (options.debug) {
+    let finalOptions = { ...options };
+
+    // Process template configuration
+    if (options.template) {
+      try {
+        // Load preset template using c12
+        if (options.template.preset) {
+          if (options.debug) {
+            console.log(`Loading template preset: ${options.template.preset}`);
+          }
+
+          const templateResult = await loadDocxTemplate({
+            preset: options.template.preset,
+            debug: options.template.debug || options.debug,
+          });
+
+          if (templateResult.config) {
+            // Apply template configuration using defu for deep merging
+            finalOptions = defu(finalOptions, {
+              metadata: templateResult.config.metadata,
+              pageSettings: templateResult.config.pageSettings,
+              template: { config: templateResult.config },
+            }) as ToDocxOptions;
+
+            if (options.debug) {
+              console.log("Template preset applied successfully");
+            }
+          }
+        }
+
+        // Use provided template configuration directly
+        else if (options.template.config) {
+          if (options.debug) {
+            console.log("Using provided template configuration");
+          }
+
+          finalOptions = defu(finalOptions, {
+            metadata: options.template.config.metadata,
+            pageSettings: options.template.config.pageSettings,
+            template: { config: options.template.config },
+          }) as ToDocxOptions;
+        }
+      } catch (error) {
+        console.error("Failed to process template configuration:", error);
+        if (options.debug) {
+          throw error;
+        }
+        // Continue with original options if template processing fails
+      }
+    }
+
+    if (finalOptions.debug) {
       console.log("ooxastToDocx plugin: Starting OOXML AST serialization");
+      if (finalOptions.template) {
+        console.log("Template configuration:", finalOptions.template);
+      }
     }
 
     // --- Log Input Tree ---
     console.log(
-      `[toDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`
+      `[toDocx] Starting processing. Input tree type: ${tree?.type}, children count: ${tree?.children?.length}`,
     );
     // ----------------------
     const docxSections: ISectionOptions[] = [];
@@ -294,7 +350,7 @@ export const ooxastToDocx: Plugin<
     const processNode = async (
       node: OoxmlNode,
       context: ProcessingContext = {},
-      depth = 0
+      depth = 0,
     ): Promise<DocxChild[]> => {
       const indent = "  ".repeat(depth);
       let children: DocxChild[] = []; // Change to let for modification
@@ -364,7 +420,7 @@ export const ooxastToDocx: Plugin<
             // Process paragraph children (runs, hyperlinks, images) asynchronously
             const runsPromises = (element.children || []).map(
               async (
-                child
+                child,
               ): Promise<TextRun | ImageRun | ExternalHyperlink | null> => {
                 if (
                   child.type === "element" &&
@@ -374,7 +430,7 @@ export const ooxastToDocx: Plugin<
                   const imageRefChild = runElement.children?.find(
                     (c) =>
                       c.type === "element" &&
-                      (c.data as OoxmlData)?.ooxmlType === "imageRef"
+                      (c.data as OoxmlData)?.ooxmlType === "imageRef",
                   ) as OoxmlElement | undefined;
 
                   // --- Handle Image ---
@@ -384,11 +440,11 @@ export const ooxastToDocx: Plugin<
                     const imageUrl = imageProps.url;
                     if (!imageUrl) {
                       console.warn(
-                        `${indent}[processNode] ImageRef found but missing URL.`
+                        `${indent}[processNode] ImageRef found but missing URL.`,
                       );
                       // Return a placeholder TextRun if URL is missing
                       return new TextRun(
-                        `[Image: ${imageProps.alt || "Missing URL"}]`
+                        `[Image: ${imageProps.alt || "Missing URL"}]`,
                       );
                     }
 
@@ -398,7 +454,7 @@ export const ooxastToDocx: Plugin<
                         responseType: "arrayBuffer",
                       });
                       console.log(
-                        `${indent}  Image fetched successfully: ${imageUrl}`
+                        `${indent}  Image fetched successfully: ${imageUrl}`,
                       );
 
                       let detectedType: string | undefined;
@@ -416,14 +472,14 @@ export const ooxastToDocx: Plugin<
 
                       try {
                         const imageUint8Array = new Uint8Array(
-                          imageArrayBuffer
+                          imageArrayBuffer,
                         );
                         const meta = imageMeta(imageUint8Array);
                         detectedType = meta.type;
                         detectedWidth = meta.width;
                         detectedHeight = meta.height;
                         console.log(
-                          `${indent}  Image meta detected: type=${detectedType}, width=${detectedWidth}, height=${detectedHeight}`
+                          `${indent}  Image meta detected: type=${detectedType}, width=${detectedWidth}, height=${detectedHeight}`,
                         );
 
                         switch (detectedType?.toLowerCase()) {
@@ -446,25 +502,25 @@ export const ooxastToDocx: Plugin<
                             break;
                           default:
                             console.warn(
-                              `${indent}  Unsupported image type '${detectedType}' detected for ${imageUrl}.`
+                              `${indent}  Unsupported image type '${detectedType}' detected for ${imageUrl}.`,
                             );
                             imageRunType = undefined; // Explicitly set to undefined
                         }
                       } catch (metaError) {
                         console.warn(
                           `${indent}  Could not detect image meta for ${imageUrl}:`,
-                          metaError
+                          metaError,
                         );
                         // Fallback to placeholder if meta detection fails
                         return new TextRun(
-                          `[Image Meta Error: ${imageProps.alt || imageUrl}]`
+                          `[Image Meta Error: ${imageProps.alt || imageUrl}]`,
                         );
                       }
 
                       if (!imageRunType) {
                         // Fallback to placeholder if type is unsupported or detection failed
                         return new TextRun(
-                          `[Unsupported Image Type: ${imageProps.alt || imageUrl}]`
+                          `[Unsupported Image Type: ${imageProps.alt || imageUrl}]`,
                         );
                       }
 
@@ -513,11 +569,11 @@ export const ooxastToDocx: Plugin<
                     } catch (error) {
                       console.error(
                         `${indent}  Error processing image ${imageUrl}:`,
-                        error
+                        error,
                       );
                       // Fallback to placeholder on fetch or other errors
                       return new TextRun(
-                        `[Image Error: ${imageProps.alt || imageUrl}]`
+                        `[Image Error: ${imageProps.alt || imageUrl}]`,
                       );
                     }
                   } else {
@@ -528,7 +584,7 @@ export const ooxastToDocx: Plugin<
 
                     // Attempt to find a direct <w:t> child element
                     const textElement = runElement.children?.find(
-                      (c) => c.type === "element" && c.name === "w:t"
+                      (c) => c.type === "element" && c.name === "w:t",
                     ) as OoxmlElement | undefined;
 
                     if (textElement) {
@@ -542,7 +598,7 @@ export const ooxastToDocx: Plugin<
                     } else {
                       // Fallback or alternative search if needed, maybe log a warning
                       console.warn(
-                        `${indent}  Could not find <w:t> element within <w:r> for text extraction.`
+                        `${indent}  Could not find <w:t> element within <w:r> for text extraction.`,
                       );
                     }
 
@@ -575,7 +631,7 @@ export const ooxastToDocx: Plugin<
                                   | "wave") || "single",
                           ...(runProps.underline.color && {
                             color: runProps.underline.color.value?.startsWith(
-                              "#"
+                              "#",
                             )
                               ? runProps.underline.color.value.substring(1)
                               : runProps.underline.color.value,
@@ -652,7 +708,7 @@ export const ooxastToDocx: Plugin<
                         (c) =>
                           c.type === "element" &&
                           (c.data as OoxmlData)?.ooxmlType ===
-                            "textContentWrapper"
+                            "textContentWrapper",
                       );
                       if (linkTextWrapper?.type === "element") {
                         const linkTextNode = linkTextWrapper.children?.[0] as
@@ -693,7 +749,7 @@ export const ooxastToDocx: Plugin<
                             text: linkTextContent,
                             ...linkRunOptions, // Use the filtered options
                             style: "Hyperlink", // Apply hyperlink style
-                          })
+                          }),
                         );
                       }
                     }
@@ -708,18 +764,18 @@ export const ooxastToDocx: Plugin<
                 } else {
                   return null; // Skip other node types within paragraph for now
                 }
-              }
+              },
             );
 
             // Await all promises and filter out nulls
             const resolvedRuns = (await Promise.all(runsPromises)).filter(
-              (r) => r !== null
+              (r) => r !== null,
             ) as (TextRun | ImageRun | ExternalHyperlink)[];
 
             // ALWAYS add the paragraph, even if it has no runs (e.g., empty line in code block).
             // The paragraphProps (like style) are important to preserve structure.
             children.push(
-              new Paragraph({ ...paragraphProps, children: resolvedRuns })
+              new Paragraph({ ...paragraphProps, children: resolvedRuns }),
             );
           } else if (data.ooxmlType === "list") {
             // ... existing list handling ...
@@ -732,7 +788,7 @@ export const ooxastToDocx: Plugin<
               context.listLevel !== undefined ? context.listLevel + 1 : 0;
             const newContext: ProcessingContext = { listLevel, listRef };
             const listChildrenPromises = (element.children || []).map((child) =>
-              processNode(child, newContext, depth + 1)
+              processNode(child, newContext, depth + 1),
             );
             const resolvedListChildren =
               await Promise.all(listChildrenPromises);
@@ -741,7 +797,7 @@ export const ooxastToDocx: Plugin<
             // ... existing listItem handling ...
             // Important: Need to await results from recursive calls
             const itemChildrenPromises = (element.children || []).map((child) =>
-              processNode(child, context, depth + 1)
+              processNode(child, context, depth + 1),
             );
             const resolvedItemChildren =
               await Promise.all(itemChildrenPromises);
@@ -775,7 +831,7 @@ export const ooxastToDocx: Plugin<
                     }
                   }
                   console.log(
-                    `${indent}  Found tableGrid with ${gridCols.length} columns.`
+                    `${indent}  Found tableGrid with ${gridCols.length} columns.`,
                   );
                 }
               }
@@ -786,7 +842,7 @@ export const ooxastToDocx: Plugin<
               .filter(
                 (child) =>
                   child.type === "element" &&
-                  (child.data as OoxmlData)?.ooxmlType === "tableRow"
+                  (child.data as OoxmlData)?.ooxmlType === "tableRow",
               )
               .map(async (rowElement) => {
                 const tableCells: TableCell[] = [];
@@ -797,7 +853,7 @@ export const ooxastToDocx: Plugin<
                   .filter(
                     (c): c is OoxmlElement =>
                       c.type === "element" &&
-                      (c.data as OoxmlData)?.ooxmlType === "tableCell"
+                      (c.data as OoxmlData)?.ooxmlType === "tableCell",
                   )
                   .map(async (cellElement: OoxmlElement) => {
                     const cellProps = (cellElement.data?.properties ||
@@ -807,7 +863,7 @@ export const ooxastToDocx: Plugin<
                     const cellContentPromises = (
                       cellElement.children || []
                     ).map((contentNode: OoxmlElementContent) =>
-                      processNode(contentNode, {}, depth + 1)
+                      processNode(contentNode, {}, depth + 1),
                     );
                     const cellContent = (
                       await Promise.all(cellContentPromises)
@@ -855,7 +911,7 @@ export const ooxastToDocx: Plugin<
               });
 
             const resolvedRows = (await Promise.all(rowPromises)).filter(
-              (r) => r !== null
+              (r) => r !== null,
             ) as TableRow[];
 
             // Use gridCols length if available, otherwise fallback to 1
@@ -908,10 +964,10 @@ export const ooxastToDocx: Plugin<
             // ... handle other element types or skip ...
             // Recursively process children asynchronously for unhandled elements
             const otherChildrenPromises = (element.children || []).map(
-              (child) => processNode(child, context, depth + 1)
+              (child) => processNode(child, context, depth + 1),
             );
             const resolvedOtherChildren = await Promise.all(
-              otherChildrenPromises
+              otherChildrenPromises,
             );
             children.push(...resolvedOtherChildren.flat());
           }
@@ -920,7 +976,7 @@ export const ooxastToDocx: Plugin<
         } else if (node.type === "root") {
           // Process root children asynchronously
           const rootChildrenPromises = (node as OoxmlRoot).children.map(
-            (child) => processNode(child, {}, depth + 1)
+            (child) => processNode(child, {}, depth + 1),
           );
           const resolvedRootChildren = await Promise.all(rootChildrenPromises);
           children = resolvedRootChildren.flat(); // Assign directly to children
@@ -937,7 +993,7 @@ export const ooxastToDocx: Plugin<
     // Start processing from the root, now awaiting the result
     currentSectionChildren = await processNode(tree);
     console.log(
-      `[toDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`
+      `[toDocx] Finished processing nodes. Generated ${currentSectionChildren.length} top-level children.`,
     );
 
     // ... create sections and document (sync) ...
@@ -954,11 +1010,61 @@ export const ooxastToDocx: Plugin<
       console.warn("[toDocx] No content generated for the document section.");
     }
 
-    // Create the Document object
-    const doc = new Document({
+    // Create the Document object with template support
+    const docOptions = {
       sections: docxSections,
       numbering: numbering,
-    });
+      ...(finalOptions.metadata && {
+        creator: finalOptions.metadata.creator,
+        description: finalOptions.metadata.description,
+        title: finalOptions.metadata.title,
+        subject: finalOptions.metadata.subject,
+        lastModifiedBy: finalOptions.metadata.lastModifiedBy,
+        keywords: finalOptions.metadata.keywords,
+        category: finalOptions.metadata.category,
+      }),
+      ...(finalOptions.externalStyles && {
+        externalStyles: finalOptions.externalStyles,
+      }),
+    };
+
+    // Apply custom styles from template configuration
+    if (finalOptions.template?.config?.styles) {
+      const stylesConfig: Record<string, unknown> = {};
+      const templateStyles = finalOptions.template.config.styles;
+
+      if (templateStyles.paragraphStyles) {
+        stylesConfig.paragraphStyles = templateStyles.paragraphStyles.map(
+          (style) => ({
+            id: style.id,
+            name: style.name,
+            basedOn: style.basedOn,
+            next: style.next,
+            quickFormat: style.quickFormat,
+            run: style.run,
+            paragraph: style.paragraph,
+          }),
+        );
+      }
+
+      if (templateStyles.characterStyles) {
+        stylesConfig.characterStyles = templateStyles.characterStyles;
+      }
+
+      if (templateStyles.tableStyles) {
+        stylesConfig.tableStyles = templateStyles.tableStyles;
+      }
+
+      if (templateStyles.listStyles) {
+        stylesConfig.listStyles = templateStyles.listStyles;
+      }
+
+      if (Object.keys(stylesConfig).length > 0) {
+        Object.assign(docOptions, { styles: stylesConfig });
+      }
+    }
+
+    const doc = new Document(docOptions);
     console.log("[toDocx] Document object created successfully.");
 
     // Assign the Document object to file.result

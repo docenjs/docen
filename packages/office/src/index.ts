@@ -3,14 +3,18 @@
  * Handles DOCX, XLSX, PPTX, PDF formats
  */
 
-// Export processors
-export * from "./processors";
+// Office package main exports - unified.js compatible
+// Comprehensive office document processing with AST-first approach
 
-// Export AST utilities
+// --- Core Types ---
+export * from "./types";
 export * from "./ast";
 
-// Export plugins
+// --- Plugins ---
 export * from "./plugins";
 
-// Export types
-export * from "./types";
+// --- Processors ---
+export * from "./processors";
+
+// --- Template System ---
+export * from "./templates";

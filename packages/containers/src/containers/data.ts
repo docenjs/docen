@@ -10,7 +10,7 @@ import type { DataContainer } from "../types";
  */
 export function dataAddRow(
   container: DataContainer,
-  rowData: Record<string, unknown>
+  rowData: Record<string, unknown>,
 ): void {
   const row = new YMap();
   for (const [key, value] of Object.entries(rowData)) {
@@ -26,7 +26,7 @@ export function dataUpdateCell(
   container: DataContainer,
   rowIndex: number,
   column: string,
-  value: unknown
+  value: unknown,
 ): void {
   const row = container.data.get(rowIndex);
   if (row instanceof YMap) {
@@ -38,7 +38,7 @@ export function dataUpdateCell(
  * Get all data as an array of objects
  */
 export function dataGetData(
-  container: DataContainer
+  container: DataContainer,
 ): Record<string, unknown>[] {
   return container.data.toArray().map((row) => {
     if (row instanceof YMap) {

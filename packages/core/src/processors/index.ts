@@ -9,7 +9,7 @@ import type { DocenProcessor, DocenProcessorOptions } from "../types";
  * Factory function to create a Docen processor
  */
 export function createProcessor(
-  options: DocenProcessorOptions = {}
+  options: DocenProcessorOptions = {},
 ): DocenProcessor {
   // Create the base unified processor
   const processor = unified();

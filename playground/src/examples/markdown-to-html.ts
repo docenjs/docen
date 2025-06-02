@@ -17,7 +17,7 @@ mkdirSync(outputDir, { recursive: true });
 
 async function convertMarkdownToHtml() {
   console.log(
-    "Running: Markdown -> HTML Example (Using createMarkdownProcessor)"
+    "Running: Markdown -> HTML Example (Using createMarkdownProcessor)",
   );
 
   try {
@@ -31,7 +31,7 @@ async function convertMarkdownToHtml() {
 
     console.log(`Conversion result type: ${typeof result.value}`);
     console.log(
-      `Conversion result value (first 100 chars): ${(result.value as string)?.substring(0, 100)}...`
+      `Conversion result value (first 100 chars): ${(result.value as string)?.substring(0, 100)}...`,
     );
 
     writeFileSync(outputFile, result.value as string);

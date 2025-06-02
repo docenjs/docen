@@ -1,197 +1,37 @@
 /**
- * Office document processing types
- * Pure unified.js compatible types for office documents
+ * Office package types for unified.js processing
+ * Core types for OOXML processing and DOCX generation
  */
 
 import type { Node, Parent } from "@docen/core";
+import type { DocxTemplateConfig } from "./templates/types";
 
-// --- Office document AST nodes ---
-
-export interface OfficeRoot extends Parent {
-  type: "office-root";
-  children: OfficeNode[];
-  format: "docx" | "xlsx" | "pptx";
-}
-
-export interface OfficeDocument extends Parent {
-  type: "office-document";
-  children: OfficeNode[];
-}
-
-export interface OfficeParagraph extends Parent {
-  type: "office-paragraph";
-  children: OfficeInlineNode[];
-  style?: string;
-}
-
-export interface OfficeRun extends Parent {
-  type: "office-run";
-  children: OfficeInlineNode[];
-  formatting?: OfficeFormatting;
-}
-
-export interface OfficeText extends Node {
-  type: "office-text";
-  value: string;
-}
-
-export interface OfficeTable extends Parent {
-  type: "office-table";
-  children: OfficeTableRow[];
-  style?: string;
-}
-
-export interface OfficeTableRow extends Parent {
-  type: "office-table-row";
-  children: OfficeTableCell[];
-}
-
-export interface OfficeTableCell extends Parent {
-  type: "office-table-cell";
-  children: OfficeNode[];
-  colspan?: number;
-  rowspan?: number;
-}
-
-export interface OfficeImage extends Node {
-  type: "office-image";
-  src: string;
-  alt?: string;
-  width?: number;
-  height?: number;
-}
-
-export interface OfficeList extends Parent {
-  type: "office-list";
-  children: OfficeListItem[];
-  ordered?: boolean;
-  level?: number;
-}
-
-export interface OfficeListItem extends Parent {
-  type: "office-list-item";
-  children: OfficeNode[];
-  level?: number;
-}
-
-// --- Spreadsheet-specific nodes ---
-
-export interface OfficeWorkbook extends Parent {
-  type: "office-workbook";
-  children: OfficeWorksheet[];
-}
-
-export interface OfficeWorksheet extends Parent {
-  type: "office-worksheet";
-  children: OfficeRow[];
-  name: string;
-}
-
-export interface OfficeRow extends Parent {
-  type: "office-row";
-  children: OfficeCell[];
-  index: number;
-}
-
-export interface OfficeCell extends Node {
-  type: "office-cell";
-  value: string | number | boolean | Date;
-  formula?: string;
-  style?: string;
-  column: string;
-  row: number;
-}
-
-// --- Presentation-specific nodes ---
-
-export interface OfficePresentation extends Parent {
-  type: "office-presentation";
-  children: OfficeSlide[];
-}
-
-export interface OfficeSlide extends Parent {
-  type: "office-slide";
-  children: OfficeNode[];
-  layout?: string;
-  index: number;
-}
-
-// --- Formatting types ---
-
-export interface OfficeFormatting {
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  fontSize?: number;
-  fontFamily?: string;
-  color?: string;
-  backgroundColor?: string;
-}
-
-// --- Content type unions ---
-
-export type OfficeNode =
-  | OfficeParagraph
-  | OfficeTable
-  | OfficeImage
-  | OfficeList
-  | OfficeWorkbook
-  | OfficePresentation;
-
-export type OfficeInlineNode = OfficeText | OfficeRun;
-
-// --- Processor options ---
-
-export interface OfficeProcessorOptions {
-  format: "docx" | "xlsx" | "pptx";
-  preserveFormatting?: boolean;
-  extractImages?: boolean;
-  includeMetadata?: boolean;
-}
-
-// --- Shared Plugin Options ---
+// --- Base Plugin Types ---
 
 /**
- * Base options interface for all office format plugins
+ * Base plugin options extending unified.js patterns
  */
 export interface BasePluginOptions {
-  /** Whether to include debugging information */
+  /** Enable debug output */
   debug?: boolean;
-  /** Custom extraction/processing options */
-  customOptions?: Record<string, unknown>;
+  /** Additional processor options */
+  processorOptions?: Record<string, unknown>;
 }
 
 /**
- * Options for parsing office documents
+ * Common office document parsing options
  */
 export interface FromOfficeOptions extends BasePluginOptions {
-  /** Whether to preserve whitespace in text elements */
-  preserveWhitespace?: boolean;
-  /** Whether to include raw parser data for debugging */
-  includeRawData?: boolean;
-  /** Configure which document parts to parse */
-  parts?: {
-    styles?: boolean;
-    numbering?: boolean;
-    comments?: boolean;
-    footnotes?: boolean;
-    endnotes?: boolean;
-    headers?: boolean;
-    footers?: boolean;
-    relationships?: boolean;
-    metadata?: boolean;
-  };
-  /** Custom element handlers for specific elements */
-  handlers?: Record<string, (element: unknown, context: unknown) => unknown>;
-  /** Extensions to enable */
-  extensions?: Array<{
-    name: string;
-    handler?: (element: unknown, context: unknown) => unknown;
-  }>;
+  /** Whether to preserve formatting */
+  preserveFormatting?: boolean;
+  /** Whether to extract images */
+  extractImages?: boolean;
+  /** Custom parsing options */
+  parseOptions?: Record<string, unknown>;
 }
 
 /**
- * Options for converting to office documents
+ * Common office document processing options
  */
 export interface ToOfficeOptions extends BasePluginOptions {
   /** Document metadata */
@@ -223,84 +63,270 @@ export interface ToOfficeOptions extends BasePluginOptions {
   optimizeSize?: boolean;
 }
 
-// --- Format-specific options ---
+/**
+ * Options for generating DOCX documents with template support
+ */
+export interface ToDocxOptions extends ToOfficeOptions {
+  /** DOCX template configuration using c12 */
+  template?: {
+    /** Template preset name (for c12 config resolution) */
+    preset?: string;
+    /** Template configuration object */
+    config?: DocxTemplateConfig;
+    /** Debug template processing */
+    debug?: boolean;
+  };
+  /** External styles XML content */
+  externalStyles?: string;
+}
+
+/**
+ * Options for generating XLSX documents
+ */
+export interface ToXlsxOptions extends ToOfficeOptions {
+  /** Worksheet configuration */
+  worksheets?: {
+    name?: string;
+    data?: unknown[][];
+    headers?: string[];
+  }[];
+}
+
+/**
+ * Options for generating PPTX documents
+ */
+export interface ToPptxOptions extends ToOfficeOptions {
+  /** Slide layout configuration */
+  slideLayouts?: {
+    master?: string;
+    layouts?: string[];
+  };
+}
 
 /**
  * Options for parsing DOCX documents
  */
 export interface FromDocxOptions extends FromOfficeOptions {
-  // DOCX-specific options can be added here
-}
-
-/**
- * Options for generating DOCX documents
- */
-export interface ToDocxOptions extends ToOfficeOptions {
-  // DOCX-specific options can be added here
+  /** DOCX-specific parsing options */
+  docxOptions?: {
+    /** Whether to parse comments */
+    parseComments?: boolean;
+    /** Whether to parse tracked changes */
+    parseRevisions?: boolean;
+  };
+  /** Custom handlers for processing elements */
+  handlers?: Record<string, (...args: unknown[]) => unknown>;
+  /** Whether to include raw XML data in the output */
+  includeRawData?: boolean;
 }
 
 /**
  * Options for parsing PDF documents
  */
 export interface FromPdfOptions extends FromOfficeOptions {
-  /** Whether to attempt OCR on images */
-  enableOCR?: boolean;
-  /** Language for OCR (if enabled) */
-  ocrLanguage?: string;
-  /** Whether to preserve page structure */
-  preservePageStructure?: boolean;
-  /** OCR confidence threshold (0-1) */
-  ocrConfidenceThreshold?: number;
-  /** Whether to detect tables automatically */
-  detectTables?: boolean;
-  /** Table detection algorithm */
-  tableDetectionMethod?: "structure" | "heuristic" | "ml";
+  /** PDF-specific parsing options */
+  pdfOptions?: {
+    /** OCR settings for scanned PDFs */
+    ocrSettings?: Record<string, unknown>;
+    /** Page range to parse */
+    pageRange?: { start?: number; end?: number };
+  };
 }
 
 /**
- * Options for generating PDF documents
+ * Options for converting to PDF documents
  */
 export interface ToPdfOptions extends ToOfficeOptions {
-  /** Page width in points (default: 595.28 - A4) */
+  /** Page width in points */
   pageWidth?: number;
-  /** Page height in points (default: 841.89 - A4) */
+  /** Page height in points */
   pageHeight?: number;
-  /** Page margins in points */
+  /** Page margins */
   margins?: {
     top?: number;
     bottom?: number;
     left?: number;
     right?: number;
   };
-  /** Default font size in points */
+  /** Default font size */
   defaultFontSize?: number;
   /** Line height multiplier */
   lineHeight?: number;
-  /** Custom font embedding options */
+  /** Custom options for specific use cases */
+  customOptions?: Record<string, unknown>;
+  /** Font configuration */
   fonts?: {
     /** Whether to embed custom fonts */
     embedCustomFonts?: boolean;
-    /** Font subset options */
+    /** Whether to subset fonts */
     subset?: boolean;
-    /** Font fallback mapping */
+    /** Font fallback mappings */
     fallbacks?: Record<string, string>;
   };
 }
 
 /**
- * Options for converting to Markdown AST
+ * Options for converting to MDAST
  */
 export interface ToMdastOptions extends BasePluginOptions {
-  /** Whether to preserve custom attributes as HTML data attributes */
-  preserveAttributes?: boolean;
-  /** Whether to convert unknown elements to HTML */
+  /** Whether to allow HTML elements in output */
   allowHtml?: boolean;
-  /** Image path resolver function */
+  /** Whether to preserve element attributes when converting to HTML */
+  preserveAttributes?: boolean;
+  /** Function to resolve image paths from relation IDs */
   resolveImagePath?: (relationId: string) => string;
-  /** Whether to preserve table formatting */
-  preserveTableFormatting?: boolean;
-  /** How to handle unsupported formatting */
-  unsupportedFormatting?: "ignore" | "html" | "comment";
-  /** Whether to generate GitHub Flavored Markdown extensions */
-  gfm?: boolean;
+  /** Markdown conversion options */
+  markdownOptions?: {
+    /** Whether to preserve HTML */
+    preserveHtml?: boolean;
+    /** Whether to use GFM syntax */
+    gfm?: boolean;
+  };
 }
+
+// --- AST Node Types ---
+
+/**
+ * Base OOXAST node
+ */
+export interface OoxastNode extends Node {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  attributes?: Record<string, string | number | boolean>;
+}
+
+/**
+ * OOXAST parent node
+ */
+export interface OoxastParent extends Parent {
+  children: OoxastNode[];
+}
+
+/**
+ * OOXAST element node
+ */
+export interface OoxastElement extends OoxastNode {
+  tagName: string;
+  properties: Record<string, unknown>;
+  children?: OoxastNode[];
+}
+
+/**
+ * OOXAST text node
+ */
+export interface OoxastText extends OoxastNode {
+  type: "text";
+  value: string;
+}
+
+/**
+ * OOXAST document node
+ */
+export interface OoxastDocument extends OoxastParent {
+  type: "document";
+  children: OoxastElement[];
+}
+
+// --- Document Structure Types ---
+
+/**
+ * Document section configuration
+ */
+export interface DocumentSection {
+  pageSize?: {
+    width: number;
+    height: number;
+    orientation?: "portrait" | "landscape";
+  };
+  pageMargins?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+    header?: number;
+    footer?: number;
+  };
+  columns?: {
+    count: number;
+    space?: number;
+    separator?: boolean;
+  };
+}
+
+/**
+ * Document header/footer configuration
+ */
+export interface HeaderFooterConfig {
+  type: "header" | "footer";
+  pageType: "default" | "first" | "even";
+  content: OoxastElement[];
+}
+
+// --- Processing Pipeline Types ---
+
+/**
+ * Plugin processing context
+ */
+export interface ProcessingContext {
+  /** Current document being processed */
+  document: OoxastDocument;
+  /** Plugin options */
+  options: BasePluginOptions;
+  /** Processing metadata */
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Plugin processor function
+ */
+export type PluginProcessor<T = BasePluginOptions> = (
+  context: ProcessingContext,
+  options: T,
+) => Promise<OoxastDocument> | OoxastDocument;
+
+/**
+ * Plugin definition
+ */
+export interface PluginDefinition<T = BasePluginOptions> {
+  name: string;
+  processor: PluginProcessor<T>;
+  defaultOptions?: Partial<T>;
+}
+
+// --- Validation and Error Types ---
+
+/**
+ * Document validation result
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+}
+
+/**
+ * Validation error
+ */
+export interface ValidationError {
+  code: string;
+  message: string;
+  line?: number;
+  column?: number;
+  path?: string;
+}
+
+/**
+ * Validation warning
+ */
+export interface ValidationWarning {
+  code: string;
+  message: string;
+  line?: number;
+  column?: number;
+  path?: string;
+}
+
+// --- Export Types ---
+
+export type { DocxTemplateConfig } from "./templates/types";

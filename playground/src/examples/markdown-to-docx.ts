@@ -6,7 +6,7 @@ import { Document, Packer } from "docx";
 import { VFile } from "vfile";
 // --- Log the imported plugin ---
 console.log(
-  `[markdown-to-docx] Imported ooxastToDocx type: ${typeof ooxastToDocx}`
+  `[markdown-to-docx] Imported ooxastToDocx type: ${typeof ooxastToDocx}`,
 );
 // ------------------------------
 
@@ -22,7 +22,7 @@ mkdirSync(outputDir, { recursive: true });
 // --- Main conversion function ---
 async function convertMarkdownToDocx() {
   console.log(
-    "--- Starting Markdown to DOCX Conversion (Single Pipeline) --- "
+    "--- Starting Markdown to DOCX Conversion (Single Pipeline) --- ",
   );
 
   let markdownContent: string;
@@ -57,10 +57,10 @@ async function convertMarkdownToDocx() {
     if (!doc || !(doc instanceof Document)) {
       console.error(
         "Unified pipeline result (from vfile.result after run):",
-        vfile.result
+        vfile.result,
       );
       throw new Error(
-        "Unified pipeline failed to produce a valid Document object on vfile.result after run."
+        "Unified pipeline failed to produce a valid Document object on vfile.result after run.",
       );
     }
     console.log("docx.Document object generated via parse/run pipeline.");
