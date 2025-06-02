@@ -56,7 +56,7 @@ export class ContainerAwareness {
    */
   setCursor(
     position: number,
-    selection?: { start: number; end: number }
+    selection?: { start: number; end: number },
   ): void {
     const currentUser = this.awareness.getLocalState()?.user;
     if (currentUser) {

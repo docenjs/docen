@@ -25,7 +25,7 @@ import type { ToMdastOptions } from "../types";
  * Convert OOXML AST to MDAST (Markdown Abstract Syntax Tree)
  */
 export const ooxastToMdast: Plugin<[ToMdastOptions?]> = (
-  options: ToMdastOptions = {}
+  options: ToMdastOptions = {},
 ) => {
   return (tree: Node, file: VFile): Node => {
     try {
@@ -58,8 +58,8 @@ export const ooxastToMdast: Plugin<[ToMdastOptions?]> = (
       console.error("Error converting OOXML to MDAST:", error);
       file.message(
         new Error(
-          `MDAST conversion failed: ${error instanceof Error ? error.message : String(error)}`
-        )
+          `MDAST conversion failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       throw error;
     }
@@ -71,7 +71,7 @@ export const ooxastToMdast: Plugin<[ToMdastOptions?]> = (
  */
 function convertNode(
   node: OoxmlElementContent,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastContent | MdastContent[] | null {
   if (node.type === "text") {
     return convertTextNode(node);
@@ -97,7 +97,7 @@ function convertTextNode(node: OoxmlText): MdastText {
  */
 function convertElementNode(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastContent | MdastContent[] | null {
   // First check the ooxmlType in data if available
   const ooxmlType = element.data?.ooxmlType;
@@ -156,7 +156,7 @@ function convertElementNode(
  */
 function convertParagraph(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastContent {
   const children: PhrasingContent[] = [];
 
@@ -184,7 +184,7 @@ function convertParagraph(
  */
 function convertHeading(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastContent {
   const children: PhrasingContent[] = [];
   const elementLevel = (element.data?.properties as Record<string, unknown>)
@@ -222,7 +222,7 @@ function convertHeading(
  */
 function convertTextRun(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): PhrasingContent | PhrasingContent[] {
   if (!element.children || element.children.length === 0) {
     return { type: "text", value: "" };
@@ -297,7 +297,7 @@ function convertTextRun(
  */
 function convertTable(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastTable {
   const children: MdastTableRow[] = [];
 
@@ -333,7 +333,7 @@ function convertTable(
  */
 function convertTableRow(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastTableRow {
   const children: MdastTableCell[] = [];
 
@@ -359,7 +359,7 @@ function convertTableRow(
  */
 function convertTableCell(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastTableCell {
   const children: PhrasingContent[] = [];
 
@@ -387,7 +387,7 @@ function convertTableCell(
  */
 function convertList(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastList {
   const children: MdastListItem[] = [];
   const isOrdered =
@@ -416,7 +416,7 @@ function convertList(
  */
 function convertListItem(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastListItem {
   const children: (
     | import("mdast").BlockContent
@@ -448,7 +448,7 @@ function convertListItem(
  */
 function convertDrawing(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastContent | null {
   const relationId = element.data?.relationId as string | undefined;
   if (!relationId) {
@@ -480,7 +480,7 @@ function convertDrawing(
  */
 function convertHyperlink(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): PhrasingContent {
   const children: PhrasingContent[] = [];
   const url =
@@ -512,7 +512,7 @@ function convertHyperlink(
  */
 function convertGenericElement(
   element: OoxmlElement,
-  options: ToMdastOptions
+  options: ToMdastOptions,
 ): MdastContent | MdastContent[] | null {
   // If HTML is allowed, convert to HTML element
   if (options.allowHtml) {
@@ -591,7 +591,7 @@ function isPhrasingContent(node: MdastContent): node is PhrasingContent {
  * Type guard to check if a node is block content or definition content
  */
 function isBlockOrDefinitionContent(
-  node: MdastContent
+  node: MdastContent,
 ): node is import("mdast").BlockContent | import("mdast").DefinitionContent {
   const blockTypes = [
     "paragraph",

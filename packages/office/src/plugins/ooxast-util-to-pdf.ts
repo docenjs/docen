@@ -1,3 +1,4 @@
+import { defu } from "defu";
 import {
   PDFDocument,
   type PDFFont,
@@ -34,18 +35,11 @@ interface PdfGenerationState {
  * Default options for PDF generation
  */
 const DEFAULT_OPTIONS: Required<ToPdfOptions> = {
-  pageWidth: 595.28, // A4 width
-  pageHeight: 841.89, // A4 height
-  margins: {
-    top: 72,
-    bottom: 72,
-    left: 72,
-    right: 72,
-  },
-  defaultFontSize: 12,
-  lineHeight: 1.2,
+  // Base plugin options
   debug: false,
-  customOptions: {},
+  processorOptions: {},
+
+  // Office options
   metadata: {},
   pageSettings: {
     width: 595.28,
@@ -60,6 +54,19 @@ const DEFAULT_OPTIONS: Required<ToPdfOptions> = {
   },
   compression: 6,
   optimizeSize: false,
+
+  // PDF-specific options
+  pageWidth: 595.28, // A4 width
+  pageHeight: 841.89, // A4 height
+  margins: {
+    top: 72,
+    bottom: 72,
+    left: 72,
+    right: 72,
+  },
+  defaultFontSize: 12,
+  lineHeight: 1.2,
+  customOptions: {},
   fonts: {
     embedCustomFonts: false,
     subset: false,
@@ -71,7 +78,7 @@ const DEFAULT_OPTIONS: Required<ToPdfOptions> = {
  * Convert OOXML AST to PDF using pdf-lib
  */
 export const ooxastToPdf: Plugin<[ToPdfOptions?]> = (
-  options: ToPdfOptions = {}
+  options: ToPdfOptions = {},
 ) => {
   return async (tree: Node, file: VFile): Promise<void> => {
     try {
@@ -81,30 +88,10 @@ export const ooxastToPdf: Plugin<[ToPdfOptions?]> = (
       }
 
       const ooxmlTree = tree as OoxmlRoot;
-      const mergedOptions: Required<ToPdfOptions> = {
-        ...DEFAULT_OPTIONS,
-        ...options,
-        margins: {
-          ...DEFAULT_OPTIONS.margins,
-          ...options.margins,
-        },
-        metadata: {
-          ...DEFAULT_OPTIONS.metadata,
-          ...options.metadata,
-        },
-        pageSettings: {
-          ...DEFAULT_OPTIONS.pageSettings,
-          ...options.pageSettings,
-          margin: {
-            ...DEFAULT_OPTIONS.pageSettings.margin,
-            ...options.pageSettings?.margin,
-          },
-        },
-        fonts: {
-          ...DEFAULT_OPTIONS.fonts,
-          ...options.fonts,
-        },
-      };
+      const mergedOptions: Required<ToPdfOptions> = defu(
+        options,
+        DEFAULT_OPTIONS,
+      ) as Required<ToPdfOptions>;
 
       // Create PDF document
       const pdfDoc = await PDFDocument.create();
@@ -141,8 +128,8 @@ export const ooxastToPdf: Plugin<[ToPdfOptions?]> = (
       console.error("Error converting OOXML to PDF:", error);
       file.message(
         new Error(
-          `PDF generation failed: ${error instanceof Error ? error.message : String(error)}`
-        )
+          `PDF generation failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       throw error;
     }
@@ -159,25 +146,25 @@ async function setupDefaultFonts(state: PdfGenerationState): Promise<void> {
   fonts.set("TimesRoman", await doc.embedFont(StandardFonts.TimesRoman));
   fonts.set(
     "TimesRomanBold",
-    await doc.embedFont(StandardFonts.TimesRomanBold)
+    await doc.embedFont(StandardFonts.TimesRomanBold),
   );
   fonts.set(
     "TimesRomanItalic",
-    await doc.embedFont(StandardFonts.TimesRomanItalic)
+    await doc.embedFont(StandardFonts.TimesRomanItalic),
   );
   fonts.set(
     "TimesRomanBoldItalic",
-    await doc.embedFont(StandardFonts.TimesRomanBoldItalic)
+    await doc.embedFont(StandardFonts.TimesRomanBoldItalic),
   );
   fonts.set("Helvetica", await doc.embedFont(StandardFonts.Helvetica));
   fonts.set("HelveticaBold", await doc.embedFont(StandardFonts.HelveticaBold));
   fonts.set(
     "HelveticaOblique",
-    await doc.embedFont(StandardFonts.HelveticaOblique)
+    await doc.embedFont(StandardFonts.HelveticaOblique),
   );
   fonts.set(
     "HelveticaBoldOblique",
-    await doc.embedFont(StandardFonts.HelveticaBoldOblique)
+    await doc.embedFont(StandardFonts.HelveticaBoldOblique),
   );
 }
 
@@ -186,7 +173,7 @@ async function setupDefaultFonts(state: PdfGenerationState): Promise<void> {
  */
 async function processNode(
   node: OoxmlElementContent,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   if (node.type === "text") {
     await renderText(node, state);
@@ -200,7 +187,7 @@ async function processNode(
  */
 async function renderText(
   node: OoxmlText,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   const { options } = state;
 
@@ -241,7 +228,7 @@ async function renderText(
  */
 async function renderElement(
   element: OoxmlElement,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   const { name } = element;
 
@@ -274,7 +261,7 @@ async function renderElement(
  */
 async function renderParagraph(
   element: OoxmlElement,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   // Start new line for paragraph
   state.currentY -= state.options.defaultFontSize * state.options.lineHeight;
@@ -296,7 +283,7 @@ async function renderParagraph(
  */
 async function renderTextRun(
   element: OoxmlElement,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   const { options } = state;
 
@@ -364,7 +351,7 @@ async function renderTextRun(
  */
 async function renderHeading(
   element: OoxmlElement,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   const { options } = state;
 
@@ -420,7 +407,7 @@ async function renderHeading(
  */
 async function renderDrawing(
   element: OoxmlElement,
-  state: PdfGenerationState
+  state: PdfGenerationState,
 ): Promise<void> {
   const { options } = state;
 

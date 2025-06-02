@@ -130,7 +130,7 @@ function approximateFontSize(transform: TransformMatrix): number {
  * NOTE: This is unreliable as it depends on naming conventions.
  */
 function inferFontStylesFromName(
-  fontName: string
+  fontName: string,
 ): Pick<FontProperties, "bold" | "italic"> {
   const styles: Pick<FontProperties, "bold" | "italic"> = {};
   const lowerFontName = fontName.toLowerCase();
@@ -160,19 +160,19 @@ import type { FromPdfOptions } from "../types";
  * Follows unified.js naming convention (like fromXml, fromMarkdown)
  */
 export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
-  options: FromPdfOptions = {}
+  options: FromPdfOptions = {},
 ) => {
   return async (
     _tree: OoxmlRoot | undefined, // Input tree is ignored, but type should match return
-    file: VFile
+    file: VFile,
   ): Promise<OoxmlRoot | undefined> => {
     console.log(
-      "Plugin: pdfToOoxast running (Enhanced with basic styles and image placeholders)."
+      "Plugin: pdfToOoxast running (Enhanced with basic styles and image placeholders).",
     );
 
     if (!file.value || !(file.value instanceof Uint8Array)) {
       file.message(
-        new Error("VFile value must be a Uint8Array for PDF parsing.")
+        new Error("VFile value must be a Uint8Array for PDF parsing."),
       );
       return undefined;
     }
@@ -186,8 +186,8 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
       console.error("Error loading PDF document with PDF.js:", error);
       file.message(
         new Error(
-          `PDF.js document loading failed: ${error instanceof Error ? error.message : String(error)}`
-        )
+          `PDF.js document loading failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       return undefined;
     }
@@ -234,7 +234,7 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
           .map((annot) => {
             // Ensure rect uses PDF coordinates (y-up)
             const normalizedRectArr = pdfjs.Util.normalizeRect(
-              annot.rect as number[]
+              annot.rect as number[],
             ); // Returns [x1, y1, x2, y2]
             const rectObject: Rect = {
               x1: normalizedRectArr[0],
@@ -283,7 +283,7 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
           c: number,
           m: number,
           y: number,
-          k: number
+          k: number,
         ): [number, number, number] {
           // Convert CMYK (0-1) to RGB (0-1) using basic formula
           const r = 1 - Math.min(1, c * (1 - k) + k);
@@ -355,7 +355,7 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
           else if (fn === OPS.setFillColorN) {
             // Pattern or separation color space - use fallback color
             console.warn(
-              "Pattern/Separation color space not fully implemented, using black."
+              "Pattern/Separation color space not fully implemented, using black.",
             );
             currentGraphicsState.fillColor = [0, 0, 0];
             currentGraphicsState.fillColorSpace = "DeviceRGB";
@@ -384,7 +384,7 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
         // Get final fill color for text rendering
         const finalFillColorHex = colorToHex(
           currentGraphicsState.fillColor,
-          currentGraphicsState.fillColorSpace
+          currentGraphicsState.fillColorSpace,
         );
 
         // --- 1. Process Text Content (Create RawPdfContentItem) ---
@@ -557,7 +557,7 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
             } catch (imgError) {
               console.warn(
                 `Could not load image resource ${imgRef}:`,
-                imgError
+                imgError,
               );
             } // End try-catch
           } // End if paintImageXObject
@@ -643,18 +643,18 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
       } // End page loop
 
       console.log(
-        `pdfToOoxmlAst plugin: Processed ${numPages} pages. Added color (approx), links. Tables not parsed. AST contains ${newRoot.children.length} paragraphs.`
+        `pdfToOoxmlAst plugin: Processed ${numPages} pages. Added color (approx), links. Tables not parsed. AST contains ${newRoot.children.length} paragraphs.`,
       );
       return newRoot;
     } catch (transformError: unknown) {
       console.error(
         "Error during PDF to Ooxml AST transformation:",
-        transformError
+        transformError,
       );
       file.message(
         new Error(
-          `PDF AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`
-        )
+          `PDF AST transformation failed: ${transformError instanceof Error ? transformError.message : String(transformError)}`,
+        ),
       );
       return undefined;
     }

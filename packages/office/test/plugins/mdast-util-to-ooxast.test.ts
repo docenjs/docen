@@ -13,12 +13,12 @@ import type {
   OoxmlRoot,
   ParagraphFormatting,
   WmlTableProperties,
-} from "../src/ast";
-import { mdastToOoxast } from "../src/plugins";
+} from "../../src/ast";
+import { mdastToOoxast } from "../../src/plugins";
 
 // Helper function to create MDAST nodes for testing
 function createMdastRoot(
-  children: (BlockContent | DefinitionContent)[]
+  children: (BlockContent | DefinitionContent)[],
 ): MdastRoot {
   return {
     type: "root",

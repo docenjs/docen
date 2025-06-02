@@ -21,7 +21,7 @@ async function runAllExamples() {
   try {
     const files = readdirSync(examplesDir);
     const exampleFiles = files.filter(
-      (file) => file.endsWith(".ts") && !file.endsWith(".d.ts")
+      (file) => file.endsWith(".ts") && !file.endsWith(".d.ts"),
     );
 
     if (exampleFiles.length === 0) {
@@ -30,7 +30,7 @@ async function runAllExamples() {
     }
 
     console.log(
-      `Found ${exampleFiles.length} example(s): ${exampleFiles.join(", ")}\n`
+      `Found ${exampleFiles.length} example(s): ${exampleFiles.join(", ")}\n`,
     );
 
     for (const file of exampleFiles) {
@@ -59,7 +59,7 @@ async function runAllExamples() {
 
   console.log("--- Playground Run Complete ---");
   console.log(
-    `Total: ${successCount + failureCount}, Success: ${successCount}, Failed: ${failureCount}`
+    `Total: ${successCount + failureCount}, Success: ${successCount}, Failed: ${failureCount}`,
   );
   if (failureCount > 0) {
     process.exit(1); // Exit with error code if any example failed

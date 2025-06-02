@@ -7,14 +7,14 @@ import type {
   OoxmlElementContent,
   OoxmlRoot,
   ParagraphFormatting,
-} from "../src/ast";
-import { ooxastToPdf } from "../src/plugins";
-import type { ToPdfOptions } from "../src/types";
+} from "../../src/ast";
+import { ooxastToPdf } from "../../src/plugins";
+import type { ToPdfOptions } from "../../src/types";
 
 // Helper function to create a simple OOXML AST structure
 function createOoxmlParagraph(
   text: string,
-  properties?: ParagraphFormatting
+  properties?: ParagraphFormatting,
 ): OoxmlElement {
   return {
     type: "element",
@@ -69,7 +69,7 @@ function createOoxmlRoot(children: OoxmlElementContent[]): OoxmlRoot {
 // Helper function to process OOXML AST to PDF
 async function processToPdf(
   ooxmlAst: OoxmlRoot,
-  options?: ToPdfOptions
+  options?: ToPdfOptions,
 ): Promise<VFile> {
   const processor = unified().use(ooxastToPdf, options);
   const file = new VFile();

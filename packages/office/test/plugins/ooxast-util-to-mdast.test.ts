@@ -8,14 +8,14 @@ import type {
   OoxmlElementContent,
   OoxmlRoot,
   ParagraphFormatting,
-} from "../src/ast";
-import { ooxastToMdast } from "../src/plugins";
-import type { ToMdastOptions } from "../src/types";
+} from "../../src/ast";
+import { ooxastToMdast } from "../../src/plugins";
+import type { ToMdastOptions } from "../../src/types";
 
 // Helper function to create a simple OOXML AST structure
 function createOoxmlParagraph(
   text: string,
-  properties?: ParagraphFormatting
+  properties?: ParagraphFormatting,
 ): OoxmlElement {
   return {
     type: "element",
@@ -115,7 +115,7 @@ function createOoxmlRoot(children: OoxmlElementContent[]): OoxmlRoot {
 // Helper function to process OOXML AST to MDAST
 async function processToMdast(
   ooxmlAst: OoxmlRoot,
-  options?: ToMdastOptions
+  options?: ToMdastOptions,
 ): Promise<VFile> {
   const processor = unified().use(ooxastToMdast, options);
   const file = new VFile();
@@ -223,10 +223,10 @@ describe("ooxast-util-to-mdast Plugin Tests", () => {
       if (mdast.children[0].children[0]?.type === "tableRow") {
         expect(mdast.children[0].children[0].children).toHaveLength(2);
         expect(mdast.children[0].children[0].children[0]?.type).toBe(
-          "tableCell"
+          "tableCell",
         );
         expect(mdast.children[0].children[0].children[1]?.type).toBe(
-          "tableCell"
+          "tableCell",
         );
       }
     }
@@ -437,7 +437,7 @@ describe("ooxast-util-to-mdast Plugin Tests", () => {
       expect(mdast.children[0].children.length).toBeGreaterThan(0);
       // Should contain text, emphasis/strong, and inlineCode elements
       const hasInlineCode = mdast.children[0].children.some(
-        (child) => child.type === "inlineCode"
+        (child) => child.type === "inlineCode",
       );
       expect(hasInlineCode).toBe(true);
     }

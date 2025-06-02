@@ -10,7 +10,7 @@ import type { DocumentContainer } from "../types";
 export function documentInsertText(
   container: DocumentContainer,
   index: number,
-  text: string
+  text: string,
 ): void {
   container.content.insert(index, text);
 }
@@ -21,7 +21,7 @@ export function documentInsertText(
 export function documentDeleteText(
   container: DocumentContainer,
   index: number,
-  length: number
+  length: number,
 ): void {
   container.content.delete(index, length);
 }
@@ -38,7 +38,7 @@ export function documentGetText(container: DocumentContainer): string {
  */
 export function documentSetText(
   container: DocumentContainer,
-  text: string
+  text: string,
 ): void {
   container.content.delete(0, container.content.length);
   container.content.insert(0, text);
