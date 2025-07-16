@@ -37,6 +37,6 @@
   "dependencies": {
     "@docen/containers": "workspace:*",
     "eventemitter3": "5.0.1",
-    "hotkeys-js": "3.13.10"
+    "hotkeys-js": "3.13.15"
   }
 }

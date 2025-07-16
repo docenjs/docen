@@ -149,6 +149,22 @@ function isPointInsideRect(x: number, y: number, rect: Rect): boolean {
 }
 
 /**
+ * Converts CMYK color values to RGB.
+ * Assumes CMYK values are in range [0, 1] and returns RGB in [0, 255].
+ */
+function cmykToRgb(
+  c: number,
+  m: number,
+  y: number,
+  k: number,
+): [number, number, number] {
+  const r = 255 * (1 - c) * (1 - k);
+  const g = 255 * (1 - m) * (1 - k);
+  const b = 255 * (1 - y) * (1 - k);
+  return [Math.round(r), Math.round(g), Math.round(b)];
+}
+
+/**
  * Async Unified plugin to parse PDF content into an OoxmlRoot AST.
  * Aims to extract text with basic styles, and images with positions.
  */
@@ -160,7 +176,7 @@ import type { FromPdfOptions } from "../types";
  * Follows unified.js naming convention (like fromXml, fromMarkdown)
  */
 export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
-  options: FromPdfOptions = {},
+  _options: FromPdfOptions = {},
 ) => {
   return async (
     _tree: OoxmlRoot | undefined, // Input tree is ignored, but type should match return
@@ -278,22 +294,6 @@ export const pdfToOoxast: Plugin<[FromPdfOptions?], OoxmlRoot | undefined> = (
         /**
          * Convert CMYK color values to RGB approximation
          * This is a simplified conversion - real-world CMYK to RGB requires color profiles
-         */
-        function cmykToRgb(
-          c: number,
-          m: number,
-          y: number,
-          k: number,
-        ): [number, number, number] {
-          // Convert CMYK (0-1) to RGB (0-1) using basic formula
-          const r = 1 - Math.min(1, c * (1 - k) + k);
-          const g = 1 - Math.min(1, m * (1 - k) + k);
-          const b = 1 - Math.min(1, y * (1 - k) + k);
-          return [r, g, b];
-        }
-
-        /**
-         * Convert color array to hex string based on color space
          */
         function colorToHex(color: number[], colorSpace: string): string {
           if (colorSpace === "DeviceGray") {

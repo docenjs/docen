@@ -62,7 +62,6 @@ function parseBasicHtml(
   // Simplified: This basic parser assumes tags directly adjacent or separated by processable text
 
   while (match !== null) {
-    const fullMatch = match[0];
     const tagPart = match[1];
     const tagName = match[2]?.toLowerCase() as "u" | "sub" | "sup" | undefined;
     const textPart = match[3];
@@ -682,7 +681,7 @@ function convertMdastNodeToOoxml(
     const codeContent = node.value || "";
     const lines = codeContent.split("\\n");
 
-    lines.forEach((line, index) => {
+    lines.forEach((line) => {
       const codeRun = x("w:r", {}, [
         x("w:t", { "xml:space": "preserve" }, line),
       ]);

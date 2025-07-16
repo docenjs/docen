@@ -40,7 +40,7 @@
   "dependencies": {
     "fflate": "0.8.2",
     "file-type": "21.0.0",
-    "lib0": "0.2.108",
+    "lib0": "0.2.111",
     "mime-db": "1.54.0",
     "pathe": "2.0.3",
     "y-protocols": "1.0.6",

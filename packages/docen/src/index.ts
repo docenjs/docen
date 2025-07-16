@@ -13,7 +13,7 @@ import type { DocenProcessor } from "@docen/core";
 /**
  * Create a format processor
  */
-export function docen(format: string): DocenProcessor {
+export function docen(_format: string): DocenProcessor {
   // For now, create a basic processor
   // Format-specific logic will be implemented later
   return createProcessor();
@@ -34,7 +34,7 @@ docen.containers = {
   /**
    * Load an existing container from data
    */
-  load(data: Uint8Array): Container {
+  load(_data: Uint8Array): Container {
     // This will be implemented to parse container data
     throw new Error("Container loading not yet implemented");
   },
@@ -42,7 +42,7 @@ docen.containers = {
   /**
    * Save a container to data
    */
-  save(container: Container): Uint8Array {
+  save(_container: Container): Uint8Array {
     // This will be implemented to serialize container
     throw new Error("Container saving not yet implemented");
   },

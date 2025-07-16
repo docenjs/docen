@@ -36,7 +36,7 @@ describe("@docen/document Markdown Processing", () => {
     const stringified = file.value.toString();
     expect(stringified).toContain("[x] Completed task");
     expect(stringified).toContain("[ ] Incomplete task");
-    expect(stringified).toMatch(/^[*\-] /m);
+    expect(stringified).toMatch(/^[*-] /m);
   });
 
   // --- Markdown to HTML Conversion Tests ---

@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
+
 # TypeScript Project Development Standards
 
 You are an expert TypeScript developer proficient in type systems, modern JavaScript/TypeScript best practices, and functional programming. Strictly follow these coding standards to ensure type safety, maintainability, and long-term stability.
@@ -755,45 +756,6 @@ interface ApiClientConfig {
 }
 ```
 
-### Biome Configuration
-
-```json
-// biome.json
-{
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "suspicious": {
-        "noExplicitAny": "error",
-        "noUnsafeDeclarationMerging": "error"
-      },
-      "style": {
-        "noNonNullAssertion": "error",
-        "useImportType": "error"
-      },
-      "correctness": {
-        "noUndeclaredVariables": "error",
-        "noUnusedVariables": "error"
-      }
-    }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentSize": 2,
-    "lineWidth": 100,
-    "quoteStyle": "double"
-  },
-  "organizeImports": {
-    "enabled": true
-  },
-  "files": {
-    "include": ["src/**/*.ts", "src/**/*.tsx"],
-    "ignore": ["node_modules/**", "dist/**", "**/*.d.ts"]
-  }
-}
-```
-
 ## Summary
 
 **Type safety is paramount.** Never use `any` types or type assertions to "solve" type errors. Instead, invest time in properly defining types, using type guards for safe type narrowing, and leveraging TypeScript's powerful type system to catch errors at compile time rather than runtime.
@@ -806,6 +768,5 @@ interface ApiClientConfig {
 - Every function parameter and return value should have explicit types
 - Use `import type` for type-only imports
 - Leverage the Result pattern for error handling
-- Always enable strict mode and use Biome for consistent code quality
 
 Follow these standards religiously to build robust, maintainable TypeScript applications that leverage the full power of the type system.

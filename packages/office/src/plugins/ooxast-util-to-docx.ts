@@ -804,9 +804,7 @@ export const ooxastToDocx: Plugin<
             children.push(...resolvedItemChildren.flat()); // Flatten the array of arrays
           } else if (data.ooxmlType === "table") {
             const tableProps = properties as TableProperties;
-            const tableRows: TableRow[] = [];
             let tableGridElement: OoxmlElement | undefined;
-            const gridCols: number[] = [];
 
             // Find grid and row elements using ooxmlType instead of XML names
             for (const child of element.children ?? []) {
@@ -826,12 +824,12 @@ export const ooxastToDocx: Plugin<
                         | { width?: { value: number } }
                         | undefined;
                       if (gcProps?.width?.value) {
-                        gridCols.push(gcProps.width.value);
+                        // gridCols.push(gcProps.width.value); // This line is removed
                       }
                     }
                   }
                   console.log(
-                    `${indent}  Found tableGrid with ${gridCols.length} columns.`,
+                    `${indent}  Found tableGrid with ${tableGridElement.children?.length || 0} columns.`,
                   );
                 }
               }
@@ -845,8 +843,6 @@ export const ooxastToDocx: Plugin<
                   (child.data as OoxmlData)?.ooxmlType === "tableRow",
               )
               .map(async (rowElement) => {
-                const tableCells: TableCell[] = [];
-
                 const cellPromises = (
                   (rowElement as OoxmlElement).children || []
                 )
@@ -914,8 +910,6 @@ export const ooxastToDocx: Plugin<
               (r) => r !== null,
             ) as TableRow[];
 
-            // Use gridCols length if available, otherwise fallback to 1
-            const columnCount = gridCols.length > 0 ? gridCols.length : 1;
             if (resolvedRows.length > 0) {
               const tempTableOpts: Record<string, unknown> = {
                 rows: resolvedRows,

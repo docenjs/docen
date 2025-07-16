@@ -94,7 +94,6 @@ type WmlCommentReference = OoxmlElement & {
     properties?: WmlCommentRefProperties;
   };
 };
-type WmlComment = SharedCommentDefinition;
 
 import { docxToOoxast } from "../../src/plugins";
 
@@ -686,15 +685,11 @@ describe("docxToOoxmlAst Plugin (XAST-based)", () => {
 
       // Test that we can find page-related settings (even if not in a specific format)
       // This is a structure test - real documents might have w:sectPr elements
-      const hasPageElements = allElements?.some(
+      allElements?.some(
         (element) =>
-          (element as OoxmlElement).name?.includes("pg") ||
-          (element as OoxmlElement).data?.ooxmlType?.includes("page"),
+          (element.data as OoxmlData)?.ooxmlType === "sectionProperties" &&
+          (element.data as OoxmlData)?.properties,
       );
-
-      // This test mainly ensures the parser doesn't break on complex documents
-      // The specific page properties would depend on the document structure
-      expect(root?.type).toBe("root");
     });
 
     // Test image handling

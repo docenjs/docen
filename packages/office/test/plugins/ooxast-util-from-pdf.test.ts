@@ -30,9 +30,6 @@ type WmlText = OoxmlText & {
 type WmlHyperlink = OoxmlElement & {
   data?: OoxmlData & { ooxmlType: "hyperlink"; url?: string };
 };
-type DmlDrawing = OoxmlElement & {
-  data?: OoxmlData & { ooxmlType: "drawing" };
-}; // Simplified for PDF test
 
 // Helper function to process a PDF file and get the AST
 async function parsePdfFile(fileName: string): Promise<OoxmlRoot | undefined> {
@@ -59,6 +56,12 @@ async function parsePdfFile(fileName: string): Promise<OoxmlRoot | undefined> {
 
   return ast;
 }
+
+// Type guard to check if data is OoxmlData and has the correct ooxmlType
+const isOoxmlData = (data: unknown): data is OoxmlData =>
+  Boolean(
+    data && typeof data === "object" && data !== null && "ooxmlType" in data,
+  );
 
 describe("pdfToOoxmlAst Plugin Tests", () => {
   // Basic Paragraph Test
@@ -166,14 +169,6 @@ describe("pdfToOoxmlAst Plugin Tests", () => {
       (node: OoxmlNode): node is WmlHyperlink => {
         // Use OoxmlNode
         // Type guard to check if data is OoxmlData and has the correct ooxmlType
-        const isOoxmlData = (data: unknown): data is OoxmlData =>
-          Boolean(
-            data &&
-              typeof data === "object" &&
-              data !== null &&
-              "ooxmlType" in data,
-          );
-
         return (
           node.type === "element" &&
           (node as OoxmlElement).name === "hyperlink" && // Check name after type check

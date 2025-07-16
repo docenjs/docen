@@ -208,6 +208,7 @@ async function generatePdfFixtures() {
     } catch (e) {
       console.error(
         "Placeholder image not found. Skipping image fixture generation.",
+        e,
       );
       imageBytes = undefined;
     }

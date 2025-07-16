@@ -440,13 +440,14 @@ function resolveStyleChain(
     currentStyleProps = style.paragraphProperties;
   } else if (type === "character" && style.runProperties) {
     currentStyleProps = style.runProperties;
-  } else if (
-    type === "character" &&
-    style.type === "paragraph" &&
-    style.runProperties
-  ) {
-    // Paragraph style might define default run properties
-    currentStyleProps = style.runProperties;
+  }
+
+  if (style.basedOn) {
+    // Merge with parent style properties
+    const parentStyle = styles[style.basedOn];
+    if (parentStyle) {
+      currentStyleProps = defu(currentStyleProps, parentStyle);
+    }
   }
 
   return defu(currentStyleProps, baseStyleProps);
@@ -567,7 +568,7 @@ function parsePPr(pPrElement: OoxmlElement | undefined): ParagraphFormatting {
           ) as OoxmlElement | undefined;
           const numIdElement = child.children?.find((c): c is OoxmlElement =>
             is(c, { name: "w:numId" }),
-          ) as OoxmlElement | undefined;
+          );
           const ilvlVal = getAttribute(ilvlElement, "w:val");
           const numIdVal = getAttribute(numIdElement, "w:val");
           if (ilvlVal !== undefined && numIdVal !== undefined) {
@@ -1093,62 +1094,90 @@ async function parseCommentsXml(
   files: Record<string, Uint8Array>,
   context: TransformContext,
 ): Promise<Record<string, SharedCommentDefinition>> {
-  // Return SharedCommentDefinition
-  const commentsPath = "word/comments.xml";
-  const commentsMap: Record<string, SharedCommentDefinition> = {};
-  if (!files[commentsPath]) return commentsMap;
+  const commentsPartPath = "word/comments.xml";
+  if (!files[commentsPartPath]) return {};
 
-  try {
-    const xmlContent = strFromU8(files[commentsPath]);
-    const parsedCommentsData = fromXml(xmlContent) as OoxmlRoot;
-    const commentsRootElement = parsedCommentsData.children?.find(
-      (node): node is OoxmlElement => is(node, { name: "w:comments" }),
-    );
-    if (!commentsRootElement?.children) return commentsMap;
+  const comments: Record<string, SharedCommentDefinition> = {};
 
-    const commentEls = commentsRootElement.children.filter(
-      (node): node is OoxmlElement => is(node, { name: "w:comment" }),
-    );
+  const extractCommentsFromPart = (
+    xmlContent: string,
+    _context: TransformContext,
+  ): void => {
+    if (!xmlContent) return;
+    try {
+      const root = fromXml(xmlContent);
+      const commentsRootElement = root.children?.find(
+        (node): node is OoxmlElement => is(node, { name: "w:comments" }),
+      );
+      if (!commentsRootElement?.children) return;
 
-    for (const commentEl of commentEls) {
-      const id = getAttribute(commentEl, "w:id") || "";
-      if (!id) continue;
-      const author = getAttribute(commentEl, "w:author");
-      const initials = getAttribute(commentEl, "w:initials");
-      const dateStr = getAttribute(commentEl, "w:date");
+      const commentEls = commentsRootElement.children.filter(
+        (node): node is OoxmlElement => is(node, { name: "w:comment" }),
+      );
 
-      // Use visit to process children instead of manual traversal
-      const commentChildren: OoxmlElementContent[] = [];
-      // Temporarily using map for structure, visit is better for side effects
-      visit(commentEl, (node) => {
-        if (node !== commentEl) {
-          // Avoid processing the root comment element itself here
-          // Here, node is OoxmlNode from visit
-          if (
-            is(node, ["element", "text", "comment", "instruction", "cdata"])
-          ) {
-            // We need to enrich this node similar to the main traversal
-            // This requires passing context and handling recursively, or a simplified enrichment
-            // For now, just push the compatible node type (enrichment missing)
-            commentChildren.push(node as OoxmlElementContent);
-            return SKIP; // Avoid traversing children of pushed nodes here?
+      for (const commentEl of commentEls) {
+        const id = getAttribute(commentEl, "w:id") || "";
+        if (!id) continue;
+        const author = getAttribute(commentEl, "w:author");
+        const initials = getAttribute(commentEl, "w:initials");
+        const dateStr = getAttribute(commentEl, "w:date");
+
+        // Use visit to process children instead of manual traversal
+        const commentChildren: OoxmlElementContent[] = [];
+        // Temporarily using map for structure, visit is better for side effects
+        visit(commentEl, (node) => {
+          if (node !== commentEl) {
+            // Avoid processing the root comment element itself here
+            // Here, node is OoxmlNode from visit
+            if (
+              is(node, ["element", "text", "comment", "instruction", "cdata"])
+            ) {
+              // We need to enrich this node similar to the main traversal
+              // This requires passing context and handling recursively, or a simplified enrichment
+              // For now, just push the compatible node type (enrichment missing)
+              commentChildren.push(node as OoxmlElementContent);
+              return SKIP; // Avoid traversing children of pushed nodes here?
+            }
           }
-        }
-        return CONTINUE;
-      });
+          return CONTINUE;
+        });
 
-      commentsMap[id] = {
-        id: id,
-        author: author,
-        initials: initials,
-        date: dateStr,
-        children: commentChildren, // Content needs enrichment
-      };
+        comments[id] = {
+          id: id,
+          author: author,
+          initials: initials,
+          date: dateStr,
+          children: commentChildren, // Content needs enrichment
+        };
+      }
+    } catch (error) {
+      console.error("Error parsing comments.xml:", error);
     }
-  } catch (error) {
-    console.error("Error parsing comments.xml:", error);
+  };
+
+  if (context.customHandlers?.["comments"]) {
+    await context.customHandlers.comments(
+      {
+        type: "element",
+        name: "comments",
+        attributes: {},
+        children: [],
+        data: {
+          ooxmlType: "comments",
+          // Assuming the custom handler will provide the content
+          // For now, we'll just pass an empty string or a placeholder
+          // The actual content will be populated by the handler
+          properties: {},
+        },
+      },
+      context,
+    );
+  } else {
+    const xmlContent = strFromU8(files[commentsPartPath]);
+    extractCommentsFromPart(xmlContent, context);
   }
-  return commentsMap;
+
+  return comments;
 }
 
 // --- List Grouping Function (Modified to operate on parentElement.children) ---
@@ -1247,7 +1276,6 @@ function transformXastToOoxmlAst(
 
   // Store current paragraph and section context
   let currentParagraphProps: ParagraphFormatting | undefined = undefined;
-  let currentSectionProps: Record<string, unknown> | undefined = undefined;
 
   visit(root, (node, index, parent) => {
     if (!node.data) node.data = {};
@@ -1274,11 +1302,10 @@ function transformXastToOoxmlAst(
         // Parse section properties
         const sectProps = parseSectionProperties(element);
         nodeData.properties = sectProps;
-        currentSectionProps = sectProps;
         return CONTINUE;
       }
 
-      // Handle paragraph elements
+      // Handle paragraph-level elements
       if (tagName === "w:p") {
         const propElement = element.children?.find(
           (child) => is(child, "element") && child.name === "w:pPr",

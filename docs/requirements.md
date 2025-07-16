@@ -40,7 +40,6 @@ Standard Format -> Container -> Yjs Integration -> Collaborative Container
 The project follows a three-layer architecture with clear separation of concerns:
 
 1. **Core Module (@docen/core)**
-
    - Provides basic processor interface that extends unified.js
    - Defines fundamental types and interfaces
    - Implements factory functions for processor creation
@@ -48,7 +47,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - Uses unist/unified types with minimal extensions
 
 2. **Document Processing (@docen/document)**
-
    - **Pure format processing**: Markdown and HTML text document parsing
    - Uses remark and rehype processors following unified.js patterns
    - Provides adapters for syntax trees (mdast, hast)
@@ -57,7 +55,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - Handles linear text documents only (markdown, html, plain text)
 
 3. **Data Processing (@docen/data)**
-
    - **Pure data format processing**: JSON, YAML, CSV, TSV, XML parsing
    - Integrates with xast for XML processing following unified.js patterns
    - Provides format conversion between supported data formats
@@ -66,7 +63,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - Consistent AST representation for all data formats
 
 4. **Media Processing (@docen/media)**
-
    - **Independent media processing toolkit** (no collaboration)
    - Uses browser-compatible libraries (jimp-compact, sharp-wasm, ffmpeg-wasm)
    - Implements specialized media node types for unified.js pipeline integration
@@ -74,7 +70,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - Handles metadata extraction and manipulation
 
 5. **Office Document Processing (@docen/office)**
-
    - **Format detection and conversion hub**
    - Handles PDF documents using unpdf from UnJS
    - Processes legacy Office formats (DOC, XLS, PPT) - read-only
@@ -85,7 +80,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - **No collaboration code** - pure format conversion
 
 6. **Container Formats (@docen/containers)**
-
    - **Collaboration integration layer** - the only package with Yjs code
    - **Container specifications**: `.mdcx` (documents), `.dtcx` (data), `.ptcx` (presentations)
    - ZIP-based containers with embedded collaboration metadata
@@ -97,7 +91,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - Integrates with format packages for content processing
 
 7. **Custom Editor (@docen/editor)**
-
    - **Container-aware collaborative editor**
    - Builds on container formats (.mdcx, .dtcx, .ptcx) for collaboration
    - **Format-specific UI**: Different interfaces for documents, data, presentations
@@ -106,7 +99,6 @@ The project follows a three-layer architecture with clear separation of concerns
    - Handles input processing and user interactions per format type
 
 8. **Providers (@docen/providers)**
-
    - **Transport layer** for Yjs collaboration
    - Implements transport providers (WebSocket, WebRTC, IndexedDB)
    - **Container-agnostic**: Works with any Yjs document from containers

@@ -243,6 +243,7 @@ async function generateFixtures() {
   } catch (e) {
     console.error(
       "Placeholder image not found. Skipping image fixture generation.",
+      e,
     );
     imageData = Buffer.from(""); // Provide empty buffer to avoid crash
   }

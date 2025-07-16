@@ -139,7 +139,7 @@ export class BasicPluginDiscovery implements PluginDiscovery {
   /**
    * Scan a directory for plugins
    */
-  async scanPlugins(path: string): Promise<Plugin[]> {
+  async scanPlugins(_path: string): Promise<Plugin[]> {
     // Basic implementation - just return registered plugins
     return [...this.plugins];
   }

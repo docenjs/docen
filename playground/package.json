@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@docen/core": "workspace:*",
-    "@docen/document": "workspace:*"
+    "@docen/document": "workspace:*",
+    "docx": "9.5.1"
   }
 }
