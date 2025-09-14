@@ -128,12 +128,3 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
-
-# nuxt v3
-.output
-
-# tauri
-target
-
-# draft
-*.draft*

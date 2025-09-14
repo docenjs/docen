@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+<w:body>
+    <w:bookmarkStart w:id="14" w:name="X74cb8b6de62ee570588755ff5f61f741681a671" />
+    <w:p><w:pPr><w:pStyle w:val="Heading1" /></w:pPr><w:r><w:t xml:space="preserve">Comprehensive WordML Styling Test Document</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="12" w:name="text-formatting-examples" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Text Formatting Examples</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="9" w:name="basic-text-styles" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Basic Text Styles</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">This is</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:b /><w:bCs /></w:rPr><w:t xml:space="preserve">bold text</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">and this is</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:i /><w:iCs /></w:rPr><w:t xml:space="preserve">italic text</w:t></w:r><w:r><w:t xml:space="preserve">. Here’s some</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:b /><w:bCs /><w:i /><w:iCs /></w:rPr><w:t xml:space="preserve">bold italic</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">text.</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">You can also use</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:b /><w:bCs /></w:rPr><w:t xml:space="preserve">bold</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">and</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:i /><w:iCs /></w:rPr><w:t xml:space="preserve">italic</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">alternatives.</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="9" />
+    <w:bookmarkStart w:id="10" w:name="inline-code-and-superscriptsubscript" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Inline Code and Superscript/Subscript</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">This is</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">inline code</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">text. Here’s H</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="subscript" /></w:rPr><w:t xml:space="preserve">2</w:t></w:r><w:r><w:t xml:space="preserve">O for subscript and x</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="superscript" /></w:rPr><w:t xml:space="preserve">2</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">for superscript.</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="10" />
+    <w:bookmarkStart w:id="11" w:name="strikethrough-and-underline" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Strikethrough and Underline</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:rPr><w:strike /></w:rPr><w:t xml:space="preserve">Strikethrough text</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">and</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">underlined text</w:t></w:r><w:r><w:t xml:space="preserve">.</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="11" />
+    <w:bookmarkEnd w:id="12" />
+    <w:bookmarkStart w:id="13" w:name="headers-and-structure" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Headers and Structure</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="13" />
+    <w:bookmarkEnd w:id="14" />
+    <w:bookmarkStart w:id="55" w:name="level-1-header" />
+    <w:p><w:pPr><w:pStyle w:val="Heading1" /></w:pPr><w:r><w:t xml:space="preserve">Level 1 Header</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="19" w:name="level-2-header" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Level 2 Header</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="18" w:name="level-3-header" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Level 3 Header</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="17" w:name="level-4-header" />
+    <w:p><w:pPr><w:pStyle w:val="Heading4" /></w:pPr><w:r><w:t xml:space="preserve">Level 4 Header</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="16" w:name="level-5-header" />
+    <w:p><w:pPr><w:pStyle w:val="Heading5" /></w:pPr><w:r><w:t xml:space="preserve">Level 5 Header</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="15" w:name="level-6-header" />
+    <w:p><w:pPr><w:pStyle w:val="Heading6" /></w:pPr><w:r><w:t xml:space="preserve">Level 6 Header</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="15" />
+    <w:bookmarkEnd w:id="16" />
+    <w:bookmarkEnd w:id="17" />
+    <w:bookmarkEnd w:id="18" />
+    <w:bookmarkEnd w:id="19" />
+    <w:bookmarkStart w:id="23" w:name="lists" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Lists</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="20" w:name="unordered-lists" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Unordered Lists</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1001" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">First item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1001" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Second item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="1" /><w:numId w:val="1002" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Nested item 1</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="1" /><w:numId w:val="1002" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Nested item 2</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="2" /><w:numId w:val="1003" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Deeply nested item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1001" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Third item</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="20" />
+    <w:bookmarkStart w:id="21" w:name="ordered-lists" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Ordered Lists</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1004" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">First numbered item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1004" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Second numbered item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="1" /><w:numId w:val="1005" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Nested numbered item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="1" /><w:numId w:val="1005" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Another nested item</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1004" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Third numbered item</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="21" />
+    <w:bookmarkStart w:id="22" w:name="task-lists" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Task Lists</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1006" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Completed task</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1007" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Incomplete task</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1008" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Another pending task</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="22" />
+    <w:bookmarkEnd w:id="23" />
+    <w:bookmarkStart w:id="27" w:name="tables" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Tables</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="24" w:name="simple-table" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Simple Table</w:t></w:r></w:p>
+    <w:tbl><w:tblPr><w:tblStyle w:val="Table" /><w:tblW w:type="auto" w:w="0" /><w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0" w:val="0020" /></w:tblPr><w:tblGrid><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /></w:tblGrid><w:tr><w:trPr><w:tblHeader w:val="on" /></w:trPr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Header 1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Header 2</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Header 3</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Cell 1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Cell 2</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Cell 3</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Row 2</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Data</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">More data</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Row 3</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Final</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Row</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+    <w:bookmarkEnd w:id="24" />
+    <w:bookmarkStart w:id="25" w:name="complex-table-with-alignment" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Complex Table with Alignment</w:t></w:r></w:p>
+    <w:tbl><w:tblPr><w:tblStyle w:val="Table" /><w:tblW w:type="auto" w:w="0" /><w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0" w:val="0020" /></w:tblPr><w:tblGrid><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /></w:tblGrid><w:tr><w:trPr><w:tblHeader w:val="on" /></w:trPr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="left" /></w:pPr><w:r><w:t xml:space="preserve">Left Aligned</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="center" /></w:pPr><w:r><w:t xml:space="preserve">Center Aligned</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="right" /></w:pPr><w:r><w:t xml:space="preserve">Right Aligned</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="left" /></w:pPr><w:r><w:t xml:space="preserve">Apple</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="center" /></w:pPr><w:r><w:t xml:space="preserve">Banana</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="right" /></w:pPr><w:r><w:t xml:space="preserve">Cherry</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="left" /></w:pPr><w:r><w:t xml:space="preserve">Dog</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="center" /></w:pPr><w:r><w:t xml:space="preserve">Elephant</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="right" /></w:pPr><w:r><w:t xml:space="preserve">Fox</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="left" /></w:pPr><w:r><w:t xml:space="preserve">Grape</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="center" /></w:pPr><w:r><w:t xml:space="preserve">Honeydew</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /><w:jc w:val="right" /></w:pPr><w:r><w:t xml:space="preserve">Kiwi</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+    <w:bookmarkEnd w:id="25" />
+    <w:bookmarkStart w:id="26" w:name="table-with-merging-simulated" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Table with Merging (simulated)</w:t></w:r></w:p>
+    <w:tbl><w:tblPr><w:tblStyle w:val="Table" /><w:tblW w:type="auto" w:w="0" /><w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0" w:val="0020" /></w:tblPr><w:tblGrid><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /></w:tblGrid><w:tr><w:trPr><w:tblHeader w:val="on" /></w:trPr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Category</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Items</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Notes</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Fruits</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Apple, Banana</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Sweet</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Orange, Grape</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Citrus</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Vegetables</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Carrot, Broccoli</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Healthy</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+    <w:bookmarkEnd w:id="26" />
+    <w:bookmarkEnd w:id="27" />
+    <w:bookmarkStart w:id="28" w:name="blockquotes" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Blockquotes</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BlockText" /></w:pPr><w:r><w:t xml:space="preserve">This is a simple blockquote.</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BlockText" /></w:pPr><w:r><w:t xml:space="preserve">This blockquote spans multiple lines</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">and can contain</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:b /><w:bCs /></w:rPr><w:t xml:space="preserve">formatted text</w:t></w:r><w:r><w:t xml:space="preserve">.</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BlockText" /></w:pPr><w:r><w:t xml:space="preserve">Nested blockquotes are also possible:</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">&gt; This is a nested blockquote</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">&gt;</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">&gt; With its own formatting</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="28" />
+    <w:bookmarkStart w:id="31" w:name="code-blocks" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Code Blocks</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="29" w:name="regular-code-block" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Regular Code Block</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="SourceCode" /></w:pPr><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">function helloWorld() {</w:t></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">    console.log(&quot;Hello, World!&quot;);</w:t></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">    return &quot;Success&quot;;</w:t></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">}</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="29" />
+    <w:bookmarkStart w:id="30" w:name="code-block-with-syntax-highlighting" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Code Block with Syntax Highlighting</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="SourceCode" /></w:pPr><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">def calculate_sum(a, b):</w:t></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">    &quot;&quot;&quot;Calculate the sum of two numbers.&quot;&quot;&quot;</w:t></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">    return a + b</w:t></w:r><w:r><w:br /></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">result = calculate_sum(5, 3)</w:t></w:r><w:r><w:br /></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">print(f&quot;The result is: {result}&quot;)</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="30" />
+    <w:bookmarkEnd w:id="31" />
+    <w:bookmarkStart w:id="34" w:name="links-and-references" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Links and References</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:hyperlink r:id="rId32"><w:r><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t xml:space="preserve">External Link</w:t></w:r></w:hyperlink></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BodyText" /></w:pPr><w:hyperlink r:id="rId33"><w:r><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t xml:space="preserve">Reference Link</w:t></w:r></w:hyperlink></w:p>
+    <w:bookmarkEnd w:id="34" />
+    <w:bookmarkStart w:id="35" w:name="images" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Images</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Sample Image</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">Logo</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="35" />
+    <w:bookmarkStart w:id="36" w:name="horizontal-rules" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Horizontal Rules</w:t></w:r></w:p>
+    <w:p><w:r><w:pict><v:rect style="width:0;height:1.5pt" o:hralign="center" o:hrstd="t" o:hr="t" /></w:pict></w:r></w:p>
+    <w:p><w:r><w:pict><v:rect style="width:0;height:1.5pt" o:hralign="center" o:hrstd="t" o:hr="t" /></w:pict></w:r></w:p>
+    <w:p><w:r><w:pict><v:rect style="width:0;height:1.5pt" o:hralign="center" o:hrstd="t" o:hr="t" /></w:pict></w:r></w:p>
+    <w:bookmarkEnd w:id="36" />
+    <w:bookmarkStart w:id="39" w:name="footnotes" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Footnotes</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Here’s some text with a footnote</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference" /></w:rPr><w:footnoteReference w:id="37" /></w:r><w:r><w:t xml:space="preserve">.</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BodyText" /></w:pPr><w:r><w:t xml:space="preserve">And another footnote</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference" /></w:rPr><w:footnoteReference w:id="38" /></w:r><w:r><w:t xml:space="preserve">.</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="39" />
+    <w:bookmarkStart w:id="40" w:name="definition-lists" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Definition Lists</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="DefinitionTerm" /></w:pPr><w:r><w:t xml:space="preserve">Term 1</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Definition" /></w:pPr><w:r><w:t xml:space="preserve">Definition 1</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="DefinitionTerm" /></w:pPr><w:r><w:t xml:space="preserve">Term 2</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Definition" /></w:pPr><w:r><w:t xml:space="preserve">Definition 2 with more detail</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Definition" /></w:pPr><w:r><w:t xml:space="preserve">And additional details</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="40" />
+    <w:bookmarkStart w:id="41" w:name="mathematical-expressions-if-supported" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Mathematical Expressions (if supported)</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Inline math:</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><m:oMath><m:r><m:t>E</m:t></m:r><m:r><m:rPr><m:sty m:val="p" /></m:rPr><m:t>=</m:t></m:r><m:r><m:t>m</m:t></m:r><m:sSup><m:e><m:r><m:t>c</m:t></m:r></m:e><m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup></m:oMath></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BodyText" /></w:pPr><w:r><w:t xml:space="preserve">Block math:</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="BodyText" /></w:pPr><m:oMathPara><m:oMathParaPr><m:jc m:val="center" /></m:oMathParaPr><m:oMath><m:f><m:fPr><m:type m:val="bar" /></m:fPr><m:num><m:r><m:t>d</m:t></m:r></m:num><m:den><m:r><m:t>d</m:t></m:r><m:r><m:t>x</m:t></m:r></m:den></m:f><m:r><m:rPr><m:sty m:val="p" /></m:rPr><m:t>(</m:t></m:r><m:sSup><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sup><m:r><m:t>n</m:t></m:r></m:sup></m:sSup><m:r><m:rPr><m:sty m:val="p" /></m:rPr><m:t>)</m:t></m:r><m:r><m:rPr><m:sty m:val="p" /></m:rPr><m:t>=</m:t></m:r><m:r><m:t>n</m:t></m:r><m:sSup><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sup><m:r><m:t>n</m:t></m:r><m:r><m:rPr><m:sty m:val="p" /></m:rPr><m:t>−</m:t></m:r><m:r><m:t>1</m:t></m:r></m:sup></m:sSup></m:oMath></m:oMathPara></w:p>
+    <w:bookmarkEnd w:id="41" />
+    <w:bookmarkStart w:id="45" w:name="advanced-text-formatting" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Advanced Text Formatting</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="42" w:name="text-colors" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Text Colors</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Red text</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">Blue text</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">Green text</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="42" />
+    <w:bookmarkStart w:id="43" w:name="background-colors" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Background Colors</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Yellow background</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">Light gray background</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="43" />
+    <w:bookmarkStart w:id="44" w:name="font-sizes" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Font Sizes</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Small text</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">Large text</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="44" />
+    <w:bookmarkEnd w:id="45" />
+    <w:bookmarkStart w:id="46" w:name="special-characters-and-unicode" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Special Characters and Unicode</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">© Copyright symbol</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">® Registered trademark</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">™ Trademark</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">• Bullet point</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">→ Arrow</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">✓ Check mark</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">✗ Cross mark</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="46" />
+    <w:bookmarkStart w:id="49" w:name="document-structure-examples" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Document Structure Examples</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="47" w:name="toc-table-of-contents" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">TOC (Table of Contents)</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">[TOC]</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="47" />
+    <w:bookmarkStart w:id="48" w:name="page-break-if-supported" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Page Break (if supported)</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="48" />
+    <w:bookmarkEnd w:id="49" />
+    <w:bookmarkStart w:id="53" w:name="mixed-content-example" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Mixed Content Example</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">Here’s a paragraph that combines</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:b /><w:bCs /></w:rPr><w:t xml:space="preserve">bold text</w:t></w:r><w:r><w:t xml:space="preserve">,</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:i /><w:iCs /></w:rPr><w:t xml:space="preserve">italic text</w:t></w:r><w:r><w:t xml:space="preserve">,</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">code snippets</w:t></w:r><w:r><w:t xml:space="preserve">, and</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:hyperlink r:id="rId50"><w:r><w:rPr><w:rStyle w:val="Hyperlink" /></w:rPr><w:t xml:space="preserve">links</w:t></w:r></w:hyperlink><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">all in one place. It also includes a footnote</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference" /></w:rPr><w:footnoteReference w:id="51" /></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t xml:space="preserve">for additional information.</w:t></w:r></w:p>
+    <w:bookmarkStart w:id="52" w:name="lists-within-tables" />
+    <w:p><w:pPr><w:pStyle w:val="Heading3" /></w:pPr><w:r><w:t xml:space="preserve">Lists within Tables</w:t></w:r></w:p>
+    <w:tbl><w:tblPr><w:tblStyle w:val="Table" /><w:tblW w:type="auto" w:w="0" /><w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0" w:val="0020" /></w:tblPr><w:tblGrid><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /><w:gridCol w:w="2640" /></w:tblGrid><w:tr><w:trPr><w:tblHeader w:val="on" /></w:trPr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Feature</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Status</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Examples</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Text Formatting</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">✅ Complete</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:rPr><w:b /><w:bCs /></w:rPr><w:t xml:space="preserve">Bold</w:t></w:r><w:r><w:t xml:space="preserve">,</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:i /><w:iCs /></w:rPr><w:t xml:space="preserve">Italic</w:t></w:r><w:r><w:t xml:space="preserve">,</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:rStyle w:val="VerbatimChar" /></w:rPr><w:t xml:space="preserve">Code</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Lists</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">✅ Complete</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">• Ordered</w:t></w:r><w:r><w:t xml:space="preserve">• Unordered</w:t></w:r><w:r><w:t xml:space="preserve">• Tasks</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Tables</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">✅ Complete</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Multiple layouts</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">Images</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">⚠️ Partial</w:t></w:r></w:p></w:tc><w:tc><w:tcPr /><w:p><w:pPr><w:pStyle w:val="Compact" /></w:pPr><w:r><w:t xml:space="preserve">External links only</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+    <w:bookmarkEnd w:id="52" />
+    <w:bookmarkEnd w:id="53" />
+    <w:bookmarkStart w:id="54" w:name="final-section" />
+    <w:p><w:pPr><w:pStyle w:val="Heading2" /></w:pPr><w:r><w:t xml:space="preserve">Final Section</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">This document demonstrates the full range of markdown formatting capabilities that should be properly converted to WordML format. It includes:</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">All header levels</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Various text formatting options</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Complex table structures</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Different list types</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Code blocks with syntax highlighting</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Images and links</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Mathematical expressions</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Special characters and Unicode</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr><w:ilvl w:val="0" /><w:numId w:val="1009" /></w:numPr></w:pPr><w:r><w:t xml:space="preserve">Mixed content scenarios</w:t></w:r></w:p>
+    <w:p><w:pPr><w:pStyle w:val="FirstParagraph" /></w:pPr><w:r><w:t xml:space="preserve">End of test document.</w:t></w:r></w:p>
+    <w:bookmarkEnd w:id="54" />
+    <w:bookmarkEnd w:id="55" />
+    <w:sectPr>
+      <w:footnotePr>
+        
+                
+        <w:numRestart w:val="eachSect" />
+        
+              
+      </w:footnotePr>
+    </w:sectPr>
+  </w:body>
+</w:document>

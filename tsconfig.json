@@ -9,12 +9,14 @@
     "target": "ESNext",
     "paths": {
       "docen": ["./packages/docen/src/index.ts"],
-      "@docen/core": ["./packages/core/src/index.ts"],
-      "@docen/document": ["./packages/document/src/index.ts"],
-      "@docen/office": ["./packages/office/src/index.ts"],
-      "@docen/media": ["./packages/media/src/index.ts"],
-      "@docen/providers": ["./packages/providers/src/index.ts"],
-      "@docen/data": ["./packages/data/src/index.ts"]
+      "@docen/ooxast": ["./packages/ooxast/src/index.ts"],
+      "@docen/wmlast": ["./packages/wmlast/src/index.ts"],
+      "@docen/smlast": ["./packages/smlast/src/index.ts"],
+      "@docen/pmlast": ["./packages/pmlast/src/index.ts"],
+      "@docen/wmlast-util-from-docx": [
+        "./packages/wmlast-util-from-docx/src/index.ts"
+      ]
     }
-  }
+  },
+  "exclude": ["**/node_modules/**/*", "**/dist/**/*"]
 }

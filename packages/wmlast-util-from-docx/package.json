@@ -1,0 +1,53 @@
+{
+  "name": "@docen/wmlast-util-from-docx",
+  "version": "0.0.0",
+  "description": "Utility to convert DOCX documents to WordML AST (wmlast)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "ooxml",
+    "office",
+    "word",
+    "docx",
+    "ast",
+    "wmlast",
+    "xml",
+    "typescript",
+    "syntax-tree",
+    "unist",
+    "parser",
+    "converter"
+  ],
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@docen/ooxast": "workspace:*",
+    "@docen/wmlast": "workspace:*",
+    "fflate": "0.8.2",
+    "xast-util-from-xml": "4.0.0"
+  }
+}

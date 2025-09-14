@@ -6,7 +6,8 @@ export default defineBasisConfig({
       "*": "pnpm lint",
     },
     project: {
-      check: "pnpm oxlint --fix --fix-suggestions -D suspicious",
+      check:
+        "pnpm oxlint --fix --fix-suggestions -D suspicious --type-aware && tsc --noEmit --skipLibCheck",
       format:
         "pnpm prettier --write --list-different . --ignore-path .gitignore --plugin=@prettier/plugin-oxc",
     },

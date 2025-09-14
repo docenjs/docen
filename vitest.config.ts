@@ -29,14 +29,14 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "."),
       docen: resolve(__dirname, "./packages/docen/src"),
-      "@docen/core": resolve(__dirname, "./packages/core/src"),
-      "@docen/document": resolve(__dirname, "./packages/document/src"),
-      "@docen/data": resolve(__dirname, "./packages/data/src"),
-      "@docen/media": resolve(__dirname, "./packages/media/src"),
-      "@docen/office": resolve(__dirname, "./packages/office/src"),
-      "@docen/containers": resolve(__dirname, "./packages/containers/src"),
-      "@docen/editor": resolve(__dirname, "./packages/editor/src"),
-      "@docen/providers": resolve(__dirname, "./packages/providers/src"),
+      "@docen/ooxast": resolve(__dirname, "./packages/ooxast/src"),
+      "@docen/wmlast": resolve(__dirname, "./packages/wmlast/src"),
+      "@docen/smlast": resolve(__dirname, "./packages/smlast/src"),
+      "@docen/pmlast": resolve(__dirname, "./packages/pmlast/src"),
+      "@docen/wmlast-util-from-docx": resolve(
+        __dirname,
+        "./packages/wmlast-util-from-docx/src",
+      ),
     },
   },
 });

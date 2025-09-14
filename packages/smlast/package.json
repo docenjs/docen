@@ -1,0 +1,50 @@
+{
+  "name": "@docen/smlast",
+  "version": "0.0.0",
+  "description": "SpreadsheetML AST type definitions for Excel documents - extends ooxast with SML-specific types",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "ooxml",
+    "office",
+    "excel",
+    "xlsx",
+    "ast",
+    "xast",
+    "xml",
+    "typescript",
+    "syntax-tree",
+    "spreadsheetml",
+    "unist",
+    "sml"
+  ],
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@docen/ooxast": "workspace:*"
+  }
+}

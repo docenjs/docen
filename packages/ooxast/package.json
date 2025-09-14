@@ -1,0 +1,54 @@
+{
+  "name": "@docen/ooxast",
+  "version": "0.0.0",
+  "description": "Shared OOXML AST type definitions and constants for DrawingML components - base package for WordprocessingML, SpreadsheetML, and PresentationML",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "ooxml",
+    "office",
+    "word",
+    "excel",
+    "powerpoint",
+    "docx",
+    "xlsx",
+    "pptx",
+    "ast",
+    "xast",
+    "xml",
+    "typescript",
+    "syntax-tree",
+    "drawingml",
+    "unist",
+    "shared-types"
+  ],
+  "author": {
+    "name": "Demo Macro",
+    "email": "abc@imst.xyz",
+    "url": "https://imst.xyz/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@types/xast": "2.0.4"
+  }
+}
